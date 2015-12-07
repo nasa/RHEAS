@@ -33,9 +33,9 @@ extensions = [
     'sphinx.ext.pngmath',
     'sphinx.ext.viewcode',
     'sphinx.ext.graphviz',
-    'sphinx.ext.inheritance_diagram',
-    'sphinxcontrib.programoutput',
-    'sphinxcontrib.plantuml'
+    'sphinx.ext.inheritance_diagram'
+    # 'sphinxcontrib.programoutput',
+    # 'sphinxcontrib.plantuml'
 ]
 
 # Set PlantUML path
