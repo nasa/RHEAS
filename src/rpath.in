@@ -1,0 +1,11 @@
+""" Path variables, set during RHEAS installation
+
+   :synopsis: Path variables
+
+.. moduleauthor:: Kostas Andreadis <kandread@jpl.nasa.gov>
+
+"""
+
+
+data = '${buildout:directory}/data'
+bins = '${buildout:directory}/bin'
