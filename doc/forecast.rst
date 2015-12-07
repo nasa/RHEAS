@@ -25,7 +25,7 @@ As any RHEAS simulation, we begin by creating a configuration file. In your favo
 
 .. compound::
 
-Let's also assume that we have a shapefile of the study domain (the sample data contain such a file in the ``data/tests`` directory). Moreover, let's set the name of the simulation (that name will be useful to retrieve the output from the database). ::
+   Let's also assume that we have a shapefile of the study domain (the sample data contain such a file in the ``data/tests`` directory). Moreover, let's set the name of the simulation (that name will be useful to retrieve the output from the database). ::
 
     [forecast]
     model: vic, dssat

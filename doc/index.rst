@@ -4,7 +4,8 @@
    contain the root `toctree` directive.
 
 Welcome to the RHEAS documentation!
-=================================
+=========================================
+
 The Regional Hydrologic Extremes Assessment System (RHEAS) is a hydrologic nowcast and forecast framework developed at the NASA Jet Propulsion Laboratory. 
 
 Contents:

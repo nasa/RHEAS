@@ -20,9 +20,9 @@ Multiple remote sensing datasets can be ingested into the database and are avail
 .. _database:
 
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
-|Variable          |Dataset  |Time      |    Temporal     |Spatial          |Spatial Coverage|Table           |Mode  |
-|                  |         |Coverage  |   Resolution    |Resolution       |                |                |      |
-+==================+=========+==========+-----------------+=================+----------------+================+======+
+|Variable          |Dataset  |Time      |Temporal         |Spatial          |Spatial Coverage|Table           |Mode  |
+|                  |         |Coverage  |Resolution       |Resolution       |                |                |      |
++==================+=========+==========+=================+=================+================+================+======+
 |Precipitation     |CHIRPS   |  1981-   |      Daily      |      5km        |     Africa     |precip.chirps   |  IN  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
 |Precipitation     |TRMM     |  1998-   |      Daily      |      ~25km      |     Global     |precip.trmm     |  IN  |
