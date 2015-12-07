@@ -1,0 +1,270 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Populating the configuration file &mdash; RHEAS 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="RHEAS 0.1 documentation" href="index.html" />
+    <link rel="next" title="Running a nowcast" href="nowcast.html" />
+    <link rel="prev" title="The RHEAS database" href="database.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="nowcast.html" title="Running a nowcast"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="database.html" title="The RHEAS database"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">RHEAS 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="populating-the-configuration-file">
+<h1>Populating the configuration file<a class="headerlink" href="#populating-the-configuration-file" title="Permalink to this headline">¶</a></h1>
+<p>The configuration file follows the <a class="reference external" href="http://en.wikipedia.org/wiki/INI_file">INI</a> format to allow for simplicity. When running the RHEAS executable, the configuration file is the only position argument while the database name needs to be provided with the <code class="docutils literal"><span class="pre">-d</span></code> switch.</p>
+<p>Running RHEAS with the help switch</p>
+<div class="highlight-bash"><div class="highlight"><pre>./rheas -h
+</pre></div>
+</div>
+<div class="compound">
+<p class="compound-first">produces the proper usage command</p>
+<div class="compound-last highlight-bash"><div class="highlight"><pre>usage: rheas.py <span class="o">[</span>-h<span class="o">]</span> <span class="o">[</span>-d DB<span class="o">]</span> <span class="o">[</span>-u<span class="o">]</span> config
+
+Runs RHEAS simulation.
+
+positional arguments:
+config      configuration file
+
+optional arguments:
+-h, --help  show this <span class="nb">help </span>message and <span class="nb">exit</span>
+-d DB       name of database to connect
+-u          update database
+</pre></div>
+</div>
+</div>
+<p>There are four possible sections for the configuration file:</p>
+<ul class="simple">
+<li><strong>nowcast</strong>: nowcast simulation options</li>
+<li><strong>forecast</strong>: forecast simulation options</li>
+<li><strong>vic</strong>: VIC model options</li>
+<li><strong>dssat</strong>: DSSAT model options</li>
+</ul>
+<p>Each section needs to be given inside braces, e.g. <code class="docutils literal"><span class="pre">[nowcast]</span></code>.</p>
+<div class="section" id="nowcast-options">
+<h2>Nowcast options<a class="headerlink" href="#nowcast-options" title="Permalink to this headline">¶</a></h2>
+<p>The available options for a nowcast simulation include:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">model</span></code>: the model(s) to be used for this simulation. Valid options include <code class="docutils literal"><span class="pre">vic</span></code> and <code class="docutils literal"><span class="pre">dssat</span></code>; if both models are requested they need to be separated by a comma (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">startdate</span></code>: the start date of the simulation in the &#8220;year-month-day&#8221; format (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">enddate</span></code>: the start date of the simulation in the &#8220;year-month-day&#8221; format (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">name</span></code>: name of the simulation (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">basin</span></code>: path to a shapefile of the model domain. If not provided, the <code class="docutils literal"><span class="pre">name</span></code> option should correspond to a previously performed simulation</li>
+<li><code class="docutils literal"><span class="pre">resolution</span></code>: spatial resolution of the simulation (<em>required</em>)</li>
+</ul>
+</div>
+<div class="section" id="forecast-options">
+<h2>Forecast options<a class="headerlink" href="#forecast-options" title="Permalink to this headline">¶</a></h2>
+<p>The available options for a forecast simulation include:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">model</span></code>: the model(s) to be used for this simulation. Valid options include <code class="docutils literal"><span class="pre">vic</span></code> and <code class="docutils literal"><span class="pre">dssat</span></code>; if both models are requested they need to be separated by a comma (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">startdate</span></code>: the start date of the simulation in the &#8220;year-month-day&#8221; format (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">enddate</span></code>: the start date of the simulation in the &#8220;year-month-day&#8221; format (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">name</span></code>: name of the simulation (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">basin</span></code>: path to a shapefile of the model domain. If not provided, the <code class="docutils literal"><span class="pre">name</span></code> option should correspond to a previously performed simulation</li>
+<li><code class="docutils literal"><span class="pre">resolution</span></code>: spatial resolution of the simulation (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">ensemble</span> <span class="pre">size</span></code>: the size of the forecast ensemble (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">method</span></code>: method to use to generate the meteorological forcings for VIC (<em>required</em>). The options that have been implemented include:<ul>
+<li><code class="docutils literal"><span class="pre">esp</span></code>: use the Ensemble Streamflow Prediction approach that randomly resamples the climatology</li>
+<li><code class="docutils literal"><span class="pre">iri</span></code>: resample climatology based on the probabilities in the IRI meteorological forecasts</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="vic-options">
+<h2>VIC options<a class="headerlink" href="#vic-options" title="Permalink to this headline">¶</a></h2>
+<p>The options for the VIC model include:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">precip</span></code>: dataset to use for precipitation forcing (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">temperature</span></code>: dataset to use for maximum and minimum temperature forcing (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">wind</span></code>: dataset to use for wind speed forcing (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">lai</span></code>: dataset to use for leaf area index forcing</li>
+<li><code class="docutils literal"><span class="pre">save</span> <span class="pre">state</span></code>: directory where VIC model state file is saved in</li>
+<li><code class="docutils literal"><span class="pre">save</span> <span class="pre">to</span></code>: option for saving output variables. Can be one of<ul>
+<li><code class="docutils literal"><span class="pre">db</span></code>: save output to database</li>
+<li>path to copy raw VIC output files to</li>
+</ul>
+</li>
+<li><code class="docutils literal"><span class="pre">initialize</span></code>: whether to initialize the model from a previously saved state file (can be given as <code class="docutils literal"><span class="pre">on/off</span></code>, <code class="docutils literal"><span class="pre">true/false</span></code> or <code class="docutils literal"><span class="pre">yes/no</span></code>)</li>
+<li><code class="docutils literal"><span class="pre">save</span></code>: a comma-separated list of variables to be saved from VIC. The variable names can be:<ul>
+<li><code class="docutils literal"><span class="pre">net_long</span></code>:  net downward longwave flux [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">net_short</span></code>:  net downward shortwave flux [W/m2</li>
+<li><code class="docutils literal"><span class="pre">snow_cover</span></code>:  fractional area of snow cover [fraction]</li>
+<li><code class="docutils literal"><span class="pre">salbedo</span></code>:  snow pack albedo [fraction]</li>
+<li><code class="docutils literal"><span class="pre">snow_depth</span></code>:  depth of snow pack [cm]</li>
+<li><code class="docutils literal"><span class="pre">tdepth</span></code>:  depth of thawing fronts [cm] for each thawing front</li>
+<li><code class="docutils literal"><span class="pre">fdepth</span></code>:  depth of freezing fronts [cm] for each freezing front</li>
+<li><code class="docutils literal"><span class="pre">rootmoist</span></code>:  root zone soil moisture  [mm]</li>
+<li><code class="docutils literal"><span class="pre">smfrozfrac</span></code>:  fraction of soil moisture (by mass) that is ice, for each soil layer</li>
+<li><code class="docutils literal"><span class="pre">smliqfrac</span></code>:  fraction of soil moisture (by mass) that is liquid, for each soil layer</li>
+<li><code class="docutils literal"><span class="pre">snow_canopy</span></code>:  snow interception storage in canopy  [mm]</li>
+<li><code class="docutils literal"><span class="pre">soil_moist</span></code>:  soil total moisture content  [mm] for each soil layer</li>
+<li><code class="docutils literal"><span class="pre">soil_wet</span></code>:  vertical average of (soil moisture - wilting point)/(maximum soil moisture - wilting point) [mm/mm]</li>
+<li><code class="docutils literal"><span class="pre">surfstor</span></code>:  storage of liquid water and ice (not snow) on surface (ponding) [mm]</li>
+<li><code class="docutils literal"><span class="pre">swe</span></code>:  snow water equivalent in snow pack (including vegetation-intercepted snow)  [mm]</li>
+<li><code class="docutils literal"><span class="pre">wdew</span></code>:  total moisture interception storage in canopy [mm]</li>
+<li><code class="docutils literal"><span class="pre">zwt</span></code>:  water table position [cm] (zwt within lowest unsaturated layer)</li>
+<li><code class="docutils literal"><span class="pre">zwt_lumped</span></code>:  lumped water table position [cm] (zwt of total moisture across all layers, lumped together)</li>
+<li><code class="docutils literal"><span class="pre">baseflow</span></code>:  baseflow out of the bottom layer  [mm]</li>
+<li><code class="docutils literal"><span class="pre">evap</span></code>:  total net evaporation [mm]</li>
+<li><code class="docutils literal"><span class="pre">evap_bare</span></code>:  net evaporation from bare soil [mm]</li>
+<li><code class="docutils literal"><span class="pre">evap_canop</span></code>:  net evaporation from canopy interception [mm]</li>
+<li><code class="docutils literal"><span class="pre">inflow</span></code>:  moisture that reaches top of soil column [mm]</li>
+<li><code class="docutils literal"><span class="pre">prec</span></code>:  incoming precipitation [mm]</li>
+<li><code class="docutils literal"><span class="pre">rainf</span></code>:  rainfall  [mm]</li>
+<li><code class="docutils literal"><span class="pre">refreeze</span></code>:  refreezing of water in the snow  [mm]</li>
+<li><code class="docutils literal"><span class="pre">runoff</span></code>:  surface runoff [mm]</li>
+<li><code class="docutils literal"><span class="pre">snow_melt</span></code>:  snow melt  [mm]</li>
+<li><code class="docutils literal"><span class="pre">snowf</span></code>:  snowfall  [mm]</li>
+<li><code class="docutils literal"><span class="pre">transp_veg</span></code>:  net transpiration from vegetation [mm]</li>
+<li><code class="docutils literal"><span class="pre">albedo</span></code>:  average surface albedo [fraction]</li>
+<li><code class="docutils literal"><span class="pre">baresoilt</span></code>:  bare soil surface temperature [C]</li>
+<li><code class="docutils literal"><span class="pre">rad_temp</span></code>:  average radiative surface temperature [K]</li>
+<li><code class="docutils literal"><span class="pre">snow_pack_temp</span></code>:  snow pack temperature [C]</li>
+<li><code class="docutils literal"><span class="pre">snow_surf_temp</span></code>:  snow surface temperature [C]</li>
+<li><code class="docutils literal"><span class="pre">soil_temp</span></code>:  soil temperature [C] for each soil layer</li>
+<li><code class="docutils literal"><span class="pre">soil_tnode</span></code>:  soil temperature [C] for each soil thermal node</li>
+<li><code class="docutils literal"><span class="pre">surf_temp</span></code>:  average surface temperature [C]</li>
+<li><code class="docutils literal"><span class="pre">vegt</span></code>:  average vegetation canopy temperature [C]</li>
+<li><code class="docutils literal"><span class="pre">advection</span></code>:  advected energy [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">grnd_flux</span></code>:  net heat flux into ground [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">in_long</span></code>:  incoming longwave at ground surface (under veg) [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">latent</span></code>:  net upward latent heat flux [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">melt_energy</span></code>:  energy of fusion (melting) in snowpack [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">r_net</span></code>:  net downward radiation flux [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">rfrz_energy</span></code>:  net energy used to refreeze liquid water in snowpack [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">sensible</span></code>:  net upward sensible heat flux [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">snow_flux</span></code>:  energy flux through snow pack [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">aero_cond</span></code>:  &#8220;scene&#8221; aerodynamic conductance [m/s]</li>
+<li><code class="docutils literal"><span class="pre">air_temp</span></code>:  air temperature [C]</li>
+<li><code class="docutils literal"><span class="pre">longwave</span></code>:  incoming longwave [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">pressure</span></code>:  near surface atmospheric pressure [kPa]</li>
+<li><code class="docutils literal"><span class="pre">qair</span></code>:  specific humidity [kg/kg]</li>
+<li><code class="docutils literal"><span class="pre">rel_humid</span></code>:  relative humidity [%]</li>
+<li><code class="docutils literal"><span class="pre">shortwave</span></code>:  incoming shortwave [W/m2]</li>
+<li><code class="docutils literal"><span class="pre">tskc</span></code>:  cloud cover fraction [fraction]</li>
+<li><code class="docutils literal"><span class="pre">vegcover</span></code>:  fractional area of plants [fraction]</li>
+<li><code class="docutils literal"><span class="pre">wind</span></code>:  near surface wind speed [m/s]</li>
+</ul>
+</li>
+<li><code class="docutils literal"><span class="pre">observations</span></code>: a comma-separated list of the observations to be assimilated into VIC. Any of the datasets with <code class="docutils literal"><span class="pre">AS</span></code> mode outlined in the <a class="reference internal" href="database.html#database"><span>database table</span></a> can be used with their table name (without the schema, e.g. <code class="docutils literal"><span class="pre">grace</span></code>)</li>
+<li><code class="docutils literal"><span class="pre">update</span></code>: the date or frequency when assimilation should be performed. Valid options for the assimilation frequency are: <code class="docutils literal"><span class="pre">daily</span></code>, <code class="docutils literal"><span class="pre">weekly</span></code>, and <code class="docutils literal"><span class="pre">monthly</span></code>. If this option is not set, assimilation is performed whenever the observation is available during the simulation period. When performing a forecast simulation, this option is not taken into account and assimilation is performed at the forecast initialization date</li>
+</ul>
+</div>
+<div class="section" id="dssat-options">
+<h2>DSSAT options<a class="headerlink" href="#dssat-options" title="Permalink to this headline">¶</a></h2>
+<p>The options for the DSSAT model include:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">shapefile</span></code>: a shapefile contains the areas (e.g. administrative boundaries) for which DSSAt will be run (<em>required</em>)</li>
+<li><code class="docutils literal"><span class="pre">ensemble</span> <span class="pre">size</span></code>: the size of the ensemble to be used (<em>required</em>)</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Populating the configuration file</a><ul>
+<li><a class="reference internal" href="#nowcast-options">Nowcast options</a></li>
+<li><a class="reference internal" href="#forecast-options">Forecast options</a></li>
+<li><a class="reference internal" href="#vic-options">VIC options</a></li>
+<li><a class="reference internal" href="#dssat-options">DSSAT options</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="database.html"
+                        title="previous chapter">The RHEAS database</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="nowcast.html"
+                        title="next chapter">Running a nowcast</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/configuration.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="nowcast.html" title="Running a nowcast"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="database.html" title="The RHEAS database"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">RHEAS 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2015, Kostas Andreadis.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.1.
+    </div>
+  </body>
+</html>

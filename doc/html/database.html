@@ -1,0 +1,282 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>The RHEAS database &mdash; RHEAS 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="RHEAS 0.1 documentation" href="index.html" />
+    <link rel="next" title="Populating the configuration file" href="configuration.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="configuration.html" title="Populating the configuration file"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">RHEAS 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="the-rheas-database">
+<h1>The RHEAS database<a class="headerlink" href="#the-rheas-database" title="Permalink to this headline">¶</a></h1>
+<p>The back-end of RHEAS is a <a class="reference external" href="http://postgis.net">PostGIS</a> database (a spatially-enabled <a class="reference external" href="http://www.postgresql.org">PostgreSQL</a> database) that stores the necessary data to run RHEAS including model parameters, meteorological data (both forecasts and nowcasts), and remote sensing as well as in-situ observations.</p>
+<p>The VIC and DSSAT model parameters are contained under the <code class="docutils literal"><span class="pre">vic</span></code> and <code class="docutils literal"><span class="pre">dssat</span></code> schemas. Depending on the requested spatial resolution for the models, appropriate model parameters and corresponding files are chosen. Tables in the <code class="docutils literal"><span class="pre">vic</span></code> schema include <code class="docutils literal"><span class="pre">soils</span></code> which contains the soil parameters, and <code class="docutils literal"><span class="pre">input</span></code> which contains the necessary files to run the VIC model. Each record in the <code class="docutils literal"><span class="pre">input</span></code> table should contain the following columns:</p>
+<ul class="simple">
+<li><strong>resolution</strong>: model spatial resolution</li>
+<li><strong>snowbandfile</strong>: VIC elevation band file</li>
+<li><strong>vegparam</strong>: VIC vegetation parameter file</li>
+<li><strong>veglib</strong>: VIC vegetation library file</li>
+<li><strong>soilfile</strong>: VIC soil parameter file</li>
+<li><strong>rootzones</strong>: number of root zones</li>
+<li><strong>basefile</strong>: DSSAT input file template</li>
+</ul>
+<p>The requirements for running DSSAT also include the type of cultivar(s), planting start dates and soil properties which have been ingested in the database from various sources. Soil properties and cultivar information are stored as vector tables (<code class="docutils literal"><span class="pre">soils</span></code> and <code class="docutils literal"><span class="pre">cultivar</span></code> respectively), while planting start dates are stored as raster maps with the type of crop as an additional column in the <code class="docutils literal"><span class="pre">crops</span></code> table.</p>
+<p>Multiple remote sensing datasets can be ingested into the database and are available either to be used as input (i.e. precipitation, temperature, wind speed) or assimilated (i.e. soil moisture, water storage, LAI, evapotranspiration). The following table summarizes the available datasets, their characteristics and the database schema/table they will be installed in.</p>
+<table border="1" class="docutils" id="database">
+<colgroup>
+<col width="17%" />
+<col width="8%" />
+<col width="9%" />
+<col width="16%" />
+<col width="16%" />
+<col width="15%" />
+<col width="15%" />
+<col width="6%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td rowspan="2"><p class="first">Variable</p>
+<p class="last">Precipitation</p>
+</td>
+<td rowspan="2"><p class="first">Dataset</p>
+<p class="last">CHIRPS</p>
+</td>
+<td rowspan="2"><p class="first">Time
+Coverage
+==========</p>
+<blockquote class="last">
+<div>1981-</div></blockquote>
+</td>
+<td><blockquote class="first">
+<div>Temporal</div></blockquote>
+<p class="last">Resolution</p>
+</td>
+<td rowspan="2"><p class="first">Spatial
+Resolution
+=================</p>
+<blockquote class="last">
+<div>5km</div></blockquote>
+</td>
+<td>Spatial Coverage</td>
+<td rowspan="2"><p class="first">Table</p>
+<p class="last">precip.chirps</p>
+</td>
+<td rowspan="2"><p class="first">Mode</p>
+<blockquote class="last">
+<div>IN</div></blockquote>
+</td>
+</tr>
+<tr class="row-even"><td>Daily</td>
+<td>Africa</td>
+</tr>
+<tr class="row-odd"><td>Precipitation</td>
+<td>TRMM</td>
+<td>1998-</td>
+<td>Daily</td>
+<td>~25km</td>
+<td>Global</td>
+<td>precip.trmm</td>
+<td>IN</td>
+</tr>
+<tr class="row-even"><td>Precipitation</td>
+<td>RFE2</td>
+<td>2001-</td>
+<td>Daily</td>
+<td>~1km</td>
+<td>Africa</td>
+<td>precip.rfe2</td>
+<td>IN</td>
+</tr>
+<tr class="row-odd"><td>Precipitation</td>
+<td>CMORPH</td>
+<td>1998-</td>
+<td>Daily</td>
+<td>~25km</td>
+<td>Global</td>
+<td>precip.cmorph</td>
+<td>IN</td>
+</tr>
+<tr class="row-even"><td>Meteorology</td>
+<td>NCEP</td>
+<td>1981-</td>
+<td>Daily</td>
+<td>~180km</td>
+<td>Global</td>
+<td>*.ncep</td>
+<td>IN</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-even"><td>Soil moisture</td>
+<td>AMSR-E</td>
+<td>2002-2011</td>
+<td>Daily</td>
+<td>~25km</td>
+<td>Global</td>
+<td>soilm.amsre</td>
+<td>AS</td>
+</tr>
+<tr class="row-odd"><td>Soil moisture</td>
+<td>SMOS</td>
+<td>2009-</td>
+<td>Daily</td>
+<td>~40km</td>
+<td>Global</td>
+<td>soilm.smos</td>
+<td>AS</td>
+</tr>
+<tr class="row-even"><td>Soil moisture</td>
+<td>SMAP</td>
+<td>2015-</td>
+<td>3/1 days</td>
+<td>3/9km</td>
+<td>Global</td>
+<td>soilm.smap</td>
+<td>AS</td>
+</tr>
+<tr class="row-odd"><td>Evapotranspiration</td>
+<td>MOD16</td>
+<td>2000-</td>
+<td>8 days</td>
+<td>1km</td>
+<td>Global</td>
+<td>evap.modis</td>
+<td>AS</td>
+</tr>
+<tr class="row-even"><td>Water storage</td>
+<td>GRACE</td>
+<td>2002-</td>
+<td>Monthly</td>
+<td>~150km</td>
+<td>Global</td>
+<td>tws.grace</td>
+<td>AS</td>
+</tr>
+<tr class="row-odd"><td>Leaf Area Index</td>
+<td>MCD15</td>
+<td>2002-</td>
+<td>8 days</td>
+<td>1km</td>
+<td>Global</td>
+<td>lai.modis</td>
+<td>AS</td>
+</tr>
+<tr class="row-even"><td>Meteorology</td>
+<td>IRI</td>
+<td>2000-</td>
+<td>Monthly</td>
+<td>~250km</td>
+<td>Global</td>
+<td>*.iri</td>
+<td>FC</td>
+</tr>
+</tbody>
+</table>
+<p>There are three modes for the datasets: <code class="docutils literal"><span class="pre">IN</span></code> corresponds to datasets being used as inputs to the model, <code class="docutils literal"><span class="pre">AS</span></code> refers to datasets being assimilated, and <code class="docutils literal"><span class="pre">FC</span></code> are datasets that are used to provide the meteorological (i.e. precipitation, temperature, and in some cases wind speed) forecasts.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="installation.html"
+                        title="previous chapter">Installation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="configuration.html"
+                        title="next chapter">Populating the configuration file</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/database.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="configuration.html" title="Populating the configuration file"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="installation.html" title="Installation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">RHEAS 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2015, Kostas Andreadis.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.1.
+    </div>
+  </body>
+</html>
