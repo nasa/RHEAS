@@ -1,0 +1,111 @@
+*Codes for Simulations Options
+! DSSAT v4.0; 08/31/2005
+!
+! Codes currently used for simulation options for the DSSAT crop simulation
+! models.
+
+*Start Simulation
+@CDE     DESCRIPTION                                                          SO
+E        On reported emergence date                                           IB
+I        When initial conditions measured                                     IB
+P        On reported planting date                                            IB
+S        On specified date                                                    IB
+
+*Simulation/Options/Water
+@CDE     DESCRIPTION                                                          SO
+Y        Yes                                                                  IB
+N        No                                                                   IB
+
+*Simulation/Options/Symbiosis
+@CDE     DESCRIPTION                                                          SO
+Y        Yes                                                                  IB
+N        No                                                                   IB
+U        Unlimited N                                                          IB
+
+*Simulation/Methods/Weather
+@CDE     DESCRIPTION                                                          SO
+M        Measured data                                                        IB
+G        Generated(WTG files)                                                 IB
+W        Simulated internal(WGEN)                                             IB
+S        Simulated(SIMMETEO)                                                  IB
+
+*Simulation/Methods/Initial Soil Conditions
+@CDE     DESCRIPTION                                                          SO
+M        As reported                                                          IB
+S        Simulated output from previous model run                             IB
+
+*Simulation/Methods/Evapotransportation
+@CDE     DESCRIPTION                                                          SO
+F        FAO-56                                                               IB
+!D       Dynamic Penman-Monteith                                              IB
+P        FAO-24/(old Penman)                                                  IB
+R        Priestley-Taylor/Ritchie                                             IB
+Z        Hourly energy bal. method                                            IB
+
+*Simulation/Methods/Infiltration
+@CDE     DESCRIPTION                                                          SO
+R        Ritchie method                                                       IB
+S        Soil Conserv.Service                                                 IB
+
+*Simulation/Methods/Photosynthesis
+@CDE     DESCRIPTION                                                          SO
+C        Canopy curve                                                         IB
+R        Radiation efficiency                                                 IB
+L        Leaf photosynthesis response curve                                   IB        
+
+*Simulation/Methods/Hydrology
+@CDE     DESCRIPTION                                                          SO
+R        Ritchie water balance                                                IB
+
+*Simulation/Methods/SOM
+@CDE     DESCRIPTION                                                          SO
+G        Ceres (Godwin)                                                       IB
+P        Century (Parton)                                                     IB        
+
+*Simulation/Management/Planting
+@CDE     DESCRIPTION                                                          SO
+A        Automatic                                                            IB
+R        On reported date                                                     IB    
+
+*Simulation/Management/Irrigation
+@CDE     DESCRIPTION                                                          SO
+A        Automatic when required                                              IB
+N        Not irrigated                                                        IB 
+F        Fixed amount automatic                                               IB
+R        On reported dates                                                    IB 
+D        Days after planting                                                  IB 
+
+*Simulation/Management/Fertilization
+@CDE     DESCRIPTION                                                          SO
+A        Automatic when required                                              IB
+N        Not fertilized                                                       IB 
+F        Fixed amount automatic                                               IB
+R        On reported dates                                                    IB 
+D        Days after planting                                                  IB 
+
+*Simulation/Management/Residue
+@CDE     DESCRIPTION                                                          SO
+!A        Automatic when required                                              IB
+N        No applications                                                      IB 
+!F        Fixed amount automatic                                               IB
+R        On reported dates                                                    IB 
+D        Days after planting                                                  IB 
+        
+*Simulation/Management/Harvest
+@CDE     DESCRIPTION                                                          SO
+A        Automatic                                                            IB
+G        At reported stage(s)                                                 IB 
+M        At maturity                                                          IB
+R        On reported date(s)                                                  IB 
+D        Days after planting                                                  IB 
+
+*Simulation/Outputs
+@CDE     DESCRIPTION                                                          SO
+Y        Experiment                                                           IB
+N        Default                                                              IB 
+
+*Simulation/Outputs/Options
+@CDE     DESCRIPTION                                                          SO
+Y        Yes                                                                  IB
+N        No                                                                   IB  
+

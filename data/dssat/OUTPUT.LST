@@ -1,0 +1,8 @@
+*Output file list
+
+@FILENAME        DESCRIPTION
+GATI0601.OSN     Daily soil nitrogen output file                   
+GATI0601.OSC     Daily soil carbon output file                     
+GATI0601.OSU     Seasonal summary output file                      
+GATI0601.OEV     Evaluation output file (simulated vs. measured)   
+SoilNBal.OUT     Seasonal soil nitrogen balance                    
