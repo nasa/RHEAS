@@ -1,0 +1,23 @@
+[forecast]
+model: vic
+startdate: 2010-12-5
+enddate: 2011-2-28
+name: basin
+basin:  ${buildout:directory}/data/tests/basin.shp
+resolution: 0.25
+ensemble size: 2
+method: esp
+
+[vic]
+precip: chirps
+temperature: ncep
+wind: ncep
+save to: db
+save: runoff
+initialize: random
+#observations: smos
+
+[dssat]
+ensemble size: 40
+shapefile: ${buildout:directory}/data/tests/basin.shp
+
