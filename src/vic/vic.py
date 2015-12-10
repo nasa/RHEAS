@@ -133,7 +133,7 @@ class VIC:
         with open(self.model_path + '/soil.txt', 'w') as fout:
             for line in lines:
                 gid, lat, lon, elev, depths = line[1:]
-                fout.write(line[0])
+                fout.write("{0}\n".format(line[0]))
                 self.lat.append(lat)
                 self.lon.append(lon)
                 self.gid[gid] = (lat, lon)
