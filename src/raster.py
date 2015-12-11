@@ -27,7 +27,7 @@ class TileReader:
         db = pg.connect(database=self.dbname)
         cur = db.cursor()
         var = self.rtable.split(".")[0]
-        sql = "select gid,fdate,st_value(rast,x,y) from {0},{1}_xy where rid=tile and tile={8} and fdate>=date'{2}-{3}-{4}' and fdate<=date'{5}-{6}-{7}' order by gid,fdate".format(
+        sql = "select gid,fdate,st_nearestvalue(rast,x,y) from {0},{1}_xy where rid=tile and tile={8} and fdate>=date'{2}-{3}-{4}' and fdate<=date'{5}-{6}-{7}' order by gid,fdate".format(
             self.rtable, var, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday, t)
         cur.execute(sql)
         data = cur.fetchall()
