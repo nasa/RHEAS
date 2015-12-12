@@ -534,7 +534,7 @@ class VIC:
                     self.model_path, tablename, dt.year, dt.month, dt.day, lyr + 1)
                 # if np.all(data[t, lyr, :, :]):
                 self._writeRaster(data[t, lyr, :, :], filename)
-        subprocess.call("{3}/raster2pgsql -s 4326 -F -d -t auto {1}/{2}_*.tif temp | psql -d {0}".format(
+        subprocess.call("{3}/raster2pgsql -s 4326 -F -d -t auto {1}/{2}_*.tif temp | {3}/psql -d {0}".format(
             self.dbname, self.model_path, tablename, rpath.bins), shell=True)
         cur.execute("alter table temp add column fdate date")
         cur.execute("update temp set fdate = date (concat_ws('-',substring(filename from {0} for 4),substring(filename from {1} for 2),substring(filename from {2} for 2)))".format(
