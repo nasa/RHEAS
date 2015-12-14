@@ -683,32 +683,14 @@ class DSSAT:
     def _readShapefile(self):
         """Read areas from shapefile where DSSAT will be run."""
         try:
-            ds = ogr.Open(self.shapefile)
-            lyr = ds.GetLayer()
+            cmd = "{0}/shp2pgsql -s 4326 -d -I -g geom {1} {2}.agareas | {0}/psql -d {3}".format(rpath.bins, self.shapefile, self.name, self.dbname)
+            subprocess.call(cmd, shell=True)
             db = pg.connect(database=self.dbname)
             cur = db.cursor()
-            cur.execute(
-                "select * from information_schema.tables where table_name='agareas' and table_schema=%s", (self.name,))
-            if bool(cur.rowcount):
-                cur.execute("drop table {0}.agareas".format(self.name))
-            cur.execute(
-                "create table {0}.agareas(gid serial primary key, geom geometry(Polygon,4326))".format(self.name))
-            geom = []
-            for i in range(lyr.GetFeatureCount()):
-                f = lyr.GetNextFeature()
-                g = f.GetGeometryRef()
-                if g.GetGeometryType() == ogr.wkbMultiPolygon:
-                    g = ogr.ForceToPolygon(g)
-                cur.execute("insert into {0}.agareas(geom) values(st_geomfromtext('{1}',4326))".format(
-                    self.name, g.ExportToWkt()))
-                pt = g.Centroid().GetPoint()
-                geom.append((i + 1, pt[0], pt[1]))
-            db.commit()
-            cur.execute(
-                "create index agareas_s on {0}.agareas using gist(geom)".format(self.name))
-            cur.close()
-            db.close()
-            return geom
+            sql = "select gid, st_x(st_centroid(geom)), st_y(st_centroid(geom)) from {0}.agareas".format(self.name)
+            cur.execute(sql)
+            geoms = cur.fetchall()
+            return geoms
         except:
             print("Shapefile {0} for DSSAT simulation does not exist. Exiting...".format(
                 self.shapefile))
