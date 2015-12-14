@@ -171,17 +171,15 @@ class VIC:
         if not bool(cur.rowcount):
             cur.execute("create schema {0}".format(self.name))
             db.commit()
-        else:
-            cur.execute(
-                "select table_name from information_schema.tables where table_schema='{0}' and table_name='state'".format(self.name))
-            if not bool(cur.rowcount):
-                sql = "create table {0}.state (filename text, fdate date)".format(
-                    self.name)
-                cur.execute(sql)
-                db.commit()
-        statefile = statefilepath + \
-            "/vic.state_{0:04d}{1:02d}{2:02d}".format(
-                self.endyear, self.endmonth, self.endday)
+        cur.execute(
+            "select table_name from information_schema.tables where table_schema='{0}' and table_name='state'".format(self.name))
+        if not bool(cur.rowcount):
+            sql = "create table {0}.state (filename text, fdate date)".format(
+                self.name)
+            cur.execute(sql)
+            db.commit()
+        statefile = "{0}/vic.state_{1:04d}{2:02d}{3:02d}".format(
+            statefilepath, self.endyear, self.endmonth, self.endday)
         statedate = "{0}-{1}-{2}".format(self.endyear,
                                          self.endmonth, self.endday)
         cur.execute(
