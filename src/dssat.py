@@ -386,8 +386,7 @@ class DSSAT:
         """Samples soil profiles from database to be used in DSSAT control file."""
         db = pg.connect(database=self.dbname)
         cur = db.cursor()
-        sql = "select props from dssat.soils as s,{0}.agareas as a where st_intersects(s.geom, a.geom) and a.gid={1}".format(
-            self.name, gid)
+        sql = "with f as (select st_envelope(geom) as geom from {0}.agareas where gid={1}) select props from dssat.soils as s,f where st_intersects(s.geom,f.geom)".format(self.name, gid)
         cur.execute(sql)
         # if crop area is too small, look for nearest soil profiles
         dist = 0.1
