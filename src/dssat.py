@@ -649,7 +649,8 @@ class DSSAT:
             "select * from information_schema.tables where table_name='dssat' and table_schema='{0}'".format(self.name))
         if bool(cur.rowcount):
             cur.execute("drop table {0}.dssat".format(self.name))
-        cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geom IS NULL))".format(self.name))
+        cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
+        db.commit()
         sql = "insert into {0}.dssat (fdate, gid, ensemble, gwad, wsgd, lai) values (%(dt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s)".format(
             self.name)
         for gid, pi in modelpaths:
@@ -669,12 +670,13 @@ class DSSAT:
                                 data[9]), 'wsgd': float(data[18]), 'lai': float(data[6]), 'gid': gid})
         cur.execute(
             "update {0}.dssat as d set geom = a.geom from {0}.agareas as a where a.gid=d.gid".format(self.name))
-        cur.execute("drop index if exists {0}.ddtidx".format(self.name))
-        cur.execute("drop index if exists {0}.dspidx".format(self.name))
+        db.commit()
+        cur.execute("drop index if exists {0}.d_t".format(self.name))
+        cur.execute("drop index if exists {0}.d_s".format(self.name))
         cur.execute(
-            "create index ddtidx on {0}.dssat(fdate)".format(self.name))
+            "create index d_t on {0}.dssat(fdate)".format(self.name))
         cur.execute(
-            "create index dspidx on {0}.dssat using gist(geom)".format(self.name))
+            "create index d_s on {0}.dssat using gist(geom)".format(self.name))
         db.commit()
         cur.close()
         db.close()
