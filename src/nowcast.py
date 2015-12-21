@@ -63,7 +63,7 @@ def runDeterministicVIC(dbname, options):
         int, options['nowcast']['startdate'].split('-'))
     endyear, endmonth, endday = map(
         int, options['nowcast']['enddate'].split('-'))
-    name = options['nowcast']['name']
+    name = options['nowcast']['name'].lower()
     path = tempfile.mkdtemp(dir=".")
     model = vic.VIC(path, dbname, res, startyear, startmonth,
                     startday, endyear, endmonth, endday, name)
@@ -82,7 +82,7 @@ def runDeterministicVIC(dbname, options):
 def runEnsembleVIC(dbname, options):
     """Driver function for performing a VIC nowcast simulation."""
     res = config.getResolution(options['nowcast'])
-    name = options['nowcast']['name']
+    name = options['nowcast']['name'].lower()
     vicexe = "{0}/vicNl".format(rpath.bins)
     basin = config.getBasinFile(options['nowcast'])
     saveto, savevars = config.getVICvariables(options)
@@ -167,7 +167,7 @@ def runDSSAT(dbname, options):
         int, options['nowcast']['enddate'].split('-'))
     res = float(options['nowcast']['resolution'])
     nens = int(options['dssat']['ensemble size'])
-    name = options['nowcast']['name']
+    name = options['nowcast']['name'].lower()
     dssatexe = "{0}/DSSAT_Ex.exe".format(rpath.bins)
     if 'shapefile' in options['dssat']:
         shapefile = options['dssat']['shapefile']

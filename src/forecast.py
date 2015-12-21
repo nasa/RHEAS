@@ -31,10 +31,10 @@ def runVIC(dbname, options):
     vicexe = "{0}/vicNl".format(rpath.bins)
     basin = config.getBasinFile(options['forecast'])
     saveto, savevars = config.getVICvariables(options)
-    name = options['forecast']['name']
+    name = options['forecast']['name'].lower()
     nens = int(options['forecast']['ensemble size'])
     method = options['forecast']['method']
-    name = options['forecast']['name']
+    name = options['forecast']['name'].lower()
     models = ensemble.Ensemble(nens, dbname, res, startyear,
                                startmonth, startday, endyear, endmonth, endday, name)
     if 'initialize' in options['vic'] and options['vic']['initialize'] in ['perturb', 'random']:
@@ -72,7 +72,7 @@ def runDSSAT(dbname, options):
         int, options['forecast']['enddate'].split('-'))
     res = float(options['forecast']['resolution'])
     nens = int(options['dssat']['ensemble size'])
-    name = options['forecast']['name']
+    name = options['forecast']['name'].lower()
     dssatexe = "{0}/DSSAT_Ex.exe".format(rpath.bins)
     if 'shapefile' in options['dssat']:
         shapefile = options['dssat']['shapefile']
