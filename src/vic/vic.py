@@ -525,6 +525,7 @@ class VIC:
                       self.startday) + timedelta(skipsave)
             data = data[skipsave:]
             startyear, startmonth, startday = ts.year, ts.month, ts.day
+        tiffiles = []
         for t in range(data.shape[0]):
             dt = date(startyear, startmonth, startday) + timedelta(t)
             for lyr in range(data.shape[1]):
@@ -532,8 +533,11 @@ class VIC:
                     self.model_path, tablename, dt.year, dt.month, dt.day, lyr + 1)
                 # if np.all(data[t, lyr, :, :]):
                 self._writeRaster(data[t, lyr, :, :], filename)
-        subprocess.call("{3}/raster2pgsql -s 4326 -F -d -t auto {1}/{2}_*.tif temp | {3}/psql -d {0}".format(
-            self.dbname, self.model_path, tablename, rpath.bins), shell=True)
+                tiffiles.append(filename)
+        ps = subprocess.Popen(["{0}/raster2pgsql".format(rpath.bins), "-s", "4326", "-F", "-d", "-t", "auto"] + tiffiles + ["temp"], stdout=subprocess.PIPE)
+        subprocess.Popen(["{0}/psql".format(rpath.bins), "-d", self.dbname], stdin=ps.stdout)
+        ps.stdout.close()
+        ps.wait()
         cur.execute("alter table temp add column fdate date")
         cur.execute("update temp set fdate = date (concat_ws('-',substring(filename from {0} for 4),substring(filename from {1} for 2),substring(filename from {2} for 2)))".format(
             len(tablename) + 2, len(tablename) + 6, len(tablename) + 8))
