@@ -126,6 +126,7 @@ class VIC:
             db.commit()
             cur.execute(
                 "create index basin_s on {0}.basin using gist(geom)".format(self.name))
+            db.commit()
         sql = "select line,gid,st_y(geom),st_x(geom),elev,depths from {0}.basin order by gid".format(
             self.name)
         cur.execute(sql)
