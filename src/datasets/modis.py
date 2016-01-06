@@ -7,6 +7,8 @@
 
 """
 
+from osgeo import ogr
+
 # Tile coordinate table (from http://modis-land.gsfc.nasa.gov/pdf/sn_bound_10deg.txt)
 # iv  ih    lon_min    lon_max   lat_min   lat_max
 tiles = [
@@ -664,15 +666,30 @@ tiles = [
 def findTiles(bbox):
     """Returns the tile IDs that need to be downloaded for
     a given region bounded by *bbox*."""
-    def within(lat, lon):
-        if lat > bbox[1] and lat < bbox[3] and lon > bbox[0] and lon < bbox[2]:
-            return True
+    def intersects(bbox, tile):
+        if tile[2] != -999.0 and tile[3] != -999.0 and tile[4] != -99.0 and tile[5] != -99.0:
+            tiler = ogr.Geometry(ogr.wkbLinearRing)
+            tiler.AddPoint(tile[2], tile[4])
+            tiler.AddPoint(tile[3], tile[4])
+            tiler.AddPoint(tile[3], tile[5])
+            tiler.AddPoint(tile[2], tile[5])
+            tiler.AddPoint(tile[2], tile[4])
+            polyr = ogr.Geometry(ogr.wkbPolygon)
+            polyr.AddGeometry(tiler)
+            bboxr = ogr.Geometry(ogr.wkbLinearRing)
+            bboxr.AddPoint(bbox[0], bbox[1])
+            bboxr.AddPoint(bbox[2], bbox[1])
+            bboxr.AddPoint(bbox[2], bbox[3])
+            bboxr.AddPoint(bbox[0], bbox[3])
+            bboxr.AddPoint(bbox[0], bbox[1])
+            polyb = ogr.Geometry(ogr.wkbPolygon)
+            polyb.AddGeometry(bboxr)
+            return polyr.Intersects(polyb)
         else:
             return False
     if bbox is None:
         print("No bounding box provided for MODIS dataset. Skipping download!")
         ids = None
     else:
-        ids = [(t[0], t[1]) for t in tiles if within(t[4], t[2]) or within(
-            t[4], t[3]) or within(t[5], t[2]) or within(t[5], t[3])]
+        ids = [(t[0], t[1]) for t in tiles if intersects(bbox, t)]
     return ids
