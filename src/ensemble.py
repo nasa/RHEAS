@@ -255,9 +255,9 @@ class Ensemble:
             statefile = model.model_path + \
                 "/vic.state_{0:04d}{1:02d}{2:02d}".format(
                     self.startyear, self.startmonth, self.startday)
+            shutil.rmtree(model.model_path)
         statefiles = [statefile] * self.nens
         self.setStateFiles(statefiles)
-        shutil.rmtree(model.model_path)
         cur.close()
         db.close()
         return statefiles
