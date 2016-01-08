@@ -55,8 +55,8 @@ def _updateSwe(x, xa, cell, nlayer, bare):
         data[k - 1] = "1.0"
         data[k + 5] = "150.0"
         data[k + 6] = str(-2102. * 1000. * s * 273.15)
-    data[k] = str(s)
-    return "".join(data, " ")
+    data[k] = "{0:.6f}".format(s)
+    return " ".join(data)
 
 
 def _readSwe(cell, nlayer, bare):
@@ -89,7 +89,7 @@ def _readSoilMoist(cell, nlayer, bare):
 def _updateSoilMoist(x, xa, cell, nlayer, bare):
     data = cell.split()
     for l in range(nlayer):
-        data[2 + l] = str(float(data[2 + l]) * xa / x)
+        data[2 + l] = "{0:.6f}".format(float(data[2 + l]) * xa / x)
     return " ".join(data)
 
 
