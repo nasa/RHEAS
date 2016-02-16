@@ -53,6 +53,7 @@ def _downloadVariable(varname, dbname, dts, bbox):
                 dbio.ingest(dbname, "{0}/{1}".format(outpath, tfilename), dt, table[varname], False)
             else:
                 dbio.ingest(dbname, "{0}/{1}".format(outpath, lfilename), dt, table[varname], False)
+        ftp.cwd("..")
 
 
 def download(dbname, dts, bbox):
