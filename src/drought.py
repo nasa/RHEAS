@@ -10,7 +10,7 @@
 import numpy as np
 import dbio
 from scipy.stats import gamma, norm
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 import pandas
 
 
@@ -35,8 +35,7 @@ def calcSPI(duration, model, cid):
     else:
         p = np.loadtxt("{0}/forcings/data_{1:.{3}f}_{2:.{3}f}".format(model.model_path,
                                                                       model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, 0]
-        p = pandas.Series(p, [date(model.startyear, model.startmonth,
-                                   model.startday) + timedelta(t) for t in range(len(p))])
+        p = pandas.Series(p, [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
         p[duration:] = pandas.rolling_mean(p.resample(
             'M', how='mean'), duration).values[duration:]
         p[:duration] = 0.0
@@ -75,6 +74,7 @@ def calcDrySpells(model, cid, droughtfun=np.mean, duration=14, recovduration=2):
 
 def calcPDSI(model, cid, prec, evap):
     """Calculate the Palmer Drought Severity Index."""
+    # FIXME: Not functional at the moment
     dt = [date(model.startyear, model.startmonth, model.startday) +
           timedelta(t) for t in range(len(prec))]
     prec = pandas.Series(prec, dt).resample('M', how='mean')
