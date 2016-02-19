@@ -37,7 +37,11 @@ for RPM-based distros (such as RedHat, Fedora, Centos)
 
 ::
 
- apt-get install build-essential python-numpy python-scipy python-gdal python-argparse python-dateutil libgdal-dev libproj-dev wine winetricks
+ sudo aptitude update && sudo aptitude -y upgrade  
+ sudo aptitude install git build-essential python-numpy python-scipy python-gdal python-argparse python-dateutil libgdal-dev libproj-dev libxslt-dev libreadline-dev cython python-pandas
+ sudo dpkg --add-architecture i386
+ sudo aptitude update
+ sudo aptitude -y install wine winetricks
 
 for DEB-based distros (such as Ubuntu, Debian, Mint)
 
@@ -51,14 +55,14 @@ If you're on a MacOS, the easiest way to install the dependencies is by using th
    brew install python readline gdal netcdf wine winetricks sfcgal
    pip install numpy scipy gdal argparse py-dateutil
 
-We then uncompress the software archive
+We then clone and uncompress the software archive
 
 .. highlight:: bash
 
 ::
 
- tar xzv rheas.tgz
- cd rheas
+   git clone https://github.com/nasa/RHEAS.git
+   cd RHEAS
 
 
 and then run the ``buildout`` script. Before that, we boostrap the build by running
