@@ -16,14 +16,13 @@ import string
 import decimal
 import shutil
 import numpy as np
-import psycopg2 as pg
 from datetime import date, timedelta
 import netCDF4 as netcdf
 import multiprocessing
-from osgeo import ogr
 from collections import OrderedDict
 import rpath
 import random
+import dbio
 
 
 def addCultivar(dbname, shapefile, params, nens=40, crop="maize"):
@@ -37,7 +36,7 @@ def addCultivar(dbname, shapefile, params, nens=40, crop="maize"):
     if os.path.exists(shapefile):
         subprocess.call("{0}/shp2pgsql -d -s 4326 -g geom {1} {2} | {0}/psql -d {3}".format(
             rpath.bins, shapefile, temptable, dbname), shell=True)
-        db = pg.connect(database=dbname)
+        db = dbio.connect(dbname)
         cur = db.cursor()
         e = 0
         while e < nens:
@@ -100,7 +99,7 @@ class DSSAT:
         except:
             self.grid_decimal = - \
                 (decimal.Decimal(str(self.res)).as_tuple().exponent - 1)
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         if 'lai' in vicopts or ('save' in vicopts and vicopts['save'].find("lai") >= 0):
             self.lai = "vic"
@@ -124,7 +123,7 @@ class DSSAT:
     def readVICSoil(self):
         """Extract information from VIC database table on latitude, longitude,
         elevation  and soil depths."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select st_y(geom), st_x(geom), elev, depths from {0}.basin".format(
             self.name)
@@ -198,7 +197,7 @@ class DSSAT:
         startdate = date(self.startyear, self.startmonth, self.startday)
         enddate = date(self.endyear, self.endmonth, self.endday)
         ndays = (enddate - startdate).days + 1
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         date_sql = "fdate>=date '{0}-{1}-{2}' and fdate<=date '{3}-{4}-{5}'".format(
             self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday)
@@ -271,7 +270,7 @@ class DSSAT:
     def writeLAI(self, modelpath, gid, viclai=None, tablename="lai.modis"):
         """Writes LAI file for DSSAT."""
         fout = open("{0}/LAI.txt".format(modelpath), 'w')
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute("select * from information_schema.tables where table_name=%s and table_schema='lai'",
                     (tablename.split(".")[1],))
@@ -384,7 +383,7 @@ class DSSAT:
 
     def _sampleSoilProfiles(self, gid):
         """Samples soil profiles from database to be used in DSSAT control file."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "with f as (select st_envelope(geom) as geom from {0}.agareas where gid={1}) select props from dssat.soils as s,f where st_intersects(s.geom,f.geom)".format(self.name, gid)
         cur.execute(sql)
@@ -567,7 +566,7 @@ class DSSAT:
 
     def _planting(self, lat, lon, crop="maize"):
         """Retrieve planting dates for pixel."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select st_value(rast,st_geomfromtext('POINT({0} {1})',4326)) as doy from crops.plantstart where type like '{2}' and st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)) order by doy".format(
             lon, lat, crop)
@@ -581,7 +580,7 @@ class DSSAT:
 
     def _cultivar(self, ens, gid):  # lat, lon):
         """Retrieve Cultivar parameters for pixel and ensemble member."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select p1,p2,p5,g2,g3,phint from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(
             self.name, ens + 1, gid)
@@ -617,7 +616,7 @@ class DSSAT:
 
     def _calcCroplandFract(self):
         """Calculate fraction of cropland for specific pixel."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select gid,avg((st_summarystats(st_clip(rast,geom))).mean) from dssat.cropland,{0}.agareas where st_intersects(rast,geom) group by gid order by gid".format(
             self.name)
@@ -643,7 +642,7 @@ class DSSAT:
 
     def save(self, modelpaths, startdt):
         """Saves DSSAT output to database."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute(
             "select * from information_schema.tables where table_name='dssat' and table_schema='{0}'".format(self.name))
@@ -686,7 +685,7 @@ class DSSAT:
         try:
             cmd = "{0}/shp2pgsql -s 4326 -d -I -g geom {1} {2}.agareas | {0}/psql -d {3}".format(rpath.bins, self.shapefile, self.name, self.dbname)
             subprocess.call(cmd, shell=True)
-            db = pg.connect(database=self.dbname)
+            db = dbio.connect(self.dbname)
             cur = db.cursor()
             sql = "select gid, st_x(st_centroid(geom)), st_y(st_centroid(geom)) from {0}.agareas".format(self.name)
             cur.execute(sql)

@@ -11,7 +11,6 @@ import os
 import ConfigParser
 import sys
 import dbio
-import psycopg2 as pg
 from datetime import datetime, timedelta
 
 
@@ -30,7 +29,7 @@ def readDatasetList(filename):
 def dates(dbname, tablename):
     """Check what dates need to be imported for a specific dataset."""
     dts = None
-    db = pg.connect(database=dbname)
+    db = dbio.connect(dbname)
     cur = db.cursor()
     sname, tname = tablename.split(".")
     cur.execute(

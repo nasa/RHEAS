@@ -7,7 +7,7 @@
 
 """
 
-import psycopg2 as pg
+import dbio
 
 
 class TileReader:
@@ -24,7 +24,7 @@ class TileReader:
         self.endday = endday
 
     def __call__(self, t):
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         var = self.rtable.split(".")[0]
         sql = "select gid,fdate,st_nearestvalue(rast,x,y) from {0},{1}_xy where rid=tile and tile={8} and fdate>=date'{2}-{3}-{4}' and fdate<=date'{5}-{6}-{7}' order by gid,fdate".format(
@@ -46,7 +46,7 @@ def _columnExists(cursor, name, colname):
 def stddev(dbname, name):
     """Calculate ensemble standard deviation from raster."""
     schemaname, tablename = name.split(".")
-    db = pg.connect(database=dbname)
+    db = dbio.connect(dbname)
     cur = db.cursor()
     if _columnExists(cur, name, "ensemble"):
         cur.execute("select max(ensemble) from {0}".format(name))
@@ -71,7 +71,7 @@ def stddev(dbname, name):
 def mean(dbname, name):
     """Calculate ensemble average from raster."""
     schemaname, tablename = name.split(".")
-    db = pg.connect(datasebase=dbname)
+    db = dbio.connect(dbname)
     cur = db.cursor()
     if _columnExists(cur, name, "ensemble"):
         cur.execute("select max(ensemble) from {0}".format(name))

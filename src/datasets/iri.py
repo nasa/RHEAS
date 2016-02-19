@@ -10,7 +10,6 @@ from the IRI FD Seasonal Forecast Tercile Probabilities.
 
 import datasets
 import dbio
-import psycopg2 as pg
 import netCDF4 as netcdf
 import numpy as np
 import os
@@ -27,7 +26,7 @@ def dates(dbname):
 
 def ingest(dbname, filename, dt, lt, cname, stname):
     """Imports Geotif *filename* into database *db*."""
-    db = pg.connect(database=dbname)
+    db = dbio.connect(dbname)
     cur = db.cursor()
     schemaname, tablename = stname.split(".")
     cur.execute(
@@ -83,7 +82,7 @@ def download(dbname, dt, bbox=None):
 def _getResampledTables(dbname, options, res):
     """Find names of resampled raster tables."""
     rtables = {}
-    db = pg.connect(database=dbname)
+    db = dbio.connect(dbname)
     cur = db.cursor()
     for v in ['precip', 'tmax', 'tmin', 'wind']:
         tname = options['vic'][v]
@@ -97,7 +96,7 @@ def _getResampledTables(dbname, options, res):
 
 def _deleteTableIfExists(dbname, sname, tname):
     """Check if table exists and delete it."""
-    db = pg.connect(database=dbname)
+    db = dbio.connect(dbname)
     cur = db.cursor()
     cur.execute(
         "select * from information_schema.tables where table_schema='{0}' and table_name='{1}'".format(sname, tname))
@@ -112,7 +111,7 @@ def _resampleClimatology(dbname, ptable, name, dt0):
     """Resample finer scale climatology to IRI spatial resolution."""
     tilesize = 10
     res = 2.5
-    db = pg.connect(database=dbname)
+    db = dbio.connect(dbname)
     cur = db.cursor()
     cur.execute(
         "select * from pg_catalog.pg_class c inner join pg_catalog.pg_namespace n on c.relnamespace=n.oid where n.nspname='precip' and c.relname='{0}_iri'".format(ptable))
@@ -139,7 +138,7 @@ def _resampleClimatology(dbname, ptable, name, dt0):
 
 def _getForcings(e, dbname, ptable, rtables, name, dt0, dt1):
     """Extract meteorological forcings for ensemble member."""
-    db = pg.connect(database=dbname)
+    db = dbio.connect(dbname)
     cur = db.cursor()
     data = {}
     for v in ['precip', 'tmax', 'tmin', 'wind']:
@@ -167,7 +166,7 @@ def generate(options, models):
     options['vic']['tmax'] = options['vic']['temperature']
     options['vic']['tmin'] = options['vic']['temperature']
     leadtime = 3
-    db = pg.connect(database=models.dbname)
+    db = dbio.connect(models.dbname)
     cur = db.cursor()
     name = models.name
     dt0 = date(models.startyear, models.startmonth, models.startday)

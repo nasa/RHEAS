@@ -12,7 +12,6 @@ import numpy as np
 import os
 import netCDF4 as netcdf
 from datetime import datetime, timedelta
-import psycopg2 as pg
 import datasets
 
 
@@ -69,7 +68,7 @@ class Smos(object):
     def x(self, dt, models):
         """Retrieve state variable from database."""
         data = {}
-        db = pg.connect(database=models.dbname)
+        db = dbio.connect(models.dbname)
         cur = db.cursor()
         for s in self.statevar:
             sql = "select ensemble,st_x(geom),st_y(geom),sum(val) from (select ensemble,layer,(ST_PixelAsCentroids(rast)).* from {0}.{1} where fdate=date '{2}-{3}-{4}') foo group by ensemble,geom order by ensemble".format(
@@ -88,7 +87,7 @@ class Smos(object):
 
     def get(self, dt, models):
         """Retrieve observations from database for date *dt*."""
-        db = pg.connect(database=models.dbname)
+        db = dbio.connect(models.dbname)
         cur = db.cursor()
         sql = "select st_x(geom),st_y(geom),val from (select (st_pixelascentroids(st_clip(rast,geom))).* from {0},{1}.basin where st_intersects(rast,geom) and fdate=date '{2}-{3}-{4}') foo".format(
             self.tablename, models.name, dt.year, dt.month, dt.day)
@@ -107,7 +106,7 @@ class Smos(object):
 
     def hx(self, models, dt):
         """Retrieve observed variable from database and resample to observation resolution."""
-        db = pg.connect(database=models.dbname)
+        db = dbio.connect(models.dbname)
         cur = db.cursor()
         sql = "with f as (select st_union(st_clip(rast,geom)) as rast from {0},{1}.basin where st_intersects(rast,geom) and fdate=date '{2}-{3}-{4}') select ensemble,st_x(geom),st_y(geom),val from (select ensemble,(st_pixelascentroids(st_resample(b.rast,f.rast,'average'))).* from f,{1}.{5} as b where layer=1 and fdate=date '{2}-{3}-{4}') foo order by ensemble".format(
             self.tablename, models.name, dt.year, dt.month, dt.day, self.obsvar)

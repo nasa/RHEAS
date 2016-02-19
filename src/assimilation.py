@@ -10,9 +10,9 @@
 import kalman
 from datetime import date
 import numpy as np
-import psycopg2 as pg
 from collections import OrderedDict
 from scipy.spatial.distance import cdist
+import dbio
 
 
 def observationDates(obsnames, dbname, startyear, startmonth, startday, endyear, endmonth, endday, update):
@@ -28,7 +28,7 @@ def observationDates(obsnames, dbname, startyear, startmonth, startday, endyear,
     else:
         update = 1
     dates = []
-    db = pg.connect(database=dbname)
+    db = dbio.connect(dbname)
     cur = db.cursor()
     for name in obsnames:
         name = name.lower().strip()

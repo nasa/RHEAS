@@ -15,6 +15,22 @@ import random
 import psycopg2 as pg
 import string
 import rpath
+import sys
+
+
+def connect(dbname):
+    """Connect to database *dbname*."""
+    try:
+        db = pg.connect(database=dbname)
+    except pg.OperationalError:
+        db = None
+        try:
+            db = pg.connect(database=dbname, host="/tmp/")
+        except:
+            print("Cannot connect to database {0}. Please restart it by running \n {1}/pg_ctl -D {2}/postgres restart".format(
+                dbname, rpath.bins, rpath.data))
+            sys.exit()
+    return db
 
 
 def writeGeotif(lat, lon, res, data, filename=None):
@@ -54,7 +70,7 @@ def writeGeotif(lat, lon, res, data, filename=None):
 
 def _getResamplingMethod(dbname, tablename, res):
     """Return a raster resampling method based on the resolution of the model and the requested datasets."""
-    db = pg.connect(database=dbname)
+    db = connect(dbname)
     cur = db.cursor()
     cur.execute(
         "select st_pixelheight(rast) from {0} limit 1".format(tablename))
@@ -72,7 +88,7 @@ def _getResamplingMethod(dbname, tablename, res):
 
 def _createRasterTable(dbname, stname):
     """Create table *stname* holding rasters in database *dbname*."""
-    db = pg.connect(database=dbname)
+    db = connect(dbname)
     cur = db.cursor()
     cur.execute(
         "create table {0} (rid serial primary key, rast raster, fdate date not null)".format(stname))
@@ -83,7 +99,7 @@ def _createRasterTable(dbname, stname):
 
 def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize):
     """Cache resampled tables by using materialized views."""
-    db = pg.connect(database=dbname)
+    db = connect(dbname)
     cur = db.cursor()
     # create catalog that holds information on resampled rasters
     sql = """create or replace function resampled(_s text, _t text, out result double precision) as
@@ -122,7 +138,7 @@ def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize):
 def ingest(dbname, filename, dt, stname, resample=True):
     """Imports Geotif *filename* into database *db*."""
     tilesize = (10, 10)
-    db = pg.connect(database=dbname)
+    db = connect(dbname)
     cur = db.cursor()
     # import temporary table
     temptable = ''.join(random.SystemRandom().choice(

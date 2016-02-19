@@ -7,13 +7,11 @@
 
 """
 
-import sys
 import config
 import nowcast
 import forecast
 import argparse
-import psycopg2 as pg
-import rpath
+import dbio
 import datasets
 from datetime import datetime
 
@@ -58,12 +56,7 @@ def run():
     config_filename, dbname, db_update = parseArgs()
     if dbname is None:
         dbname = "rheas"
-    try:
-        pg.connect("dbname={0}".format(dbname))
-    except:
-        print("Cannot connect to database {0}. Please restart it by running \n {1}/pg_ctl -D {2}/postgres restart".format(
-            dbname, rpath.bins, rpath.data))
-        sys.exit()
+    dbio.connect(dbname)
     # check if database update is requested
     if db_update:
         print "Updating database!"

@@ -22,7 +22,7 @@ import numpy as np
 from collections import OrderedDict
 import drought
 import pandas
-import psycopg2 as pg
+import dbio
 import rpath
 import random
 from raster import TileReader
@@ -46,7 +46,7 @@ class VIC:
         self.endday = endday
         self.nlayers = nlayer
         self.dbname = dbname
-        db = pg.connect(database=dbname)
+        db = dbio.connect(dbname)
         cur = db.cursor()
         cur.execute(
             "select resolution from vic.input order by abs(resolution - {0})".format(resolution))
@@ -72,7 +72,7 @@ class VIC:
 
     def paramFromDB(self):
         """Retrieve file parameters from database."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         # cur = self.db.cursor()
         cur.execute(
@@ -93,7 +93,7 @@ class VIC:
         """Write soil parameter file for current simulation based on basin shapefile."""
         ds = ogr.Open(shapefile)
         lyr = ds.GetLayer()
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute(
             "select * from information_schema.tables where table_name='basin' and table_schema=%s", (self.name,))
@@ -147,7 +147,7 @@ class VIC:
 
     def stateFile(self):
         """Retrieve state file path from database."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select filename from {0}.state where fdate = date '{1}-{2}-{3}'".format(
             self.name, self.startyear, self.startmonth, self.startday)
@@ -165,7 +165,7 @@ class VIC:
 
     def _stateToDb(self, statefilepath):
         """Add path to state file into database."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute(
             "select schema_name from information_schema.schemata where schema_name='{0}'".format(self.name))
@@ -198,7 +198,7 @@ class VIC:
 
     def writeParamFile(self, nodes=3, time_step=24, save_state="", init_state=False, state_file="", save_state_to_db=False):
         """Write VIC global parameter file for current simulation."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute(
             'select rootzones from vic.input where resolution=%f;' % self.res)
@@ -287,7 +287,7 @@ class VIC:
 
     def createIndexTable(self, dataset):
         """Creates index table from raster row, column, and tile for each grid cell."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         sname, tname = dataset.split(".")
         cur.execute(
@@ -304,7 +304,7 @@ class VIC:
 
     def _getTiles(self, itable):
         """Get raster tile IDs for the domain."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute("select distinct(tile) from {0}".format(itable))
         tiles = [int(r[0]) for r in cur.fetchall()]
@@ -314,7 +314,7 @@ class VIC:
 
     def _dropIndexTable(self, sname):
         """Deletes index table."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute("drop table {0}_xy".format(sname))
         db.commit()
@@ -323,7 +323,7 @@ class VIC:
 
     def _getTileData(self, rtable, t):
         """Retrieve data from *rtable* for specific tile *t*."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         var = rtable.split(".")[0]
         sql = "select gid,fdate,st_value(rast,x,y) from {0},{1}_xy where rid=tile and tile={8} and fdate>=date'{2}-{3}-{4}' and fdate<=date'{5}-{6}-{7}' order by gid,fdate".format(
@@ -502,7 +502,7 @@ class VIC:
 
     def writeToDB(self, data, dates, tablename, initialize, ensemble=False, skipsave=0):
         """Writes output data into database."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute(
             "select * from information_schema.tables where table_name='{0}' and table_schema='{1}'".format(tablename, self.name))

@@ -18,8 +18,8 @@ import numpy as np
 import shutil
 import os
 from dateutil.relativedelta import relativedelta
-import psycopg2 as pg
 import rpath
+import dbio
 
 
 class Ensemble:
@@ -185,7 +185,7 @@ class Ensemble:
         """Generate meteorological forcings using the Ensemble Streamflow Prediction method."""
         ndays = (date(self.endyear, self.endmonth, self.endday) -
                  date(self.startyear, self.startmonth, self.startday)).days
-        db = pg.connect(database=self.models[0].dbname)
+        db = dbio.connect(self.models[0].dbname)
         cur = db.cursor()
         sql = "select distinct (date_part('year', fdate)) as year from precip.{0}".format(
             options['vic']['precip'])
@@ -219,7 +219,7 @@ class Ensemble:
 
     def _initializeDeterm(self, basin, forcings, vicexe):
         """Initialize ensemble of VIC models deterministically."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         dt = "{0}-{1}-{2}".format(self.startyear,
                                   self.startmonth, self.startday)
@@ -265,7 +265,7 @@ class Ensemble:
     def _initializeRandom(self, basin, forcings, vicexe, initdays=90, saveindb=False, saveto="db", saveargs=[], overwrite=True, skipsave=0):
         """Initialize ensemble of VIC models by sampling the meterological forcings
         and running them *initmonths* prior to simulation start date."""
-        db = pg.connect(database=self.dbname)
+        db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select distinct (date_part('year', fdate)) as year from precip.{0}".format(
             forcings['precip'])
@@ -392,7 +392,7 @@ class Ensemble:
         if method.find("determ") == 0:
             statefiles = self._initializeDeterm(basin, forcings, vicexe)
         elif method.find("states") == 0:
-            db = pg.connect(database=self.dbname)
+            db = dbio.connect(self.dbname)
             cur = db.cursor()
             cur.execute(
                 "select * from information_schema.tables where table_name='state' and table_schema=%s", (self.name,))

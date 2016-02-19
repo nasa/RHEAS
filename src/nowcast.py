@@ -18,7 +18,7 @@ from assimilation import assimilate, observationDates
 from datetime import date, timedelta
 import rpath
 import raster
-import psycopg2 as pg
+import dbio
 
 
 def runVIC(dbname, options):
@@ -130,7 +130,7 @@ def runEnsembleVIC(dbname, options):
                               saveto=saveto, saveargs=savevars, initdays=ndays, overwrite=overwrite)
             data, alat, alon, agid = assimilate(options, date(
                 models.startyear, models.startmonth, models.startday), models)
-            db = pg.connect(database=models.dbname)
+            db = dbio.connect(models.dbname)
             cur = db.cursor()
             sql = "select tablename from pg_tables where schemaname='{0}'".format(
                 models.name)
