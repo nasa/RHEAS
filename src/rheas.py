@@ -15,6 +15,7 @@ import argparse
 import psycopg2 as pg
 import rpath
 import datasets
+from datetime import datetime
 
 
 def parseArgs():
@@ -46,6 +47,9 @@ def update(dbname, configfile, bbox=None):
                 datasets.download(name, dbname, bbox)
             else:
                 dt = mod.dates(dbname)
+                if dt is None:
+                    t0 = datetime.strptime(conf.get(name, 'startdate'), "%Y-%m-%d")
+                    dt = (t0, datetime.today())
                 mod.download(dbname, dt, bbox)
 
 

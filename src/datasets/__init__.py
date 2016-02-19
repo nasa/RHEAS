@@ -42,6 +42,8 @@ def dates(dbname, tablename):
         te = datetime(te.year, te.month, te.day)
         if te < datetime.today():
             dts = (te + timedelta(1), datetime.today())
+    else:
+        dts = None
     return dts
 
 
