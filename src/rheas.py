@@ -44,11 +44,28 @@ def update(dbname, configfile, bbox=None):
                 # download generic datasets
                 datasets.download(name, dbname, bbox)
             else:
-                dt = mod.dates(dbname)
-                if dt is None:
+                if conf.has_option(name, 'startdate'):
                     t0 = datetime.strptime(conf.get(name, 'startdate'), "%Y-%m-%d")
-                    dt = (t0, datetime.today())
-                mod.download(dbname, dt, bbox)
+                else:
+                    t0 = None
+                if conf.has_option(name, 'enddate'):
+                    t1 = datetime.strptime(conf.get(name, 'enddate'), "%Y-%m-%d")
+                else:
+                    t1 = None
+                dt = mod.dates(dbname)
+                if t0 is None:
+                    if dt is None:
+                        print("WARNING! Date information for {0} not found in the database or data.conf. Please add a startdate in the data.conf file.")
+                    else:
+                        if t1 is not None:
+                            dt = (dt[0], t1)
+                else:
+                    if t1 is None:
+                        dt = (t0, dt[1])
+                    else:
+                        dt = (t0, t1)
+                if dt is not None:
+                    mod.download(dbname, dt, bbox)
 
 
 def run():
