@@ -118,15 +118,19 @@ def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize):
             # check if view exists
             cur.execute(
                 "select * from pg_catalog.pg_class c inner join pg_catalog.pg_namespace n on c.relnamespace=n.oid where n.nspname='{0}' and c.relname='{1}_{2}'".format(sname, tname, int(1.0 / res)))
+            method = _getResamplingMethod(
+                dbname, "{0}.{1}".format(sname, tname), res)
             # if it exists just refresh it, if not create it
             if bool(cur.rowcount):
-                cur.execute("refresh materialized view {0}.{1}_{2}".format(
-                    sname, tname, int(1.0 / res)))
+                sql = "insert into {0}.{1}_{2} (with dt as (select max(fdate) as maxdate from {0}.{1}_{2}), f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1},dt where fdate>maxdate) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1])
+                cur.execute(sql)
+                # cur.execute("refresh materialized view {0}.{1}_{2}".format(
+                #     sname, tname, int(1.0 / res)))
             else:
-                method = _getResamplingMethod(
-                    dbname, "{0}.{1}".format(sname, tname), res)
-                sql = "create materialized view {0}.{1}_{2} as (with f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
+                sql = "create table {0}.{1}_{2} as (with f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
                     sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1])
+                # sql = "create materialized view {0}.{1}_{2} as (with f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
+                #     sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1])
                 cur.execute(sql)
                 cur.execute("create index {1}_{2}_t on {0}.{1}_{2}(fdate)".format(
                     sname, tname, int(1.0 / res)))
