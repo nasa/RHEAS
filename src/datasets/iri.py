@@ -46,7 +46,7 @@ def ingest(dbname, filename, dt, lt, cname, stname):
     cur.close()
 
 
-def download(dbname, dt, bbox=None):
+def download(dbname, dts, bbox=None):
     """Downloads IRI forecast tercile probability data from the IRI data server,
     and imports them into the database *db*. Optionally uses a bounding box to
     limit the region with [minlon, minlat, maxlon, maxlat]."""
@@ -68,12 +68,12 @@ def download(dbname, dt, bbox=None):
             i = range(len(lat))
             j = range(len(lon))
         t = pds.variables["F"][:]
-        t0 = np.where(t == ((dt.year - 1960) * 12 + dt.month - 0.5))[0]
-        if len(t0) > 0:
-            t0 = t0[0]
+        ti = [tt for tt in range(len(t)) if t[tt] >= ((dts[0].year - 1960) * 12 + dts[0].month - 0.5) and t[tt] <= ((dts[1].year - 1960) * 12 + dts[1].month - 0.5)]
+        for tt in ti:
+            dt = date(1960, 1, 1) + relativedelta(months=tt)
             for m in range(leadtime):
                 for ci, c in enumerate(["below", "normal", "above"]):
-                    data = pds.variables["prob"][t0, m, i, j, ci]
+                    data = pds.variables["prob"][tt, m, i, j, ci]
                     filename = dbio.writeGeotif(lat, lon, res, data)
                     ingest(dbname, filename, dt, m + 1, c, table[varname])
                     os.remove(filename)
@@ -116,7 +116,7 @@ def _resampleClimatology(dbname, ptable, name, dt0):
     cur.execute(
         "select * from pg_catalog.pg_class c inner join pg_catalog.pg_namespace n on c.relnamespace=n.oid where n.nspname='precip' and c.relname='{0}_iri'".format(ptable))
     if not bool(cur.rowcount):
-        sql = "create materialized view precip.{0}_iri as (with f as (select fdate,st_tile(st_rescale(rast,{0},'average'),{2},{2}) as rast from precip.{1}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
+        sql = "create table precip.{0}_iri as (with f as (select fdate,st_tile(st_rescale(rast,{0},'average'),{2},{2}) as rast from precip.{1}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
             res, ptable, tilesize)
         cur.execute(sql)
         cur.execute(
@@ -181,7 +181,7 @@ def generate(options, models):
         ptable = options['vic']['precip']
         # find resampled raster tables
         rtables = _getResampledTables(models.dbname, options, models.res)
-        # resample climatology to IRI spatial resolution as a materialized view
+        # resample climatology to IRI spatial resolution as a table
         _resampleClimatology(models.dbname, ptable, name, dt0)
         # calculate the annual accumulated precipitation using only the months
         # within the forecast period
