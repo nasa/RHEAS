@@ -2,7 +2,7 @@ Customizing RHEAS
 =================================
 
 Initializing and updating the database
---------------------------------
+------------------------------------------
 
 The RHEAS database needs to be populated with a variety of datasets that can be fetched automatically. A configuration file can be used to control and define which datasets are downloaded and imported in the PostGIS database. The configuration file follows the `INI <http://en.wikipedia.org/wiki/INI_file>`_ format, with each section corresponding to a dataset.
 
@@ -19,6 +19,30 @@ If the dataset is being fetched for the first time, a starting date needs to be 
 * ``enddate``: the last date of data to be fetched
 
 If the dataset already exists in the database, then RHEAS will only download data after the last date available in the database (unless this is bypassed by the ``startdate`` keyword).
+
+An example configuration file (named ``data.conf``) that will download TRMM, CHIRPS and IRI datasets is given below. 
+
+.. compound::
+
+   ::
+
+     [domain]
+     minlat: -2
+     maxlat: -2
+     minlon: 30
+     maxlon: 34
+
+     [trmm]
+
+     [iri]
+     startdate: 2000-2-1
+     enddate: 2000-3-1
+
+     [chirps]
+     startdate: 2014-1-3
+
+
+Since no option is provided under the ``trmm`` section, RHEAS will download data from the latest date available in the database to today.
 
 After the configuration file has been created, the database can be initialized/updated by calling RHEAS as
 
