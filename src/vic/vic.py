@@ -348,8 +348,9 @@ class VIC:
             self.lai = options['lai']
         options['tmax'] = options['temperature']
         options['tmin'] = options['temperature']
-        rtables = {v: self.createIndexTable("{0}.{1}".format(v, options[v])) for v in [
-            'precip', 'tmax', 'tmin', 'wind']}
+        rtables = {}
+        for v in ['precip', 'tmax', 'tmin', 'wind']:
+            rtables[v] = self.createIndexTable("{0}.{1}".format(v, options[v]))
         tiles = {v: self._getTiles("{0}_xy".format(v))
                  for v in ['precip', 'tmax', 'tmin', 'wind']}
         data = {}
