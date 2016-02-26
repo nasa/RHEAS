@@ -111,7 +111,7 @@ def _createRasterTable(dbname, stname):
     db.close()
 
 
-def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize):
+def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize, overwrite):
     """Cache resampled tables by using materialized views."""
     db = connect(dbname)
     cur = db.cursor()
@@ -137,7 +137,8 @@ def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize):
             # if it exists insert data, if not create it
             if bool(cur.rowcount):
                     # check if date already exists and delete it before ingesting
-                _deleteRasters(dbname, "{0}.{1}_{2}".format(sname, tname, int(1.0 / res)), dt)
+                if overwrite:
+                    _deleteRasters(dbname, "{0}.{1}_{2}".format(sname, tname, int(1.0 / res)), dt)
                 sql = "insert into {0}.{1}_{2} (with dt as (select max(fdate) as maxdate from {0}.{1}_{2}), f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1},dt where fdate>maxdate) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1])
                 cur.execute(sql)
                 # cur.execute("refresh materialized view {0}.{1}_{2}".format(
@@ -155,7 +156,7 @@ def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize):
         db.commit()
 
 
-def ingest(dbname, filename, dt, stname, resample=True):
+def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
     """Imports Geotif *filename* into database *db*."""
     tilesize = (10, 10)
     db = connect(dbname)
@@ -179,7 +180,8 @@ def ingest(dbname, filename, dt, stname, resample=True):
     if not bool(cur.rowcount):
         _createRasterTable(dbname, stname)
     # check if date already exists and delete it before ingesting
-    _deleteRasters(dbname, "{0}.{1}".format(schemaname, tablename), dt)
+    if overwrite:
+        _deleteRasters(dbname, "{0}.{1}".format(schemaname, tablename), dt)
     # create tiles from imported raster and insert into table
     cur.execute("insert into {0}.{1} (fdate,rast) select fdate,rast from {2}".format(
         schemaname, tablename, temptable))
@@ -191,7 +193,7 @@ def ingest(dbname, filename, dt, stname, resample=True):
     # create materialized views for resampled rasters
     if resample:
         _createResampledViews(dbname, schemaname,
-                              tablename, temptable, dt, tilesize)
+                              tablename, temptable, dt, tilesize, overwrite)
     # delete temporary table
     cur.execute("drop table {0}".format(temptable))
     db.commit()

@@ -35,7 +35,11 @@ def ingest(dbname, filename, dt, lt, cname, stname):
         cur.execute("create table {0}.{1} (rid serial not null primary key, fdate date, tercile text, leadtime int, rast raster)".format(
             schemaname, tablename))
         db.commit()
-    dbio.ingest(dbname, filename, dt, stname, False)
+    cur.execute("select * from {0} where fdate='{1}'".format(stname, dt.strftime("%Y-%m-%d")))
+    if bool(cur.rowcount):
+        cur.execute("delete from {0} where fdate='{1}'".format(stname, dt.strftime("%Y-%m-%d")))
+        db.commit()
+    dbio.ingest(dbname, filename, dt, stname, False, False)
     sql = "update {0} set tercile = '{1}' where tercile is null".format(
         stname, cname)
     cur.execute(sql)
@@ -70,7 +74,7 @@ def download(dbname, dts, bbox=None):
         t = pds.variables["F"][:]
         ti = [tt for tt in range(len(t)) if t[tt] >= ((dts[0].year - 1960) * 12 + dts[0].month - 0.5) and t[tt] <= ((dts[1].year - 1960) * 12 + dts[1].month - 0.5)]
         for tt in ti:
-            dt = date(1960, 1, 1) + relativedelta(months=tt)
+            dt = date(1960, 1, 1) + relativedelta(months=int(t[tt]))
             for m in range(leadtime):
                 for ci, c in enumerate(["below", "normal", "above"]):
                     data = pds.variables["prob"][tt, m, i, j, ci]
