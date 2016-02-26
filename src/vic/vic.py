@@ -293,6 +293,10 @@ class VIC:
         cur.execute(
             "select * from raster_resampled where sname='{0}' and tname like '{1}%' and resolution={2}".format(sname, tname, self.res))
         rtable = ".".join(cur.fetchone()[:2])
+        cur.execute("select * from information_schema.tables where table_name='{0}_xy' and table_schema='public'".format(sname))
+        if bool(cur.rowcount):
+            cur.execute("drop table {0}_xy".format(sname))
+            db.commit()
         sql = "create table {0}_xy as (select gid,st_worldtorastercoordx(rast,geom) as x,st_worldtorastercoordy(rast,geom) as y,rid as tile from {4},{5}.basin where fdate=date'{1}-{2}-{3}' and st_intersects(rast,geom))".format(
             sname, self.startyear, self.startmonth, self.startday, rtable, self.name)
         cur.execute(sql)
