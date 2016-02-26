@@ -255,6 +255,8 @@ class Ensemble:
             statefile = model.model_path + \
                 "/vic.state_{0:04d}{1:02d}{2:02d}".format(
                     self.startyear, self.startmonth, self.startday)
+            for emodel in self.models:
+                shutil.copy(statefile, emodel.model_path)
             shutil.rmtree(model.model_path)
         statefiles = [statefile] * self.nens
         self.setStateFiles(statefiles)
