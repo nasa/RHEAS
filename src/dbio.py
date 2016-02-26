@@ -68,6 +68,20 @@ def writeGeotif(lat, lon, res, data, filename=None):
     return filename
 
 
+def _deleteRasters(dbname, tablename, dt):
+    """If date already exists delete associated rasters before ingesting."""
+    db = connect(dbname)
+    cur = db.cursor()
+    sql = "select * from {0} where fdate='{1}'".format(tablename, dt.strftime("%Y-%m-%d"))
+    cur.execute(sql)
+    if bool(cur.rowcount):
+        print("WARNING! Overwriting raster in {0} table for {1}".format(tablename, dt.strftime("%Y-%m-%d")))
+        cur.execute("delete from {0} where fdate='{1}'".format(tablename, dt.strftime("%Y-%m-%d")))
+        db.commit()
+    cur.close()
+    db.close()
+
+
 def _getResamplingMethod(dbname, tablename, res):
     """Return a raster resampling method based on the resolution of the model and the requested datasets."""
     db = connect(dbname)
@@ -120,8 +134,10 @@ def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize):
                 "select * from pg_catalog.pg_class c inner join pg_catalog.pg_namespace n on c.relnamespace=n.oid where n.nspname='{0}' and c.relname='{1}_{2}'".format(sname, tname, int(1.0 / res)))
             method = _getResamplingMethod(
                 dbname, "{0}.{1}".format(sname, tname), res)
-            # if it exists just refresh it, if not create it
+            # if it exists insert data, if not create it
             if bool(cur.rowcount):
+                    # check if date already exists and delete it before ingesting
+                _deleteRasters(dbname, "{0}.{1}_{2}".format(sname, tname, int(1.0 / res)), dt)
                 sql = "insert into {0}.{1}_{2} (with dt as (select max(fdate) as maxdate from {0}.{1}_{2}), f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1},dt where fdate>maxdate) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1])
                 cur.execute(sql)
                 # cur.execute("refresh materialized view {0}.{1}_{2}".format(
@@ -162,6 +178,8 @@ def ingest(dbname, filename, dt, stname, resample=True):
         "select * from information_schema.tables where table_schema='{0}' and table_name='{1}'".format(schemaname, tablename))
     if not bool(cur.rowcount):
         _createRasterTable(dbname, stname)
+    # check if date already exists and delete it before ingesting
+    _deleteRasters(dbname, "{0}.{1}".format(schemaname, tablename), dt)
     # create tiles from imported raster and insert into table
     cur.execute("insert into {0}.{1} (fdate,rast) select fdate,rast from {2}".format(
         schemaname, tablename, temptable))

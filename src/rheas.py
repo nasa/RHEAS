@@ -26,7 +26,7 @@ def parseArgs():
     return args.config, args.d, args.u
 
 
-def update(dbname, configfile, bbox=None):
+def update(dbname, configfile):
     """Fetch datasets and update database."""
     conf = datasets.readDatasetList(configfile)
     try:
@@ -51,19 +51,15 @@ def update(dbname, configfile, bbox=None):
                 if conf.has_option(name, 'enddate'):
                     t1 = datetime.strptime(conf.get(name, 'enddate'), "%Y-%m-%d")
                 else:
-                    t1 = None
+                    t1 = datetime.today()
                 dt = mod.dates(dbname)
                 if t0 is None:
                     if dt is None:
                         print("WARNING! Date information for {0} not found in the database or data.conf. Please add a startdate in the data.conf file.")
                     else:
-                        if t1 is not None:
-                            dt = (dt[0], t1)
+                        dt = (dt[0], t1)
                 else:
-                    if t1 is None:
-                        dt = (t0, dt[1])
-                    else:
-                        dt = (t0, t1)
+                    dt = (t0, t1)
                 if dt is not None:
                     mod.download(dbname, dt, bbox)
 
