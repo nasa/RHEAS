@@ -14,6 +14,7 @@ import tempfile
 import subprocess
 import datasets
 import dbio
+import re
 
 
 table = "precip.gpm"
@@ -37,7 +38,7 @@ def download(dbname, dts, bbox):
     for t in ts:
         try:
             ftp.cwd("{0}/{1:02d}".format(t[0], t[1]))
-            filenames = [f for f in ftp.nlst() if datetime.strptime(f.split(".")[-5].split("-")[0], "%Y%m%d") >= dts[0] and datetime.strptime(f.split(".")[-5].split("-")[0], "%Y%m%d") <= dts[1] and f.find("E.1day.tif") > 0]
+            filenames = [f for f in ftp.nlst() if datetime.strptime(f.split(".")[-5].split("-")[0], "%Y%m%d") >= dts[0] and datetime.strptime(f.split(".")[-5].split("-")[0], "%Y%m%d") <= dts[1] and re.match(r'3B.*S000000.*1day\.tif', f) is not None]
             for fname in filenames:
                 dt = datetime.strptime(fname.split(".")[-5].split("-")[0], "%Y%m%d")
                 with open("{0}/{1}".format(outpath, fname), 'wb') as f:
@@ -49,6 +50,7 @@ def download(dbname, dts, bbox):
                     subprocess.call(["gdal_translate", "-a_srs", "epsg:4326", "-projwin", "{0}".format(bbox[0]), "{0}".format(bbox[3]), "{0}".format(bbox[2]), "{0}".format(bbox[1]), "{0}/prec.tif".format(outpath), "{0}/prec1.tif".format(outpath)])
                 else:
                     subprocess.call(["gdal_translate", "-a_srs", "epsg:4326", "{0}/prec.tif".format(outpath), "{0}/prec1.tif".format(outpath)])
+                # multiply by 0.1 to get mm/hr and 24 to get mm/day
                 cmd = " ".join(["gdal_calc.py", "-A", "{0}/prec1.tif".format(outpath), "--outfile={0}/prec2.tif".format(outpath), "--calc=\"0.1*A\""])
                 subprocess.call(cmd, shell=True)
                 dbio.ingest(dbname, "{0}/prec2.tif".format(outpath), dt, table, False)
