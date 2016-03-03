@@ -53,8 +53,11 @@ def download(dbname, conf):
 
 def ingest(dbname, table, data, lat, lon, res, t):
     """Import data into RHEAS database."""
-    for tj in range(data.shape[0]):
-        filename = dbio.writeGeotif(lat, lon, res, data[tj, :, :])
-        dbio.ingest(dbname, filename, t[tj], table)
-        print("Imported {0} in {1}".format(t[tj].strftime("%Y-%m-%d"), table))
-        os.remove(filename)
+    if data is not None:
+        for tj in range(data.shape[0]):
+            filename = dbio.writeGeotif(lat, lon, res, data[tj, :, :])
+            dbio.ingest(dbname, filename, t[tj], table)
+            print("Imported {0} in {1}".format(t[tj].strftime("%Y-%m-%d"), table))
+            os.remove(filename)
+    else:
+        print("WARNING! No data were available to import into {0}.".format(table))

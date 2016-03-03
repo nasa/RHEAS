@@ -47,14 +47,19 @@ def netcdf(fetch):
         tt = netcdf4.num2date(t[:], units=t.units)
         ti = [tj for tj in range(len(tt)) if tt[tj] >= dt[
             0] and tt[tj] <= dt[1]]
-        tdata = ds.variables[varname][ti, i[0]:i[-1] + 1, j[0]:j[-1] + 1]
-        lati = np.argsort(lat)[::-1]
-        loni = np.argsort(lon)
-        data = np.zeros((len(ti), len(lat), len(lon)))
-        for i in range(len(lat)):
-            for j in range(len(lon)):
-                data[:, i, j] = tdata[:, lati[i], loni[j]]
-        return data, lat, lon, tt[ti]
+        if len(ti) > 0:
+            tdata = ds.variables[varname][ti, i[0]:i[-1] + 1, j[0]:j[-1] + 1]
+            lati = np.argsort(lat)[::-1]
+            loni = np.argsort(lon)
+            data = np.zeros((len(ti), len(lat), len(lon)))
+            for i in range(len(lat)):
+                for j in range(len(lon)):
+                    data[:, i, j] = tdata[:, lati[i], loni[j]]
+            dts = tt[ti]
+        else:
+            data = None
+            dts = None
+        return data, lat, lon, dts
     return wrapper
 
 
