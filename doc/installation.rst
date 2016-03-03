@@ -88,6 +88,4 @@ After the script finishes you should have a ``rheas`` executable in your ``bin``
 
 Installing on Windows
 --------------------------------
-
-TBC
-
+It is currently possible to run RHEAS in a bash-shell environment such as `Cygwin <https://www.cygwin.com/>`_. However, due to backwards compatability issues with PostGIS dependencies, this method is not currently recommended.
