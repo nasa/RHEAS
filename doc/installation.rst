@@ -38,10 +38,11 @@ for RPM-based distros (such as RedHat, Fedora, Centos)
 ::
 
  sudo aptitude update && sudo aptitude -y upgrade  
- sudo aptitude install git build-essential python-numpy python-scipy python-gdal python-argparse python-dateutil libgdal-dev libproj-dev libxslt-dev libreadline-dev cython python-pandas
+ sudo aptitude install git build-essential python-numpy python-scipy python-gdal python-argparse python-dateutil libgdal-dev libproj-dev libxslt-dev libreadline-dev cython python-pandas python-pip python-psycopg2
  sudo dpkg --add-architecture i386
  sudo aptitude update
  sudo aptitude -y install wine winetricks
+ sudo pip install netCDF4
 
 for DEB-based distros (such as Ubuntu, Debian, Mint)
 
