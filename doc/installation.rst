@@ -20,6 +20,8 @@ The requirements for installing RHEAS include
 
 Thankfully most of these requirements are automatically installed using `Buildout <http://www.buildout.org/en/latest/>`_, a Python-based build system for creating, assembling and deploying applications from multiple parts.
 
+In terms of hardware, the recommended requirements include any modern computer system with hard drive storage of at least 250 GB, and memory of at least 4 GB.
+
 
 Installing on Linux and MacOS
 --------------------------------
