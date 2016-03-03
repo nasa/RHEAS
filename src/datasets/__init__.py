@@ -60,4 +60,4 @@ def ingest(dbname, table, data, lat, lon, res, t):
             print("Imported {0} in {1}".format(t[tj].strftime("%Y-%m-%d"), table))
             os.remove(filename)
     else:
-        print("WARNING! No data were available to import into {0}.".format(table))
+        print("WARNING! No data were available to import into {0}".format(table))
