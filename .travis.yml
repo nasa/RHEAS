@@ -5,6 +5,8 @@ addons:
   postgresql: "9.1"
 services:
   - postgresql
+virtualenv:
+  system_site_packages: true
 # install prerequisites
 before_install:
   - sudo add-apt-repository ppa:ubuntugis/ppa -y
