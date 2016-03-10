@@ -185,11 +185,12 @@ def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
         "select * from information_schema.schemata where schema_name='{0}'".format(schemaname))
     if not bool(cur.rowcount):
         cur.execute("create schema {0}".format(schemaname))
+        db.commit()
     cur.execute(
         "select * from information_schema.tables where table_schema='{0}' and table_name='{1}'".format(schemaname, tablename))
     if not bool(cur.rowcount):
         _createRasterTable(dbname, stname)
-        _createDateIndex(schemaname, tablename)
+        _createDateIndex(dbname, schemaname, tablename)
     # check if date already exists and delete it before ingesting
     if overwrite:
         _deleteRasters(dbname, "{0}.{1}".format(schemaname, tablename), dt)
