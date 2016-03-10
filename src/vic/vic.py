@@ -291,7 +291,7 @@ class VIC:
         cur = db.cursor()
         sname, tname = dataset.split(".")
         cur.execute(
-            "select * from raster_resampled where sname='{0}' and tname like '{1}%' and resolution={2}".format(sname, tname, self.res))
+            "select * from raster_resampled where sname='{0}' and tname like '{1}_%' and resolution={2}".format(sname, tname, self.res))
         rtable = ".".join(cur.fetchone()[:2])
         cur.execute("select * from information_schema.tables where table_name='{0}_xy' and table_schema='public'".format(sname))
         if bool(cur.rowcount):
