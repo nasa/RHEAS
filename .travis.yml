@@ -10,12 +10,12 @@ before_install:
   - sudo apt-get install -y postgresql postgresql-contrib postgresql-client postgis postgresql-9.1-postgis-2.0 python-psycopg2 python-pip
   - sudo pip install netCDF4
   - sudo apt-get install -y wine winetricks
+  - python bootstrap.py
   - ln -s /usr/bin/psql ./bin/psql
   - ln -s /usr/bin/raster2pgsql ./bin/raster2pgsql
   - ln -s /usr/bin/shp2pgsql ./bin/shp2pgsql
 # install
 install:
-  - python bootstrap.py
   - ./bin/buildout -c .travis-buildout.cfg
 # testing
 script:
