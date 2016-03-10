@@ -7,7 +7,7 @@
 
 """
 
-from smos import Smos
+from soilmoist import Soilmoist
 from ftplib import FTP
 from datetime import timedelta
 import tempfile
@@ -60,7 +60,7 @@ def download(dbname, dts, bbox):
             print("AMSR-E data not available for {0}. Skipping download!".format(dt.strftime("%Y%m%d")))
 
 
-class Amsre(Smos):
+class Amsre(Soilmoist):
 
     def __init__(self):
         """Initialize AMSR-E soil moisture object."""
