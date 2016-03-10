@@ -111,6 +111,16 @@ def _createRasterTable(dbname, stname):
     db.close()
 
 
+def _createDateIndex(dbname, schemaname, tablename):
+    """Create table index based on date column."""
+    db = connect(dbname)
+    cur = db.cursor()
+    cur.execute("create index {1}_t on {0}.{1}(fdate)".format(schemaname, tablename))
+    db.commit()
+    cur.close()
+    db.close()
+
+
 def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize, overwrite):
     """Cache resampled tables by using materialized views."""
     db = connect(dbname)
@@ -179,6 +189,7 @@ def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
         "select * from information_schema.tables where table_schema='{0}' and table_name='{1}'".format(schemaname, tablename))
     if not bool(cur.rowcount):
         _createRasterTable(dbname, stname)
+        _createDateIndex(schemaname, tablename)
     # check if date already exists and delete it before ingesting
     if overwrite:
         _deleteRasters(dbname, "{0}.{1}".format(schemaname, tablename), dt)
@@ -186,9 +197,9 @@ def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
     cur.execute("insert into {0}.{1} (fdate,rast) select fdate,rast from {2}".format(
         schemaname, tablename, temptable))
     # create indexes for table
-    cur.execute("drop index if exists {0}.{1}_t".format(schemaname, tablename))
-    cur.execute("create index {1}_t on {0}.{1}(fdate)".format(
-        schemaname, tablename))
+    # cur.execute("drop index if exists {0}.{1}_t".format(schemaname, tablename))
+    # cur.execute("create index {1}_t on {0}.{1}(fdate)".format(
+    #     schemaname, tablename))
     db.commit()
     # create materialized views for resampled rasters
     if resample:
