@@ -16,8 +16,13 @@ import urllib
 import zipfile
 import gzip
 from osgeo import gdal
-from datetime import timedelta
+from datetime import timedelta, datetime
 import datasets
+
+
+def _resetDatetime(dt):
+    """Set time to 00:00 to align with daily data."""
+    return datetime(dt.year, dt.month, dt.day, 0, 0)
 
 
 def netcdf(fetch):
