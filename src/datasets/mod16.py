@@ -51,7 +51,7 @@ def download(dbname, dts, bbox):
                             ftp.retrbinary("RETR {0}".format(fname), f.write)
                         subprocess.call(["gdal_translate", "HDF4_EOS:EOS_GRID:{0}/{1}:MOD_Grid_MOD16A2:ET_1km".format(
                             outpath, fname), "{0}/{1}".format(outpath, fname).replace("hdf", "tif")])
-                    tifs = " ".join(glob.glob("{0}/*.tif".format(outpath)))
+                    tifs = glob.glob("{0}/*.tif".format(outpath))
                     subprocess.call(
                         ["gdal_merge.py", "-o", "{0}/et.tif".format(outpath)] + tifs)
                     cmd = " ".join(["gdal_calc.py", "-A", "{0}/et.tif".format(outpath), "--outfile={0}/et1.tif".format(
@@ -60,8 +60,11 @@ def download(dbname, dts, bbox):
                     cmd = " ".join(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(
                         res), str(-res), "{0}/et1.tif".format(outpath), "{0}/et2.tif".format(outpath)])
                     subprocess.call(cmd, shell=True)
-                    subprocess.call(["gdal_translate", "-a_srs", "epsg:4326",
-                                     "{0}/et2.tif".format(outpath), "{0}/et3.tif".format(outpath)])
+                    if bbox is None:
+                        pstr = []
+                    else:
+                        pstr = ["-projwin", str(bbox[0]), str(bbox[3]), str(bbox[2]), str(bbox[1])]
+                    subprocess.call(["gdal_translate"] + pstr + ["-a_srs", "epsg:4326", "{0}/et2.tif".format(outpath), "{0}/et3.tif".format(outpath)])
                     dbio.ingest(
                         dbname, "{0}/et3.tif".format(outpath), dt, table, False)
                     shutil.rmtree(outpath)
