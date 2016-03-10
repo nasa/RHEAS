@@ -44,18 +44,23 @@ def download(dbname, dt, bbox=None):
         f = h5py.File("{0}/{1}".format(outpath, fname))
         lat = f['Soil_Moisture_Retrieval_Data']['latitude'][:, 0]
         lon = f['Soil_Moisture_Retrieval_Data']['longitude'][0, :]
-        if bbox is not None:
-            i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
-            j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
-            lat = lat[i]
-            lon = lon[j]
-        else:
-            i = range(len(lat))
-            j = range(len(lon))
+        i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
+        lat = lat[i1:i2]
+        lon = lon[j1:j2]
+        # if bbox is not None:
+        #     i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
+        #     j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
+        #     lat = lat[i]
+        #     lon = lon[j]
+        # else:
+        #     i = range(len(lat))
+        #     j = range(len(lon))
+        # sm = f['Soil_Moisture_Retrieval_Data'][
+        #     'soil_moisture'][i[0]:i[-1] + 1, j[0]:j[-1] + 1]
         sm = f['Soil_Moisture_Retrieval_Data'][
-            'soil_moisture'][i[0]:i[-1] + 1, j[0]:j[-1] + 1]
+            'soil_moisture'][i1:i2, j1:j2]
         # FIXME: Use spatially variable observation error
-        # sme = f['Soil_Moisture_Retrieval_Data']['soil_moisture_error'][i[0]:i[-1]+1, j[0]:j[-1]+1]
+        # sme = f['Soil_Moisture_Retrieval_Data']['soil_moisture_error'][i1:i2, j1:j2]
         filename = dbio.writeGeotif(lat, lon, res, sm)
         dbio.ingest(dbname, filename, dt, table, False)
 

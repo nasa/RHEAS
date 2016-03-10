@@ -8,7 +8,6 @@
 """
 
 import dbio
-import numpy as np
 import os
 import netCDF4 as netcdf
 from datetime import datetime, timedelta
@@ -32,21 +31,25 @@ def download(dbname, dt, bbox=None):
     f = netcdf.Dataset(url)
     lat = f.variables['lat'][:]
     lon = f.variables['lon'][:]
-    if bbox is not None:
-        i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
-        j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
-        lat = lat[i]
-        lon = lon[j]
-    else:
-        i = range(len(lat))
-        j = range(len(lon))
+    i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
+    lat = lat[i1:i2]
+    lon = lon[j1:j2]
+    # if bbox is not None:
+    #     i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
+    #     j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
+    #     lat = lat[i]
+    #     lon = lon[j]
+    # else:
+    #     i = range(len(lat))
+    #     j = range(len(lon))
     t0 = datetime(2010, 1, 12)  # initial date of SMOS data
     t1 = (dt[0] - t0).days
     t2 = (dt[1] - t0).days + 1
     ti = range(t1, t2)
-    sm = f.variables['SM'][ti, i, j]
+    # sm = f.variables['SM'][ti, i, j]
+    sm = f.variables['SM'][ti, i1:i2, j1:j2]
     # FIXME: Use spatially variable observation error
-    # smv = f.variables['VARIANCE_SM'][ti, i, j]
+    # smv = f.variables['VARIANCE_SM'][ti, i1:i2, j1:j2]
     for tj in range(sm.shape[0]):
         filename = dbio.writeGeotif(lat, lon, res, sm[tj, :, :])
         t = t0 + timedelta(ti[tj])

@@ -39,23 +39,29 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
         lat = pds.variables["Y"][:]
         lon = pds.variables["X"][:]
         lon[lon > 180] -= 360.0
-        if bbox is not None:
-            i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
-            j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
-            lat = lat[i]
-            lon = lon[j]
-        else:
-            i = range(len(lat))
-            j = range(len(lon))
+        i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
+        lat = lat[i1:i2]
+        lon = lon[j1:j2]
+        # if bbox is not None:
+        #     i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
+        #     j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
+        #     lat = lat[i]
+        #     lon = lon[j]
+        # else:
+        #     i = range(len(lat))
+        #     j = range(len(lon))
         t = pds.variables["T"]
         tt = netcdf.num2date(t[:], units=t.units)
         ti = [tj for tj in range(len(tt)) if tt[tj] >= dt[
             0] and tt[tj] <= dt[1]]
         if data is None:
-            data = pds.variables[dsvar[ui]][ti, 0, i, j]
+            # data = pds.variables[dsvar[ui]][ti, 0, i, j]
+            data = pds.variables[dsvar[ui]][ti, 0, i1:i2, j1:j2]
         else:
+            # data = np.sqrt(
+            #     data ** 2.0 + pds.variables[dsvar[ui]][ti, 0, i, j] ** 2.0)
             data = np.sqrt(
-                data ** 2.0 + pds.variables[dsvar[ui]][ti, 0, i, j] ** 2.0)
+                data ** 2.0 + pds.variables[dsvar[ui]][ti, 0, i1:i2, j1:j2] ** 2.0)
     if "temp" in dsvar:
         data -= 273.15
     for tj in range(data.shape[0]):

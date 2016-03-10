@@ -12,6 +12,7 @@ import ConfigParser
 import sys
 import dbio
 from datetime import datetime, timedelta
+import numpy as np
 
 
 def readDatasetList(filename):
@@ -44,6 +45,24 @@ def dates(dbname, tablename):
     else:
         dts = None
     return dts
+
+
+def spatialSubset(lat, lon, res, bbox):
+    """Subsets arrays of latitude/longitude based on bounding box *bbox*."""
+    if bbox is None:
+        i1 = 0
+        i2 = len(lat)-1
+        j1 = 0
+        j2 = len(lat)-1
+    else:
+        i1 = np.where(np.logical_and(bbox[1] >= lat-res/2, bbox[1] <= lat+res/2))[0][0]
+        i2 = np.where(np.logical_and(bbox[3] >= lat-res/2, bbox[3] <= lat+res/2))[0][-1]
+        j1 = np.where(np.logical_and(bbox[0] >= lon-res/2, bbox[0] <= lon+res/2))[0][0]
+        j2 = np.where(np.logical_and(bbox[2] >= lon-res/2, bbox[2] <= lon+res/2))[0][-1]
+        # account for latitude arrays oriented northwards
+        if i1 > i2:
+            i1, i2 = i2, i1
+    return i1, i2+1, j1, j2+1
 
 
 def download(dbname, conf):

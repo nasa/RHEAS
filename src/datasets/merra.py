@@ -32,23 +32,30 @@ def _downloadVariable(varname, dbname, dts, bbox):
             lat = ds.variables["lat"][:]
             lon = ds.variables["lon"][:]
             lon[lon > 180] -= 360.0
-            if bbox is not None:
-                i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
-                j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
-                lat = lat[i]
-                lon = lon[j]
-            else:
-                i = range(len(lat))
-                j = range(len(lon))
-            data = np.zeros((len(i), len(j)))
+            i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
+            lat = lat[i1:i2]
+            lon = lon[j1:j2]
+            # if bbox is not None:
+            #     i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
+            #     j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
+            #     lat = lat[i]
+            #     lon = lon[j]
+            # else:
+            #     i = range(len(lat))
+            #     j = range(len(lon))
+            # data = np.zeros((len(i), len(j)))
+            data = np.zeros((i2-i1, j2-j1))
             if varname == "tmax":
-                hdata = ds.variables["T2M"][:, i, j]
+                # hdata = ds.variables["T2M"][:, i, j]
+                hdata = ds.variables["T2M"][:, i1:i2, j1:j2]
                 data = np.amax(hdata, axis=0) - 273.15
             elif varname == "tmin":
-                hdata = ds.variables["T2M"][:, i, j]
+                # hdata = ds.variables["T2M"][:, i, j]
+                hdata = ds.variables["T2M"][:, i1:i2, j1:j2]
                 data = np.amin(hdata, axis=0) - 273.15
             elif varname in ["wind"]:
-                hdata = np.sqrt(ds.variables["U10M"][:, i, j]**2 + ds.variables["V10M"][:, i, j]**2)
+                # hdata = np.sqrt(ds.variables["U10M"][:, i, j]**2 + ds.variables["V10M"][:, i, j]**2)
+                hdata = np.sqrt(ds.variables["U10M"][:, i1:i2, j1:j2]**2 + ds.variables["V10M"][:, i1:i2, j1:j2]**2)
                 data = np.mean(hdata, axis=0)
             filename = dbio.writeGeotif(lat, lon, res, data)
             dbio.ingest(dbname, filename, ts, "{0}.merra".format(varname))

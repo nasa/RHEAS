@@ -28,7 +28,7 @@ def fetch(dbname, dt, bbox):
 def download(dbname, dt, bbox=None):
     res = 0.25
     data, lat, lon, t = fetch(dbname, dt, bbox)
-    datasets.ingest(dbname, table, lat, lon, res, t)
+    datasets.ingest(dbname, table, data, lat, lon, res, t)
 
 
 def dates(dbname):
