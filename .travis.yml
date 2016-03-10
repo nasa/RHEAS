@@ -12,7 +12,7 @@ before_install:
   - sudo rm -f /etc/apt/sources.list.d/pgdg-source.list
   - sudo apt-get update -qq
   - sudo apt-get remove postgresql-9.3-postgis-2.1 
-  - sudo apt-get install -y build-essential python-numpy python-scipy python-gdal python-argparse python-dateutil libgdal1-dev libproj-dev libxslt-dev libreadline-dev cython python-pandas python-h5py python-psycopg2 python-pip
+  - sudo apt-get install -y build-essential python-numpy python-scipy python-gdal python-argparse python-dateutil libgdal1-dev libproj-dev libxslt-dev libreadline-dev cython python-pandas python-h5py python-psycopg2 python-pip postgresql-9.3-postgis-2.1
   - sudo pip install netCDF4
   - sudo apt-get install -y wine winetricks
   - psql -U postgres -c "create extension postgis"
