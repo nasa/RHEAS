@@ -121,7 +121,7 @@ def _createDateIndex(dbname, schemaname, tablename):
     db.close()
 
 
-def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize, overwrite):
+def _createResampledTables(dbname, sname, tname, temptable, dt, tilesize, overwrite):
     """Cache resampled tables by using materialized views."""
     db = connect(dbname)
     cur = db.cursor()
@@ -149,15 +149,11 @@ def _createResampledViews(dbname, sname, tname, temptable, dt, tilesize, overwri
                     # check if date already exists and delete it before ingesting
                 if overwrite:
                     _deleteRasters(dbname, "{0}.{1}_{2}".format(sname, tname, int(1.0 / res)), dt)
-                sql = "insert into {0}.{1}_{2} (with dt as (select max(fdate) as maxdate from {0}.{1}_{2}), f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1},dt where fdate>maxdate) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1])
+                sql = "insert into {0}.{1}_{2} (with dt as (select max(fdate) as maxdate from {0}.{1}_{2}), f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1} where fdate=date'{7}') select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1], dt.strftime("%Y-%m-%d"))
                 cur.execute(sql)
-                # cur.execute("refresh materialized view {0}.{1}_{2}".format(
-                #     sname, tname, int(1.0 / res)))
             else:
-                sql = "create table {0}.{1}_{2} as (with f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
-                    sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1])
-                # sql = "create materialized view {0}.{1}_{2} as (with f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
-                #     sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1])
+                sql = "create table {0}.{1}_{2} as (with f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1} where fdate=date'{7}') select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
+                    sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1], dt.strftime("%Y-%m-%d"))
                 cur.execute(sql)
                 cur.execute("create index {1}_{2}_t on {0}.{1}_{2}(fdate)".format(
                     sname, tname, int(1.0 / res)))
@@ -204,7 +200,8 @@ def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
     db.commit()
     # create materialized views for resampled rasters
     if resample:
-        _createResampledViews(dbname, schemaname,
+        print("Creating resampled table for {0}.{1}".format(schemaname, tablename))
+        _createResampledTables(dbname, schemaname,
                               tablename, temptable, dt, tilesize, overwrite)
     # delete temporary table
     cur.execute("drop table {0}".format(temptable))
