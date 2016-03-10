@@ -11,7 +11,6 @@ from the IRI FD Seasonal Forecast Tercile Probabilities.
 import datasets
 import dbio
 import netCDF4 as netcdf
-import numpy as np
 import os
 import random
 import string
@@ -66,21 +65,12 @@ def download(dbname, dts, bbox=None):
         i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
         lat = lat[i1:i2]
         lon = lon[j1:j2]
-        # if bbox is not None:
-        #     i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
-        #     j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
-        #     lat = lat[i]
-        #     lon = lon[j]
-        # else:
-        #     i = range(len(lat))
-        #     j = range(len(lon))
         t = pds.variables["F"][:]
         ti = [tt for tt in range(len(t)) if t[tt] >= ((dts[0].year - 1960) * 12 + dts[0].month - 0.5) and t[tt] <= ((dts[1].year - 1960) * 12 + dts[1].month - 0.5)]
         for tt in ti:
             dt = date(1960, 1, 1) + relativedelta(months=int(t[tt]))
             for m in range(leadtime):
                 for ci, c in enumerate(["below", "normal", "above"]):
-                    # data = pds.variables["prob"][tt, m, i, j, ci]
                     data = pds.variables["prob"][tt, m, i1:i2, j1:j2, ci]
                     filename = dbio.writeGeotif(lat, lon, res, data)
                     ingest(dbname, filename, dt, m + 1, c, table[varname])

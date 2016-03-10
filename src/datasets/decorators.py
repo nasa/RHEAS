@@ -45,20 +45,12 @@ def netcdf(fetch):
         i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
         lat = lat[i1:i2]
         lon = lon[j1:j2]
-        # if bbox is not None:
-        #     i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
-        #     j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
-        #     lat = lat[i]
-        #     lon = lon[j]
-        # else:
-        #     i = range(len(lat))
-        #     j = range(len(lon))
         t = ds.variables[timevar]
         tt = netcdf4.num2date(t[:], units=t.units)
-        ti = [tj for tj in range(len(tt)) if tt[tj] >= dt[
-            0] and tt[tj] <= dt[1]]
+        ti = [tj for tj in range(len(tt)) if _resetDatetime(tt[tj]) >= dt[
+            0] and _resetDatetime(tt[tj]) <= dt[1]]
+        print dt, ti
         if len(ti) > 0:
-            # tdata = ds.variables[varname][ti, i[0]:i[-1] + 1, j[0]:j[-1] + 1]
             tdata = ds.variables[varname][ti, i1:i2, j1:j2]
             lati = np.argsort(lat)[::-1]
             loni = np.argsort(lon)
@@ -111,15 +103,6 @@ def geotiff(fetch):
             i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, xres, bbox)
             lat = lat[i1:i2]
             lon = lon[j1:j2]
-            # if bbox is not None:
-            #     i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
-            #     j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
-            #     lat = lat[i]
-            #     lon = lon[j]
-            # else:
-            #     i = range(len(lat))
-            #     j = range(len(lon))
-            # data.append(fdata[i[0]:i[-1] + 1, j[0]:j[-1] + 1])
             data.append(fdata[i1:i2, j1:j2])
         data = np.array(data)
         shutil.rmtree(outpath)
