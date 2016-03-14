@@ -98,8 +98,8 @@ def geotiff(fetch):
             xul, xres, _, yul, _, yres = f.GetGeoTransform()
             fdata = f.ReadAsArray()
             nr, nc = fdata.shape
-            lat = np.arange(yul, yul + yres * nr, yres)
-            lon = np.arange(xul, xul + xres * nc, xres)
+            lat = np.arange(yul + yres/2.0, yul + yres * nr, yres)
+            lon = np.arange(xul + xres/2.0, xul + xres * nc, xres)
             i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, xres, bbox)
             lat = lat[i1:i2]
             lon = lon[j1:j2]
