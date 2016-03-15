@@ -42,7 +42,7 @@ def update(dbname, configfile):
                 mod = None
             if mod is None:
                 # download generic datasets
-                datasets.download(name, dbname, bbox)
+                datasets.download(dbname, conf)
             else:
                 if conf.has_option(name, 'startdate'):
                     t0 = datetime.strptime(conf.get(name, 'startdate'), "%Y-%m-%d")
