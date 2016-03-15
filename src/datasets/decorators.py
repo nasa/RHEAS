@@ -25,6 +25,42 @@ def _resetDatetime(dt):
     return datetime(dt.year, dt.month, dt.day, 0, 0)
 
 
+def http(fetch):
+    """Decorator for downloading files from HTTP sites."""
+    @wraps(fetch)
+    def wrapper(*args, **kwargs):
+        url, bbox, dt = fetch(*args, **kwargs)
+        outpath = tempfile.mkdtemp()
+        filename = url.format(dt.year, dt.month, dt.day)
+        lfilename = filename.split("/")[-1]
+        urllib.urlretrieve(filename, "{0}/{1}".format(outpath, lfilename))
+        return outpath, lfilename, bbox, dt
+    return wrapper
+
+
+def ftp(fetch):
+    """Decorator for downloading files from FTP sites."""
+    @wraps(fetch)
+    def wrapper(*args, **kwargs):
+        url, bbox, dt = fetch(*args, **kwargs)
+        ftpurl = url.split("/")[2]
+        conn = FTP(ftpurl)
+        conn.login()
+        conn.cwd("/".join(url.split("/")[3:-1]).format(dt.year, dt.month, dt.day))
+        name = url.split("/")[-1].format(dt.year, dt.month, dt.day)
+        filenames = [f for f in conn.nlst() if re.match(r".*{0}.*".format(name), f) is not None]
+        outpath = tempfile.mkdtemp()
+        if len(filenames) > 0:
+            filename = filenames[0]
+            with open("{0}/{1}".format(outpath, filename), 'wb') as f:
+                conn.retrbinary("RETR {0}".format(filename), f.write)
+            filenames.append("{0}/{1}".format(outpath, filename))
+        else:
+            filename = None
+        return outpath, filename, bbox, dt
+    return wrapper
+
+
 def netcdf(fetch):
     """Decorator for fetching NetCDF files (local or from Opendap servers)."""
     @wraps(fetch)
