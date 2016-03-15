@@ -104,20 +104,6 @@ def geotiff(fetch):
     def wrapper(*args, **kwargs):
         outpath, filename, bbox, dt = fetch(*args, **kwargs)
         lfilename = datasets.uncompress(filename, outpath)
-        # if filename.endswith("gz"):
-        #     f = gzip.open("{0}/{1}".format(outpath, filename), 'rb')
-        #     contents = f.read()
-        #     f.close()
-        #     lfilename = filename.replace(".gz", "")
-        #     with open("{0}/{1}".format(outpath, lfilename), 'wb') as f:
-        #         f.write(contents)
-        # elif filename.endswith("zip"):
-        #     f = zipfile.ZipFile("{0}/{1}".format(outpath, filename))
-        #     lfilename = filter(lambda s: s.endswith("tif"), f.namelist())[0]
-        #     f.extract(lfilename, outpath)
-        #     lfilename = "{0}/{1}".format(outpath, lfilename)
-        # else:
-        #     lfilename = filename
         f = gdal.Open("{0}/{1}".format(outpath, lfilename))
         xul, xres, _, yul, _, yres = f.GetGeoTransform()
         data = f.ReadAsArray()
@@ -125,6 +111,7 @@ def geotiff(fetch):
         lat = np.arange(yul + yres/2.0, yul + yres * nr, yres)
         lon = np.arange(xul + xres/2.0, xul + xres * nc, xres)
         i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, xres, bbox)
+        data = data[i1:i2, j1:j2]
         lat = lat[i1:i2]
         lon = lon[j1:j2]
         shutil.rmtree(outpath)
