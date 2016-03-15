@@ -13,8 +13,6 @@ import numpy as np
 import tempfile
 import shutil
 import urllib
-import zipfile
-import gzip
 from osgeo import gdal
 from datetime import datetime
 from ftplib import FTP
@@ -34,8 +32,11 @@ def http(fetch):
         url, bbox, dt = fetch(*args, **kwargs)
         outpath = tempfile.mkdtemp()
         filename = url.format(dt.year, dt.month, dt.day)
-        lfilename = filename.split("/")[-1]
-        urllib.urlretrieve(filename, "{0}/{1}".format(outpath, lfilename))
+        try:
+            lfilename = filename.split("/")[-1]
+            urllib.urlretrieve(filename, "{0}/{1}".format(outpath, lfilename))
+        except:
+            lfilename = None
         return outpath, lfilename, bbox, dt
     return wrapper
 
@@ -46,18 +47,21 @@ def ftp(fetch):
     def wrapper(*args, **kwargs):
         url, bbox, dt = fetch(*args, **kwargs)
         ftpurl = url.split("/")[2]
-        conn = FTP(ftpurl)
-        conn.login()
-        conn.cwd("/".join(url.split("/")[3:-1]).format(dt.year, dt.month, dt.day))
-        name = url.split("/")[-1].format(dt.year, dt.month, dt.day)
-        filenames = [f for f in conn.nlst() if re.match(r".*{0}.*".format(name), f) is not None]
-        outpath = tempfile.mkdtemp()
-        if len(filenames) > 0:
-            filename = filenames[0]
-            with open("{0}/{1}".format(outpath, filename), 'wb') as f:
-                conn.retrbinary("RETR {0}".format(filename), f.write)
-            filenames.append("{0}/{1}".format(outpath, filename))
-        else:
+        try:
+            conn = FTP(ftpurl)
+            conn.login()
+            conn.cwd("/".join(url.split("/")[3:-1]).format(dt.year, dt.month, dt.day))
+            name = url.split("/")[-1].format(dt.year, dt.month, dt.day)
+            filenames = [f for f in conn.nlst() if re.match(r".*{0}.*".format(name), f) is not None]
+            outpath = tempfile.mkdtemp()
+            if len(filenames) > 0:
+                filename = filenames[0]
+                with open("{0}/{1}".format(outpath, filename), 'wb') as f:
+                    conn.retrbinary("RETR {0}".format(filename), f.write)
+                filenames.append("{0}/{1}".format(outpath, filename))
+            else:
+                filename = None
+        except:
             filename = None
         return outpath, filename, bbox, dt
     return wrapper
@@ -103,17 +107,20 @@ def geotiff(fetch):
     @wraps(fetch)
     def wrapper(*args, **kwargs):
         outpath, filename, bbox, dt = fetch(*args, **kwargs)
-        lfilename = datasets.uncompress(filename, outpath)
-        f = gdal.Open("{0}/{1}".format(outpath, lfilename))
-        xul, xres, _, yul, _, yres = f.GetGeoTransform()
-        data = f.ReadAsArray()
-        nr, nc = data.shape
-        lat = np.arange(yul + yres/2.0, yul + yres * nr, yres)
-        lon = np.arange(xul + xres/2.0, xul + xres * nc, xres)
-        i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, xres, bbox)
-        data = data[i1:i2, j1:j2]
-        lat = lat[i1:i2]
-        lon = lon[j1:j2]
-        shutil.rmtree(outpath)
+        if filename is not None:
+            lfilename = datasets.uncompress(filename, outpath)
+            f = gdal.Open("{0}/{1}".format(outpath, lfilename))
+            xul, xres, _, yul, _, yres = f.GetGeoTransform()
+            data = f.ReadAsArray()
+            nr, nc = data.shape
+            lat = np.arange(yul + yres/2.0, yul + yres * nr, yres)
+            lon = np.arange(xul + xres/2.0, xul + xres * nc, xres)
+            i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, xres, bbox)
+            data = data[i1:i2, j1:j2]
+            lat = lat[i1:i2]
+            lon = lon[j1:j2]
+            shutil.rmtree(outpath)
+        else:
+            data = lat = lon = None
         return data, lat, lon, dt
     return wrapper
