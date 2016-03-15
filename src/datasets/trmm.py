@@ -9,6 +9,7 @@
 """
 
 from datasets.decorators import netcdf
+from datetime import timedelta
 import datasets
 
 
@@ -25,10 +26,11 @@ def fetch(dbname, dt, bbox):
     return url, varname, bbox, dt
 
 
-def download(dbname, dt, bbox=None):
+def download(dbname, dts, bbox=None):
     res = 0.25
-    data, lat, lon, t = fetch(dbname, dt, bbox)
-    datasets.ingest(dbname, table, data, lat, lon, res, t)
+    for dt in [dts[0] + timedelta(tt) for tt in range((dts[1] - dts[0]).days + 1)]:
+        data, lat, lon, t = fetch(dbname, dt, bbox)
+        datasets.ingest(dbname, table, data, lat, lon, res, t)
 
 
 def dates(dbname):

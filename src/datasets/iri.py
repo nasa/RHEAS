@@ -14,6 +14,7 @@ import netCDF4 as netcdf
 import os
 import random
 import string
+import numpy as np
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
@@ -62,16 +63,19 @@ def download(dbname, dts, bbox=None):
         pds = netcdf.Dataset(purl)
         lat = pds.variables["Y"][:]
         lon = pds.variables["X"][:]
-        i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
-        lat = lat[i1:i2]
-        lon = lon[j1:j2]
+        lon[lon > 180] -= 360.0
+        i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
+        lati = np.argsort(lat)[::-1][i1:i2]
+        loni = np.argsort(lon)[j1:j2]
+        lat = np.sort(lat)[::-1][i1:i2]
+        lon = np.sort(lon)[j1:j2]
         t = pds.variables["F"][:]
         ti = [tt for tt in range(len(t)) if t[tt] >= ((dts[0].year - 1960) * 12 + dts[0].month - 0.5) and t[tt] <= ((dts[1].year - 1960) * 12 + dts[1].month - 0.5)]
         for tt in ti:
             dt = date(1960, 1, 1) + relativedelta(months=int(t[tt]))
             for m in range(leadtime):
                 for ci, c in enumerate(["below", "normal", "above"]):
-                    data = pds.variables["prob"][tt, m, i1:i2, j1:j2, ci]
+                    data = pds.variables["prob"][tt, m, lati, loni, ci]
                     filename = dbio.writeGeotif(lat, lon, res, data)
                     ingest(dbname, filename, dt, m + 1, c, table[varname])
                     os.remove(filename)

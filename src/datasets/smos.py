@@ -29,16 +29,18 @@ def download(dbname, dt, bbox=None):
     res = 0.25
     url = "http://rheas:rheasjpl@cp34-bec.cmima.csic.es/thredds/dodsC/NRTSM001D025A_ALL"
     f = netcdf.Dataset(url)
-    lat = f.variables['lat'][:]
+    lat = f.variables['lat'][::-1]  # swap latitude orientation to northwards
     lon = f.variables['lon'][:]
     i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
+    smi1 = len(lat) - i2 - 1
+    smi2 = len(lat) - i1 - 1
     lat = lat[i1:i2]
     lon = lon[j1:j2]
     t0 = datetime(2010, 1, 12)  # initial date of SMOS data
     t1 = (dt[0] - t0).days
     t2 = (dt[1] - t0).days + 1
     ti = range(t1, t2)
-    sm = f.variables['SM'][ti, i1:i2, j1:j2]
+    sm = f.variables['SM'][ti, smi1:smi2, j1:j2]
     # FIXME: Use spatially variable observation error
     # smv = f.variables['VARIANCE_SM'][ti, i1:i2, j1:j2]
     for tj in range(sm.shape[0]):

@@ -14,6 +14,7 @@ from ftplib import FTP
 import numpy as np
 import dbio
 import datasets
+from datetime import timedelta
 
 
 table = "soilmoist.smap"
@@ -24,45 +25,41 @@ def dates(dbname):
     return dts
 
 
-def download(dbname, dt, bbox=None):
+def download(dbname, dts, bbox=None):
     """Downloads SMAP soil mositure data for a set of dates *dt*
     and imports them into the PostGIS database *dbname*. Optionally
     uses a bounding box to limit the region with [minlon, minlat, maxlon, maxlat]."""
     res = 0.36
-    url = "ftp://n5eil01u.ecs.nsidc.org"
+    url = "n5eil01u.ecs.nsidc.org"
     ftp = FTP(url)
     ftp.login()
-    ftp.cwd("SAN/SMAP/SPL3SMP.002")
-    days = ftp.nlst()
-    datadir = dt.strftime("%Y.%m.%d")
-    if datadir in days:
-        outpath = tempfile.mkdtemp()
-        ftp.cwd(datadir)
-        fname = [f for f in ftp.nlst() if f.find("h5") > 0][0]
-        with open("{0}/{1}".format(outpath, fname), 'wb') as f:
-            ftp.retrbinary("RETR {0}".format(fname), f.write)
-        f = h5py.File("{0}/{1}".format(outpath, fname))
-        lat = f['Soil_Moisture_Retrieval_Data']['latitude'][:, 0]
-        lon = f['Soil_Moisture_Retrieval_Data']['longitude'][0, :]
-        i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
-        lat = lat[i1:i2]
-        lon = lon[j1:j2]
-        # if bbox is not None:
-        #     i = np.where(np.logical_and(lat > bbox[1], lat < bbox[3]))[0]
-        #     j = np.where(np.logical_and(lon > bbox[0], lon < bbox[2]))[0]
-        #     lat = lat[i]
-        #     lon = lon[j]
-        # else:
-        #     i = range(len(lat))
-        #     j = range(len(lon))
-        # sm = f['Soil_Moisture_Retrieval_Data'][
-        #     'soil_moisture'][i[0]:i[-1] + 1, j[0]:j[-1] + 1]
-        sm = f['Soil_Moisture_Retrieval_Data'][
-            'soil_moisture'][i1:i2, j1:j2]
-        # FIXME: Use spatially variable observation error
-        # sme = f['Soil_Moisture_Retrieval_Data']['soil_moisture_error'][i1:i2, j1:j2]
-        filename = dbio.writeGeotif(lat, lon, res, sm)
-        dbio.ingest(dbname, filename, dt, table, False)
+    for dt in [dts[0] + timedelta(tt) for tt in range((dts[1] - dts[0]).days + 1)]:
+        r = ftp.cwd("/pub/SAN/SMAP/SPL3SMP.002/{0}".format(dt.strftime("%Y.%m.%d")))
+        if r.find("successful") > 0:
+            outpath = tempfile.mkdtemp()
+            fname = [f for f in ftp.nlst() if f.find("h5") > 0][0]
+            with open("{0}/{1}".format(outpath, fname), 'wb') as f:
+                ftp.retrbinary("RETR {0}".format(fname), f.write)
+            f = h5py.File("{0}/{1}".format(outpath, fname))
+            lat = f['Soil_Moisture_Retrieval_Data']['latitude'][:, 0]
+            lon = f['Soil_Moisture_Retrieval_Data']['longitude'][0, :]
+            lon[lon > 180] -= 360.0
+            # FIXME: Need to add reprojection from EASE grid
+            i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
+            lati = np.argsort(lat)[::-1][i1:i2]
+            loni = np.argsort(lon)[j1:j2]
+            sm = np.zeros((len(lati), len(loni)))
+            for i in range(len(lati)):
+                for j in range(len(loni)):
+                    sm[i, j] = f['Soil_Moisture_Retrieval_Data']['soil_moisture'][i, j]
+            # FIXME: Use spatially variable observation error
+            # sme = f['Soil_Moisture_Retrieval_Data']['soil_moisture_error'][i1:i2, j1:j2]
+            lat = np.sort(lat)[::-1][i1:i2]
+            lon = np.sort(lon)[j1:j2]
+            filename = dbio.writeGeotif(lat, lon, res, sm)
+            dbio.ingest(dbname, filename, dt, table, False)
+        else:
+            print("No SMAP data available for {0}.".format(dt.strftime("%Y-%m-%d")))
 
 
 class Smap(Smos):
