@@ -30,7 +30,6 @@ def uncompress(filename, outpath):
         f = zipfile.ZipFile("{0}/{1}".format(outpath, filename))
         lfilename = filter(lambda s: s.endswith("tif"), f.namelist())[0]
         f.extract(lfilename, outpath)
-        lfilename = "{0}/{1}".format(outpath, lfilename)
     else:
         lfilename = filename
     return lfilename
