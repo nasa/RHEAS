@@ -16,7 +16,9 @@ import urllib
 import zipfile
 import gzip
 from osgeo import gdal
-from datetime import timedelta, datetime
+from datetime import datetime
+from ftplib import FTP
+import re
 import datasets
 
 
@@ -78,69 +80,53 @@ def netcdf(fetch):
         lon = ds.variables[lonvar][:]
         lon[lon > 180] -= 360
         res = abs(lat[0]-lat[1])  # assume rectangular grid
-        i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
-        lat = lat[i1:i2]
-        lon = lon[j1:j2]
+        i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
         t = ds.variables[timevar]
         tt = netcdf4.num2date(t[:], units=t.units)
-        ti = [tj for tj in range(len(tt)) if _resetDatetime(tt[tj]) >= dt[
-            0] and _resetDatetime(tt[tj]) <= dt[1]]
-        print dt, ti
+        ti = [tj for tj in range(len(tt)) if _resetDatetime(tt[tj]) == dt]
         if len(ti) > 0:
-            tdata = ds.variables[varname][ti, i1:i2, j1:j2]
-            lati = np.argsort(lat)[::-1]
-            loni = np.argsort(lon)
-            data = np.zeros((len(ti), len(lat), len(lon)))
-            for i in range(len(lat)):
-                for j in range(len(lon)):
-                    data[:, i, j] = tdata[:, lati[i], loni[j]]
-            dts = tt[ti]
+            lati = np.argsort(lat)[::-1][i1:i2]
+            loni = np.argsort(lon)[j1:j2]
+            data = ds.variables[varname][ti[0], lati, loni]
+            dt = tt[ti[0]]
         else:
             data = None
-            dts = None
-        return data, lat, lon, dts
+            dt = None
+        lat = np.sort(lat)[::-1][i1:i2]
+        lon = np.sort(lon)[j1:j2]
+        return data, lat, lon, dt
     return wrapper
 
 
 def geotiff(fetch):
-    """Decorator for fetching Geotiff files."""
+    """Decorator for reading data from raster files."""
     @wraps(fetch)
     def wrapper(*args, **kwargs):
-        url, bbox, dt = fetch(*args, **kwargs)
-        outpath = tempfile.mkdtemp()
-        data = []
-        ts = []
-        for tt in range((dt[1] - dt[0]).days + 1):
-            t = dt[0] + timedelta(tt)
-            ts.append(t)
-            filename = url.format(t.year, t.month, t.day)
-            lfilename = filename.split("/")[-1]
-            if filename.find("http") >= 0 or filename.find("ftp") >= 0:
-                urllib.urlretrieve(
-                    filename, "{0}/{1}".format(outpath, lfilename))
-            if lfilename.endswith("gz"):
-                f = gzip.open("{0}/{1}".format(outpath, lfilename), 'rb')
-                contents = f.read()
-                f.close()
-                lfilename = lfilename.replace(".gz", "")
-                with open("{0}/{1}".format(outpath, lfilename), 'wb') as f:
-                    f.write(contents)
-            elif lfilename.endswith("zip"):
-                f = zipfile.ZipFile("{0}/{1}".format(outpath, lfilename))
-                lfilename = filter(
-                    lambda s: s.endswith("tif"), f.namelist())[0]
-                f.extract(lfilename, outpath)
-            f = gdal.Open("{0}/{1}".format(outpath, lfilename))
-            xul, xres, _, yul, _, yres = f.GetGeoTransform()
-            fdata = f.ReadAsArray()
-            nr, nc = fdata.shape
-            lat = np.arange(yul + yres/2.0, yul + yres * nr, yres)
-            lon = np.arange(xul + xres/2.0, xul + xres * nc, xres)
-            i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, xres, bbox)
-            lat = lat[i1:i2]
-            lon = lon[j1:j2]
-            data.append(fdata[i1:i2, j1:j2])
-        data = np.array(data)
+        outpath, filename, bbox, dt = fetch(*args, **kwargs)
+        lfilename = datasets.uncompress(filename, outpath)
+        # if filename.endswith("gz"):
+        #     f = gzip.open("{0}/{1}".format(outpath, filename), 'rb')
+        #     contents = f.read()
+        #     f.close()
+        #     lfilename = filename.replace(".gz", "")
+        #     with open("{0}/{1}".format(outpath, lfilename), 'wb') as f:
+        #         f.write(contents)
+        # elif filename.endswith("zip"):
+        #     f = zipfile.ZipFile("{0}/{1}".format(outpath, filename))
+        #     lfilename = filter(lambda s: s.endswith("tif"), f.namelist())[0]
+        #     f.extract(lfilename, outpath)
+        #     lfilename = "{0}/{1}".format(outpath, lfilename)
+        # else:
+        #     lfilename = filename
+        f = gdal.Open("{0}/{1}".format(outpath, lfilename))
+        xul, xres, _, yul, _, yres = f.GetGeoTransform()
+        data = f.ReadAsArray()
+        nr, nc = data.shape
+        lat = np.arange(yul + yres/2.0, yul + yres * nr, yres)
+        lon = np.arange(xul + xres/2.0, xul + xres * nc, xres)
+        i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, xres, bbox)
+        lat = lat[i1:i2]
+        lon = lon[j1:j2]
         shutil.rmtree(outpath)
-        return data, lat, lon, np.array(ts)
+        return data, lat, lon, dt
     return wrapper
