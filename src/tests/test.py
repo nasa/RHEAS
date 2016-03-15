@@ -12,12 +12,41 @@ import forecast
 import config
 import rpath
 import tempfile
+from datetime import datetime
+import datasets
+import dbio
 
 
-class testDatabase(unittest.TestCase):
+class testDatasets(unittest.TestCase):
 
-    # FIXME: Add unit tests for database
-    pass
+    def setUp(self):
+        self.dbname = "rheas"
+        configfile = "{0}/tests/data.conf".format(rpath.data)
+        conf = datasets.readDatasetList(configfile)
+        bbox = map(lambda s: conf.getfloat('domain', s), [
+                   'minlon', 'minlat', 'maxlon', 'maxlat'])
+        for name in ["chirps", "ncep", "smos", "trmm"]:
+            mod = __import__("datasets.{0}".format(name), fromlist=[name])
+            t0 = datetime.strptime(conf.get(name, 'startdate'), "%Y-%m-%d")
+            t1 = datetime.strptime(conf.get(name, 'enddate'), "%Y-%m-%d")
+            mod.download(self.dbname, (t0, t1), bbox)
+
+    def testTable(self):
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        cur.execute("select * from information_schema.tables where table_name='chirps' and table_schema='precip'")
+        assert bool(cur.rowcount) is True
+
+    def tearDown(self):
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        for table in ["precip.chirps", "precip.trmm", "tmax.ncep", "tmin.ncep", "wind.ncep"]:
+            cur.execute("drop table {0}".format(table))
+            cur.execute("drop table {0}_4".format(table))
+        cur.execute("drop schema soilmoist cascade")
+        db.commit()
+        cur.close()
+        db.close()
 
 
 class testNowcast(unittest.TestCase):
