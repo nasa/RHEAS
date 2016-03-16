@@ -29,16 +29,16 @@ def _cultivars(dbname):
 
 
 def _ingestTables(dbname):
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/precip_chirps.sql".format(rpath.data)])
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/precip_trmm.sql".format(rpath.data)])
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/tmax_ncep.sql".format(rpath.data)])
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/tmin_ncep.sql".format(rpath.data)])
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/wind_ncep.sql".format(rpath.data)])
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/precip_chirps_4.sql".format(rpath.data)])
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/precip_trmm_4.sql".format(rpath.data)])
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/tmax_ncep_4.sql".format(rpath.data)])
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/tmin_ncep_4.sql".format(rpath.data)])
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/wind_ncep_4.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/precip_chirps.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/precip_trmm.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/tmax_ncep.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/tmin_ncep.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/wind_ncep.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/precip_chirps_4.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/precip_trmm_4.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/tmax_ncep_4.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/tmin_ncep_4.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/wind_ncep_4.sql".format(rpath.data)])
     db = dbio.connect(dbname)
     cur = db.cursor()
     sql = """create or replace function resampled(_s text, _t text, out result double precision) as
@@ -51,7 +51,7 @@ def _ingestTables(dbname):
     cur.execute("create or replace view raster_resampled as (select r_table_schema as sname,r_table_name as tname,resampled(r_table_schema,r_table_name) as resolution from raster_columns)")
     cur.execute("create schema soilmoist")
     db.commit()
-    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/soilmoist_smos.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-d", "rheas", "-f", "{0}/tests/soilmoist_smos.sql".format(rpath.data)])
 
 
 class testDatasets(unittest.TestCase):
