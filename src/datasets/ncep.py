@@ -54,8 +54,8 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
                     data ** 2.0 + pds.variables[dsvar[ui]][ti[0], 0, lati, loni] ** 2.0)
         lat = np.sort(lat)[::-1][i1:i2]
         lon = np.sort(lon)[j1:j2]
-    if "temp" in dsvar:
-        data -= 273.15
+        if "temp" in dsvar:
+            data -= 273.15
     filename = dbio.writeGeotif(lat, lon, res, data)
     dbio.ingest(dbname, filename, tt[ti[0]], "{0}.ncep".format(varname))
     os.remove(filename)
