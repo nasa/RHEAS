@@ -12,9 +12,46 @@ import forecast
 import config
 import rpath
 import tempfile
+import subprocess
 from datetime import datetime
 import datasets
 import dbio
+import dssat
+
+
+def _cultivars(dbname):
+    params = [{'p1': 70, 'p2': 0.3, 'p5': 680, 'g2': 590, 'g3': 8.5, 'phint': 50},
+              {'p1': 115, 'p2': 0.5, 'p5': 660, 'g2': 450, 'g3': 10.5, 'phint': 65},
+              {'p1': 285, 'p2': 0.5, 'p5': 730, 'g2': 620, 'g3': 8.19, 'phint': 38},
+              {'p1': 172, 'p2': 0.5, 'p5': 999, 'g2': 398, 'g3': 6.27, 'phint': 75}]
+    shapefile = "{0}/tests/basin.shp".format(rpath.data)
+    dssat.addCultivar(dbname, shapefile, params)
+
+
+def _ingestTables(dbname):
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/precip_chirps.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/precip_trmm.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/tmax_ncep.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/tmin_ncep.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/wind_ncep.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/precip_chirps_4.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/precip_trmm_4.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/tmax_ncep_4.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/tmin_ncep_4.sql".format(rpath.data)])
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/wind_ncep_4.sql".format(rpath.data)])
+    db = dbio.connect(dbname)
+    cur = db.cursor()
+    sql = """create or replace function resampled(_s text, _t text, out result double precision) as
+    $func$
+    begin
+    execute format('select st_scalex(rast) from %s.%s limit 1',quote_ident(_s),quote_ident(_t)) into result;
+    end
+    $func$ language plpgsql;"""
+    cur.execute(sql)
+    cur.execute("create or replace view raster_resampled as (select r_table_schema as sname,r_table_name as tname,resampled(r_table_schema,r_table_name) as resolution from raster_columns)")
+    cur.execute("create schema soilmoist")
+    db.commit()
+    subprocess.call(["{0}/psql".format(rpath.bins), "-p", "5433", "-d", "rheas", "-f", "{0}/tests/soilmoist_smos.sql".format(rpath.data)])
 
 
 class testDatasets(unittest.TestCase):
@@ -59,6 +96,7 @@ class testNowcast(unittest.TestCase):
             'basin'] = "{0}/tests/basin.shp".format(rpath.data)
         self.options['dssat'][
             'shapefile'] = "{0}/tests/basin.shp".format(rpath.data)
+        _cultivars(self.dbname)
 
     def testDeterministicVIC(self):
         self.options['nowcast']['model'] = "vic"
@@ -95,9 +133,17 @@ class testNowcast(unittest.TestCase):
         nowcast.execute(self.dbname, self.options)
         self.options['vic'].pop('save state')
         self.options['vic']['initialize'] = True
-        self.options['nowcast']['startdate'] = "2005-12-31"
-        self.options['nowcast']['enddate'] = "2006-12-31"
+        self.options['nowcast']['startdate'] = "2011-2-1"
+        self.options['nowcast']['enddate'] = "2011-2-2"
         nowcast.execute(self.dbname, self.options)
+
+    def tearDown(self):
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        cur.execute("drop table dssat.cultivars")
+        db.commit()
+        cur.close()
+        db.close()
 
 
 class testForecast(unittest.TestCase):
