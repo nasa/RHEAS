@@ -7,6 +7,7 @@
 
 """
 
+from soilmoist import Soilmoist
 import dbio
 import os
 import netCDF4 as netcdf
@@ -51,7 +52,7 @@ def download(dbname, dt, bbox=None):
         os.remove(filename)
 
 
-class Smos(object):
+class Smos(Soilmoist):
 
     def __init__(self):
         """Initialize SMOS soil moisture object."""
