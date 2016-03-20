@@ -223,48 +223,52 @@ class DSSAT:
             sql = "select {0}, avg((st_summarystats(rast)).mean) from {1}.{2}, {1}.agareas where st_intersects(rast,geom) and gid={3} and {4} group by gid,{0} order by fdate".format(
                 string.join(sqlvars, ","), self.name, varname, gid, date_sql)
             cur.execute(sql)
-            results = cur.fetchall()
+            if bool(cur.rowcount):
+                results = cur.fetchall()
+                if "ensemble" in sqlvars:
+                    vicnens = np.max([r[1] for r in results])
+                    data[varname] = [np.array(
+                        [r[-1] for r in results if r[1] == ens + 1]) for ens in range(vicnens)]
+                    if "layer" in sqlvars:
+                        layers = np.array([r[2] for r in results if r[1] == 1])
+                    year = np.array([r[0].year for r in results if r[1] == 1])
+                    month = np.array([r[0].month for r in results if r[1] == 1])
+                    day = np.array([r[0].day for r in results if r[1] == 1])
+                else:
+                    data[varname] = np.array([r[-1] for r in results])
+                    if "layer" in sqlvars:
+                        layers = np.array([r[1] for r in results])
+                    year = np.array([r[0].year for r in results])
+                    month = np.array([r[0].month for r in results])
+                    day = np.array([r[0].day for r in results])
+            assert len(year) == ndays and len(month) == ndays and len(day) == ndays
+            nlayers = np.max(layers)
             if "ensemble" in sqlvars:
-                vicnens = np.max([r[1] for r in results])
-                data[varname] = [np.array(
-                    [r[-1] for r in results if r[1] == ens + 1]) for ens in range(vicnens)]
-                if "layer" in sqlvars:
-                    layers = np.array([r[2] for r in results if r[1] == 1])
-                year = np.array([r[0].year for r in results if r[1] == 1])
-                month = np.array([r[0].month for r in results if r[1] == 1])
-                day = np.array([r[0].day for r in results if r[1] == 1])
+                weather = [np.vstack((data["net_short"][e] + data["net_long"][e], data["tmax"][
+                                     e], data["tmin"][e], data["rainf"][e])).T for e in range(len(data["net_short"]))]
+                sm = [np.zeros((len(year), nlayers))] * len(data["soil_moist"])
+                if self.lai is not None:
+                    lai = dict(zip([date(year[i], month[i], day[i]) for i in range(
+                        len(year))], np.mean(np.array(data["lai"]).T, axis=1)))
+                for e in range(len(sm)):
+                    for l in range(nlayers):
+                        sm[e][:, l] = [m for mi, m in enumerate(
+                            data["soil_moist"][e]) if layers[mi] == l + 1]
             else:
-                data[varname] = np.array([r[-1] for r in results])
-                if "layer" in sqlvars:
-                    layers = np.array([r[1] for r in results])
-                year = np.array([r[0].year for r in results])
-                month = np.array([r[0].month for r in results])
-                day = np.array([r[0].day for r in results])
-        assert len(year) == ndays and len(month) == ndays and len(day) == ndays
-        nlayers = np.max(layers)
-        if "ensemble" in sqlvars:
-            weather = [np.vstack((data["net_short"][e] + data["net_long"][e], data["tmax"][
-                                 e], data["tmin"][e], data["rainf"][e])).T for e in range(len(data["net_short"]))]
-            sm = [np.zeros((len(year), nlayers))] * len(data["soil_moist"])
-            if self.lai is not None:
-                lai = dict(zip([date(year[i], month[i], day[i]) for i in range(
-                    len(year))], np.mean(np.array(data["lai"]).T, axis=1)))
-            for e in range(len(sm)):
+                weather = np.vstack(
+                    (data["net_short"] + data["net_long"], data["tmax"], data["tmin"], data["rainf"])).T
+                if self.lai is not None:
+                    lai = dict(zip([date(year[i], month[i], day[i])
+                                    for i in range(len(year))], np.array(data["lai"]).T))
+                sm = np.zeros((len(year), nlayers))
                 for l in range(nlayers):
-                    sm[e][:, l] = [m for mi, m in enumerate(
-                        data["soil_moist"][e]) if layers[mi] == l + 1]
+                    sm[:, l] = [m for mi, m in enumerate(
+                        data["soil_moist"]) if layers[mi] == l + 1]
+            cur.close()
+            db.close()
         else:
-            weather = np.vstack(
-                (data["net_short"] + data["net_long"], data["tmax"], data["tmin"], data["rainf"])).T
-            if self.lai is not None:
-                lai = dict(zip([date(year[i], month[i], day[i])
-                                for i in range(len(year))], np.array(data["lai"]).T))
-            sm = np.zeros((len(year), nlayers))
-            for l in range(nlayers):
-                sm[:, l] = [m for mi, m in enumerate(
-                    data["soil_moist"]) if layers[mi] == l + 1]
-        cur.close()
-        db.close()
+            print("Error! VIC simulation does not contain any data. Exiting...")
+            sys.exit()
         return year, month, day, weather, sm, lai
 
     def writeLAI(self, modelpath, gid, viclai=None, tablename="lai.modis"):
