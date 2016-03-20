@@ -161,7 +161,7 @@ class DSSAT:
                 datestr = str(int(year[p]))[-2:] + date(int(year[p]),
                                                         int(month[p]), int(day[p])).strftime("%j")
                 fout.write("{0}  {1:4.1f}  {2:4.1f}  {3:4.1f}  {4:4.1f}\n".format(
-                    datestr, data[ens][p, 0], data[ens][p, 1], data[ens][p, 2], data[ens][p, 3]))
+                    datestr, data[ens][p, 0] * 0.086400, data[ens][p, 1], data[ens][p, 2], data[ens][p, 3]))
             fout.close()
 
     def _readVICOutputFromFile(self, lat, lon, depths, filespath):
