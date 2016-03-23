@@ -47,13 +47,13 @@ def ftp(fetch):
     def wrapper(*args, **kwargs):
         url, bbox, dt = fetch(*args, **kwargs)
         ftpurl = url.split("/")[2]
+        outpath = tempfile.mkdtemp()
         try:
             conn = FTP(ftpurl)
             conn.login()
             conn.cwd("/".join(url.split("/")[3:-1]).format(dt.year, dt.month, dt.day))
             name = url.split("/")[-1].format(dt.year, dt.month, dt.day)
             filenames = [f for f in conn.nlst() if re.match(r".*{0}.*".format(name), f) is not None]
-            outpath = tempfile.mkdtemp()
             if len(filenames) > 0:
                 filename = filenames[0]
                 with open("{0}/{1}".format(outpath, filename), 'wb') as f:
