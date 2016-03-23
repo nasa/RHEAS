@@ -9,6 +9,7 @@
 
 import numpy as np
 import dbio
+from dateutil.relativedelta import relativedelta
 from scipy.stats import gamma, norm
 from datetime import date, datetime, timedelta
 import pandas
@@ -25,10 +26,12 @@ def calcSPI(duration, model, cid):
     """Calculate Standardized Precipitation Index for specified month
     *duration*. Need a climatology of precipitation stored in the database
     used in a VIC *model* simulation."""
-    nt = (date(model.endyear, model.endmonth, model.endday) -
-          date(model.startyear + model.skipyear, model.startmonth, model.startday)).days + 1
+    startdate = date(model.startyear + model.skipyear, model.startmonth, model.startday)
+    enddate = date(model.endyear, model.endmonth, model.endday)
+    nt = (enddate - startdate).days + 1
+    ndays = ((startdate + relativedelta(months=duration)) - startdate).days + 1
     # tablename = "precip."+model.precip
-    if duration < 1:
+    if duration < 1 or ndays > nt:
         print(
             "WARNING! Cannot calculate SPI with {0} months duration.".format(duration))
         spi = np.zeros(nt)
