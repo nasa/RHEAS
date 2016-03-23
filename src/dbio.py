@@ -193,16 +193,11 @@ def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
     # create tiles from imported raster and insert into table
     cur.execute("insert into {0}.{1} (fdate,rast) select fdate,rast from {2}".format(
         schemaname, tablename, temptable))
-    # create indexes for table
-    # cur.execute("drop index if exists {0}.{1}_t".format(schemaname, tablename))
-    # cur.execute("create index {1}_t on {0}.{1}(fdate)".format(
-    #     schemaname, tablename))
     db.commit()
     # create materialized views for resampled rasters
     if resample:
         print("Creating resampled table for {0}.{1}".format(schemaname, tablename))
-        _createResampledTables(dbname, schemaname,
-                              tablename, temptable, dt, tilesize, overwrite)
+        _createResampledTables(dbname, schemaname, tablename, temptable, dt, tilesize, overwrite)
     # delete temporary table
     cur.execute("drop table {0}".format(temptable))
     db.commit()
