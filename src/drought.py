@@ -39,12 +39,11 @@ def calcSPI(duration, model, cid):
         p = np.loadtxt("{0}/forcings/data_{1:.{3}f}_{2:.{3}f}".format(model.model_path,
                                                                       model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, 0]
         p = pandas.Series(p, [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
-        p[duration:] = pandas.rolling_mean(p.resample(
-            'M', how='mean'), duration).values[duration:]
-        p[:duration] = 0.0
-        g1, g2, g3 = gamma.fit(p)
-        cdf = gamma.cdf(p, g1, g2, g3)
+        pm = p.rolling(duration*30).mean()  # assume each month is 30 days
+        g1, g2, g3 = gamma.fit(pm[duration*30:])
+        cdf = gamma.cdf(pm, g1, g2, g3)
         spi = norm.ppf(cdf)
+        spi[np.isnan(spi)] = 0.0
     return spi
 
 
