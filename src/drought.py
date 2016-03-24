@@ -35,7 +35,7 @@ def calcSRI(duration, model, cid):
             "WARNING! Cannot calculate SRI with {0} months duration.".format(duration))
         sri = np.zeros(nt)
     else:
-        p = np.loadtxt("{0}/output/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['runoff'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, outvars['runoff'][1]]
+        p = np.loadtxt("{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['runoff'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, outvars['runoff'][1]]
         p = pandas.Series(p, [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
         pm = p.rolling(duration*30).mean()  # assume each month is 30 days
         g1, g2, g3 = stats.gamma.fit(pm[duration*30:])
@@ -74,7 +74,7 @@ def calcSeverity(model, cid, varname="soil_moist"):
     nt = (date(model.endyear, model.endmonth, model.endday) -
           date(model.startyear + model.skipyear, model.startmonth, model.startday)).days + 1
     s = np.zeros(nt)
-    db = dbio.connect(model.dbname)
+    db = dbio.connect(database=model.dbname)
     cur = db.cursor()
     if varname == "soil_moist":
         sql = "select fdate,sum(st_value(rast,st_geomfromtext('POINT({0} {1})',4326))) from {2}.{3} where st_intersects(rast,geom) group by fdate".format(model.gid[cid][1], model.gid[cid][0], model.name, varname)
@@ -114,6 +114,59 @@ def calcPDSI(model, cid, prec, evap):
     return pdsi
 
 
+def _columnExists(dbname, schemaname, tablename, colname):
+    """Tests whether a column exists in a table."""
+    db = dbio.connect(dbname=dbname)
+    cur = db.cursor()
+    sql = "select column_name from information_schema.columns where table_schema='{0}' and table_name='{1}' and column_name='{2}'".format(
+        schemaname, tablename, colname)
+    cur.execute(sql)
+    column_exists = bool(cur.rowcount)
+    cur.close()
+    db.close()
+    return column_exists
+
+
+def calcSMDI(model, cid):
+    """Calculate Soil Moisture Deficit Index (Narasimhan & Srinivasan, 2005)."""
+    outvars = model.getOutputStruct(model.model_path + "/global.txt")
+    col = outvars['soil_moist'][1]
+    p = np.loadtxt("{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['runoff'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, col:col+model.nlayers]
+    p = pandas.Series(np.sum(p, axis=1), [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
+    db = dbio.connect(dbname=model.dbname)
+    cur = db.cursor()
+    cur.execute("select * from information_schema.tables where table_name='soil_moist' and table_schema='{0}'".format(model.name))
+    if bool(cur.rowcount):
+        if _columnExists(model.dbname, model.name, "soil_moist", "ensemble"):
+            fsql = "with f as (select fdate,layer,avg(st_value(rast,st_geomfromtext('POINT({0} {1})',4326))) as sm from {2}.soil_moist where st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)) group by fdate,layer)".format(model.gid[cid][1], model.gid[cid][0], model.name)
+        else:
+            fsql = "with f as (select fdate,layer,st_value(rast,st_geomfromtext('POINT({0} {1})',4326)) as sm from {2}.soil_moist where st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)))".format(model.gid[cid][1], model.gid[cid][0], model.name)
+        sql = "{0} select fdate,sum(sm) from f group by fdate".format(fsql)
+        cur.execute(sql)
+    if bool(cur.rowcount):
+        results = cur.fetchall()
+        clim = pandas.Series([r[1] for r in results], [r[0] for r in results])
+    else:
+        clim = p
+    smdi = np.zeros(len(p))
+    MSW = clim.median()
+    maxSW = clim.max()
+    minSW = clim.min()
+    for i in range(7, len(smdi)):
+        SW = np.median(p[i-7:i+1])
+        if SW == MSW:
+            SD = (SW - MSW) / (MSW - minSW)
+        else:
+            SD = (SW - MSW) / (maxSW - MSW)
+        if i > 7:
+            smdi[i] = 0.5 * smdi[i-1] + SD / 50.0
+        else:
+            smdi[i] = SD / 50.0
+    cur.close()
+    db.close()
+    return smdi
+
+
 def calc(varname, model, cid):
     """Calculate drought-related variable."""
     # nt = (date(model.endyear, model.endmonth, model.endday) -
@@ -126,6 +179,8 @@ def calc(varname, model, cid):
         output = calcSRI(duration, model, cid)
     elif varname == "severity":
         output = calcSeverity(model, "", cid)
+    elif varname == "smdi":
+        output = calcSMDI(model, cid)
     elif varname == "dryspells":
         output = calcDrySpells(model, cid)
     return output
