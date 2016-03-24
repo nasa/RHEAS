@@ -59,7 +59,7 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
     filename = dbio.writeGeotif(lat, lon, res, data)
     table = "{0}.ncep".format(varname)
     dbio.ingest(dbname, filename, tt[ti[0]], table)
-    print("Imported {0} in {1}".format(t.strftime("%Y-%m-%d"), table))
+    print("Imported {0} in {1}".format(tt[ti[0]].strftime("%Y-%m-%d"), table))
     os.remove(filename)
 
 
