@@ -41,9 +41,11 @@ class VIC:
         self.startyear = startyear
         self.startmonth = startmonth
         self.startday = startday
+        self.startdate = datetime(startyear, startmonth, startday)
         self.endyear = endyear
         self.endmonth = endmonth
         self.endday = endday
+        self.enddate = datetime(endyear, endmonth, endday)
         self.nlayers = nlayer
         self.dbname = dbname
         db = dbio.connect(dbname)
@@ -508,22 +510,22 @@ class VIC:
         """Writes output data into database."""
         db = dbio.connect(self.dbname)
         cur = db.cursor()
-        cur.execute(
-            "select * from information_schema.tables where table_name='{0}' and table_schema='{1}'".format(tablename, self.name))
-        # FIXME: Check earliest date to be saved: if it overlaps with existing
-        # table, create new table; else append to table
-        if initialize and bool(cur.rowcount):
+        if dbio.tableExists(self.dbname, self.name, tablename) and ensemble and not dbio.columnExists(self.dbname, self.name, tablename, "ensemble"):
+            print("WARNING! Table {0} exists but does not contain ensemble information. Overwriting entire table!")
             cur.execute("drop table {0}.{1}".format(self.name, tablename))
-        if initialize or not bool(cur.rowcount):
+            db.commit()
+        if dbio.tableExists(self.dbname, self.name, tablename):
+            for dt in [self.startdate + timedelta(t) for t in range((self.enddate - self.startdate).days+1)]:
+                dbio.deleteRasters(self.dbname, "{0}.{1}".format(self.name, tablename), dt)
+        else:
             sql = "create table {0}.{1} (id serial not null primary key, rid int not null, fdate date not null, rast raster)".format(
                 self.name, tablename)
             cur.execute(sql)
             if data.shape[1] > 1:
-                cur.execute("alter table {0}.{1} add column layer int".format(
-                    self.name, tablename))
+                cur.execute("alter table {0}.{1} add column layer int".format(self.name, tablename))
             if ensemble:
-                cur.execute("alter table {0}.{1} add column ensemble int".format(
-                    self.name, tablename))
+                cur.execute("alter table {0}.{1} add column ensemble int".format(self.name, tablename))
+            db.commit()
         startyear, startmonth, startday = self.startyear, self.startmonth, self.startday
         if skipsave > 0:
             ts = date(self.startyear, self.startmonth,
@@ -536,7 +538,6 @@ class VIC:
             for lyr in range(data.shape[1]):
                 filename = "{0}/{1}_{2}{3:02d}{4:02d}_{5:02d}.tif".format(
                     self.model_path, tablename, dt.year, dt.month, dt.day, lyr + 1)
-                # if np.all(data[t, lyr, :, :]):
                 self._writeRaster(data[t, lyr, :, :], filename)
                 tiffiles.append(filename)
         ps = subprocess.Popen(["{0}/raster2pgsql".format(rpath.bins), "-s", "4326", "-F", "-d", "-t", "auto"] + tiffiles + ["temp"], stdout=subprocess.PIPE)

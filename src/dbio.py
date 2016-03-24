@@ -33,6 +33,40 @@ def connect(dbname):
     return db
 
 
+def columnExists(dbname, schemaname, tablename, colname):
+    """Tests whether a column exists in a table."""
+    db = connect(dbname)
+    cur = db.cursor()
+    sql = "select column_name from information_schema.columns where table_schema='{0}' and table_name='{1}' and column_name='{2}'".format(schemaname, tablename, colname)
+    cur.execute(sql)
+    column_exists = bool(cur.rowcount)
+    cur.close()
+    db.close()
+    return column_exists
+
+
+def tableExists(dbname, schemaname, tablename):
+    """Check if table exists in the database."""
+    db = connect(dbname)
+    cur = db.cursor()
+    cur.execute("select * from information_schema.tables where table_schema='{0}' and table_name='{1}'".format(schemaname, tablename))
+    table_exists = bool(cur.rowcount)
+    cur.close()
+    db.close()
+    return table_exists
+
+
+def schemaExists(dbname, schemaname):
+    """Check if schema exists in database."""
+    db = connect(dbname)
+    cur = db.cursor()
+    cur.execute("select * from information_schema.schemata where schema_name='{0}'".format(schemaname))
+    schema_exists = bool(cur.rowcount)
+    cur.close()
+    db.close()
+    return schema_exists
+
+
 def writeGeotif(lat, lon, res, data, filename=None):
     """Writes Geotif in temporary directory so it can be imported into the PostGIS database."""
     if isinstance(data, np.ma.masked_array):
@@ -68,7 +102,7 @@ def writeGeotif(lat, lon, res, data, filename=None):
     return filename
 
 
-def _deleteRasters(dbname, tablename, dt):
+def deleteRasters(dbname, tablename, dt):
     """If date already exists delete associated rasters before ingesting."""
     db = connect(dbname)
     cur = db.cursor()
@@ -148,7 +182,7 @@ def _createResampledTables(dbname, sname, tname, temptable, dt, tilesize, overwr
             if bool(cur.rowcount):
                     # check if date already exists and delete it before ingesting
                 if overwrite:
-                    _deleteRasters(dbname, "{0}.{1}_{2}".format(sname, tname, int(1.0 / res)), dt)
+                    deleteRasters(dbname, "{0}.{1}_{2}".format(sname, tname, int(1.0 / res)), dt)
                 sql = "insert into {0}.{1}_{2} (with dt as (select max(fdate) as maxdate from {0}.{1}_{2}), f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1} where fdate=date'{7}') select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1], dt.strftime("%Y-%m-%d"))
                 cur.execute(sql)
             else:
@@ -177,19 +211,15 @@ def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
         "update {3} set fdate = date '{0}-{1}-{2}'".format(dt.year, dt.month, dt.day, temptable))
     # check if table exists
     schemaname, tablename = stname.split(".")
-    cur.execute(
-        "select * from information_schema.schemata where schema_name='{0}'".format(schemaname))
-    if not bool(cur.rowcount):
+    if not schemaExists(dbname, schemaname):
         cur.execute("create schema {0}".format(schemaname))
         db.commit()
-    cur.execute(
-        "select * from information_schema.tables where table_schema='{0}' and table_name='{1}'".format(schemaname, tablename))
-    if not bool(cur.rowcount):
+    if not tableExists(dbname, schemaname, tablename):
         _createRasterTable(dbname, stname)
         _createDateIndex(dbname, schemaname, tablename)
     # check if date already exists and delete it before ingesting
     if overwrite:
-        _deleteRasters(dbname, "{0}.{1}".format(schemaname, tablename), dt)
+        deleteRasters(dbname, "{0}.{1}".format(schemaname, tablename), dt)
     # create tiles from imported raster and insert into table
     cur.execute("insert into {0}.{1} (fdate,rast) select fdate,rast from {2}".format(
         schemaname, tablename, temptable))
