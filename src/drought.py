@@ -115,6 +115,9 @@ def calc(varname, model, cid):
     if varname.find("spi") == 0:
         duration = int(varname[3])
         output = calcSPI(duration, model, cid)
+    elif varname.startswith("sri"):
+        duration = int(varname[3])
+        output = calcSRI(duration, model, cid)
     elif varname == "severity":
         output = calcSeverity(model, "", cid)
     elif varname == "dryspells":
