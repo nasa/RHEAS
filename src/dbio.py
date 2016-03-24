@@ -35,7 +35,7 @@ def connect(dbname):
 
 def columnExists(dbname, schemaname, tablename, colname):
     """Tests whether a column exists in a table."""
-    db = connect(database=dbname)
+    db = connect(dbname)
     cur = db.cursor()
     sql = "select column_name from information_schema.columns where table_schema='{0}' and table_name='{1}' and column_name='{2}'".format(schemaname, tablename, colname)
     cur.execute(sql)
@@ -47,7 +47,7 @@ def columnExists(dbname, schemaname, tablename, colname):
 
 def tableExists(dbname, schemaname, tablename):
     """Check if table exists in the database."""
-    db = connect(database=dbname)
+    db = connect(dbname)
     cur = db.cursor()
     cur.execute("select * from information_schema.tables where table_schema='{0}' and table_name='{1}'".format(schemaname, tablename))
     table_exists = bool(cur.rowcount)
@@ -58,7 +58,7 @@ def tableExists(dbname, schemaname, tablename):
 
 def schemaExists(dbname, schemaname):
     """Check if schema exists in database."""
-    db = connect(database=dbname)
+    db = connect(dbname)
     cur = db.cursor()
     cur.execute("select * from information_schema.schemata where schema_name='{0}'".format(schemaname))
     schema_exists = bool(cur.rowcount)
