@@ -9,9 +9,10 @@
 
 import numpy as np
 from dateutil.relativedelta import relativedelta
-from scipy.stats import gamma, norm
+import scipy.stats as stats
 from datetime import date, datetime, timedelta
 import pandas
+import dbio
 
 
 def _movingAverage(data, n):
@@ -21,7 +22,7 @@ def _movingAverage(data, n):
     return out[n - 1:] / n
 
 
-def calcSRI(data, duration, model, cid):
+def calcSRI(duration, model, cid):
     """Calculate Standardized Runoff Index for specified month
     *duration*."""
     outvars = model.getOutputStruct(model.model_path + "/global.txt")
@@ -32,16 +33,16 @@ def calcSRI(data, duration, model, cid):
     if duration < 1 or ndays > nt:
         print(
             "WARNING! Cannot calculate SRI with {0} months duration.".format(duration))
-        spi = np.zeros(nt)
+        sri = np.zeros(nt)
     else:
         p = np.loadtxt("{0}/output/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['runoff'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, outvars['runoff'][1]]
         p = pandas.Series(p, [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
         pm = p.rolling(duration*30).mean()  # assume each month is 30 days
-        g1, g2, g3 = gamma.fit(pm[duration*30:])
-        cdf = gamma.cdf(pm, g1, g2, g3)
-        spi = norm.ppf(cdf)
-        spi[np.isnan(spi)] = 0.0
-    return spi
+        g1, g2, g3 = stats.gamma.fit(pm[duration*30:])
+        cdf = stats.gamma.cdf(pm, g1, g2, g3)
+        sri = stats.norm.ppf(cdf)
+        sri[np.isnan(sri)] = 0.0
+    return sri
 
 
 def calcSPI(duration, model, cid):
@@ -61,18 +62,23 @@ def calcSPI(duration, model, cid):
                                                                       model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, 0]
         p = pandas.Series(p, [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
         pm = p.rolling(duration*30).mean()  # assume each month is 30 days
-        g1, g2, g3 = gamma.fit(pm[duration*30:])
-        cdf = gamma.cdf(pm, g1, g2, g3)
-        spi = norm.ppf(cdf)
+        g1, g2, g3 = stats.gamma.fit(pm[duration*30:])
+        cdf = stats.gamma.cdf(pm, g1, g2, g3)
+        spi = stats.norm.ppf(cdf)
         spi[np.isnan(spi)] = 0.0
     return spi
 
 
-def calcSeverity(model, climatology, cid, varname="soil_moist"):
+def calcSeverity(model, cid, varname="soil_moist"):
     """Calculate drought severity from *climatology* table stored in database."""
     nt = (date(model.endyear, model.endmonth, model.endday) -
           date(model.startyear + model.skipyear, model.startmonth, model.startday)).days + 1
     s = np.zeros(nt)
+    db = dbio.connect(model.dbname)
+    cur = db.cursor()
+    if varname == "soil_moist":
+        sql = "select fdate,sum(st_value(rast,st_geomfromtext('POINT({0} {1})',4326))) from {2}.{3} where st_intersects(rast,geom) group by fdate".format(model.gid[cid][1], model.gid[cid][0], model.name, varname)
+    cur.execute(sql)
     return s
 
 
