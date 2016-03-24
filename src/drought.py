@@ -8,7 +8,6 @@
 """
 
 import numpy as np
-import dbio
 from dateutil.relativedelta import relativedelta
 from scipy.stats import gamma, norm
 from datetime import date, datetime, timedelta
@@ -22,10 +21,32 @@ def _movingAverage(data, n):
     return out[n - 1:] / n
 
 
+def calcSRI(data, duration, model, cid):
+    """Calculate Standardized Runoff Index for specified month
+    *duration*."""
+    outvars = model.getOutputStruct(model.model_path + "/global.txt")
+    startdate = date(model.startyear + model.skipyear, model.startmonth, model.startday)
+    enddate = date(model.endyear, model.endmonth, model.endday)
+    nt = (enddate - startdate).days + 1
+    ndays = ((startdate + relativedelta(months=duration)) - startdate).days + 1
+    if duration < 1 or ndays > nt:
+        print(
+            "WARNING! Cannot calculate SRI with {0} months duration.".format(duration))
+        spi = np.zeros(nt)
+    else:
+        p = np.loadtxt("{0}/output/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['runoff'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, outvars['runoff'][1]]
+        p = pandas.Series(p, [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
+        pm = p.rolling(duration*30).mean()  # assume each month is 30 days
+        g1, g2, g3 = gamma.fit(pm[duration*30:])
+        cdf = gamma.cdf(pm, g1, g2, g3)
+        spi = norm.ppf(cdf)
+        spi[np.isnan(spi)] = 0.0
+    return spi
+
+
 def calcSPI(duration, model, cid):
     """Calculate Standardized Precipitation Index for specified month
-    *duration*. Need a climatology of precipitation stored in the database
-    used in a VIC *model* simulation."""
+    *duration*."""
     startdate = date(model.startyear + model.skipyear, model.startmonth, model.startday)
     enddate = date(model.endyear, model.endmonth, model.endday)
     nt = (enddate - startdate).days + 1
