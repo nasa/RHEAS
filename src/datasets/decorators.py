@@ -20,9 +20,25 @@ import re
 import datasets
 
 
-def _resetDatetime(dt):
+def resetDatetime(dt):
     """Set time to 00:00 to align with daily data."""
     return datetime(dt.year, dt.month, dt.day, 0, 0)
+
+
+def path(fetch):
+    """Decorator for getting files from local path."""
+    @wraps(fetch)
+    def wrapper(*args, **kwargs):
+        url, bbox, dt = fetch(*args, **kwargs)
+        outpath = tempfile.mkdtemp()
+        filename = url.format(dt.year, dt.month, dt.day)
+        try:
+            shutil.copy(filename, outpath)
+            lfilename = "{0}/{1}".format(outpath, filename.split("/")[-1])
+        except:
+            lfilename = None
+        return outpath, lfilename, bbox, dt
+    return wrapper
 
 
 def http(fetch):
@@ -87,12 +103,12 @@ def netcdf(fetch):
         i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
         t = ds.variables[timevar]
         tt = netcdf4.num2date(t[:], units=t.units)
-        ti = [tj for tj in range(len(tt)) if _resetDatetime(tt[tj]) == dt]
+        ti = [tj for tj in range(len(tt)) if resetDatetime(tt[tj]) >= dt[0] and resetDatetime(tt[tj]) <= dt[1]]
         if len(ti) > 0:
             lati = np.argsort(lat)[::-1][i1:i2]
             loni = np.argsort(lon)[j1:j2]
-            data = ds.variables[varname][ti[0], lati, loni]
-            dt = tt[ti[0]]
+            data = ds.variables[varname][ti, lati, loni]
+            dt = tt[ti]
         else:
             data = None
             dt = None

@@ -9,7 +9,7 @@
 
 
 from ftplib import FTP
-from datetime import datetime, timedelta
+from datetime import timedelta
 import tempfile
 import subprocess
 import datasets

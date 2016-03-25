@@ -17,20 +17,20 @@ table = "precip.cmorph"
 
 
 @netcdf
-def fetch(dbname, dt, bbox):
+def fetch(dbname, dts, bbox):
     """Downloads CMORPH rainfall data from the IRI data server,
     and imports them into the database *db*. Optionally uses a bounding box to
     limit the region with [minlon, minlat, maxlon, maxlat]."""
     url = "http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP/.CPC/.CMORPH/.daily/.mean/.morphed/.cmorph/dods"
     varname = "cmorph"
-    return url, varname, bbox, dt
+    return url, varname, bbox, dts
 
 
 def download(dbname, dts, bbox=None):
     res = 0.25
-    for dt in [dts[0] + timedelta(tt) for tt in range((dts[1] - dts[0]).days + 1)]:
-        data, lat, lon, t = fetch(dbname, dt, bbox)
-        datasets.ingest(dbname, table, data, lat, lon, res, t)
+    data, lat, lon, dts = fetch(dbname, dts, bbox)
+    for t, dt in enumerate([dts[0] + timedelta(tt) for tt in range((dts[1] - dts[0]).days + 1)]):
+        datasets.ingest(dbname, table, data[t, :, :], lat, lon, res, dt)
 
 
 def dates(dbname):
