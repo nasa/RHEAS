@@ -483,9 +483,10 @@ class VIC:
                             outdata[v][:, 0, i, j] = pdata[
                                 outvars[v][0]][:, outvars[v][1]]
                     print "Read output for {0}|{1}".format(self.lat[c], self.lon[c])
-                year = pdata[list(prefix)[0]][:, 0]
-                month = pdata[list(prefix)[0]][:, 1]
-                day = pdata[list(prefix)[0]][:, 2]
+                dts = [date(self.startyear + self.skipyear, self.startmonth, self.startday) + timedelta(t) for t in range(nt)]
+                year = [t.year for t in dts]
+                month = [t.month for t in dts]
+                day = [t.day for t in dts]
                 outdata["date"] = numpy.array(
                     [datetime(int(year[t]), int(month[t]), int(day[t])) for t in range(len(year))])
         else:
