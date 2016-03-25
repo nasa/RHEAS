@@ -8,26 +8,31 @@
 
 """
 
-from datasets.decorators import geotiff, ftp
-from datetime import timedelta
+from datetime import datetime, timedelta
+import netCDF4 as netcdf
 import datasets
 
 
 table = "precip.chirps"
 
 
-@geotiff
-@ftp
-def fetch(dbname, dt, bbox):
-    url = "ftp://chg-ftpout.geog.ucsb.edu/pub/org/chg/products/CHIRPS-2.0//africa_daily/tifs/p05/{0:04d}/chirps-v2.0.{0:04d}.{1:02d}.{2:02d}.tif"
-    return url, bbox, dt
-
-
-def download(dbname, dts, bbox=None):
+def download(dbname, dts, bbox):
+    """Downloads CHIRPS rainfall data from the IRI data server,
+    and imports them into the database *db*. Optionally uses a bounding box to
+    limit the region with [minlon, minlat, maxlon, maxlat]."""
     res = 0.05
-    for dt in [dts[0] + timedelta(tt) for tt in range((dts[1] - dts[0]).days + 1)]:
-        data, lat, lon, t = fetch(dbname, dt, bbox)
-        datasets.ingest(dbname, table, data, lat, lon, res, t)
+    url = "http://iridl.ldeo.columbia.edu/SOURCES/.UCSB/.CHIRPS/.v2p0/.daily/.global/.0p05/.prcp/dods"
+    f = netcdf.Dataset(url)
+    lat = f.variables['Y'][:]
+    lon = f.variables['X'][:]
+    i1, i2, j1, j2 = datasets.spatialSubset(lat, lon, res, bbox)
+    lat = lat[i1:i2]
+    lon = lon[j1:j2]
+    ti = range((dts[0] - datetime(1981, 1, 1)).days, (dts[1] - datetime(1981, 1, 1)).days + 1)
+    data = f.variables['prcp'][ti, i1:i2, j1:j2]
+    for tj in range(len(ti)):
+        dt = dts[0] + timedelta(tj)
+        datasets.ingest(dbname, table, data, lat, lon, res, dt)
 
 
 def dates(dbname):
