@@ -71,14 +71,36 @@ def calcSPI(duration, model, cid):
 
 def calcSeverity(model, cid, varname="soil_moist"):
     """Calculate drought severity from *climatology* table stored in database."""
-    nt = (date(model.endyear, model.endmonth, model.endday) -
-          date(model.startyear + model.skipyear, model.startmonth, model.startday)).days + 1
-    s = np.zeros(nt)
-    db = dbio.connect(database=model.dbname)
+    outvars = model.getOutputStruct(model.model_path + "/global.txt")
+    col = outvars[varname][1]
+    if varname in ["soil_moist"]:
+        p = np.loadtxt("{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['runoff'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, col:col+model.nlayers]
+        p = pandas.Series(np.sum(p, axis=1), [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
+    else:
+        p = np.loadtxt("{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['runoff'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, col]
+        p = pandas.Series(p, [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
+    db = dbio.connect(model.dbname)
     cur = db.cursor()
-    if varname == "soil_moist":
-        sql = "select fdate,sum(st_value(rast,st_geomfromtext('POINT({0} {1})',4326))) from {2}.{3} where st_intersects(rast,geom) group by fdate".format(model.gid[cid][1], model.gid[cid][0], model.name, varname)
-    cur.execute(sql)
+    if dbio.tableExists(model.dbname, model.name, varname):
+        if varname in ["soil_moist"]:
+            lvar = ",layer"
+        else:
+            lvar = ""
+        if dbio.columnExists(model.dbname, model.name, varname, "ensemble"):
+            fsql = "with f as (select fdate{3},avg(st_value(rast,st_geomfromtext('POINT({0} {1})',4326))) as vals from {2}.{4} where st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)) group by fdate{3})".format(model.gid[cid][1], model.gid[cid][0], model.name, lvar, varname)
+        else:
+            fsql = "with f as (select fdate{3},st_value(rast,st_geomfromtext('POINT({0} {1})',4326)) as vals from {2}.{4} where st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)))".format(model.gid[cid][1], model.gid[cid][0], model.name, lvar, varname)
+        sql = "{0} select fdate,sum(vals) from f group by fdate".format(fsql)
+        cur.execute(sql)
+        if bool(cur.rowcount):
+            results = cur.fetchall()
+            clim = pandas.Series([r[1] for r in results], [r[0] for r in results])
+        else:
+            clim = p
+    else:
+        print("WARNING! Climatology table does not exist. Severity calculation will be inaccurate!")
+        clim = p
+    s = 100.0 - np.array(map(lambda v: stats.percentileofscore(clim, v), p))
     return s
 
 
@@ -120,7 +142,7 @@ def calcSMDI(model, cid):
     col = outvars['soil_moist'][1]
     p = np.loadtxt("{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['runoff'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, col:col+model.nlayers]
     p = pandas.Series(np.sum(p, axis=1), [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
-    db = dbio.connect(dbname=model.dbname)
+    db = dbio.connect(model.dbname)
     cur = db.cursor()
     if dbio.tableExists(model.dbname, model.name, "soil_moist"):
         if dbio.columnExists(model.dbname, model.name, "soil_moist", "ensemble"):
@@ -135,6 +157,7 @@ def calcSMDI(model, cid):
         else:
             clim = p
     else:
+        print("WARNING! Climatology table does not exist. SMDI calculation will be inaccurate!")
         clim = p
     smdi = np.zeros(len(p))
     MSW = clim.median()
@@ -166,7 +189,7 @@ def calc(varname, model, cid):
         duration = int(varname[3])
         output = calcSRI(duration, model, cid)
     elif varname == "severity":
-        output = calcSeverity(model, "", cid)
+        output = calcSeverity(model, cid)
     elif varname == "smdi":
         output = calcSMDI(model, cid)
     elif varname == "dryspells":
