@@ -140,7 +140,7 @@ def calcSMDI(model, cid):
     """Calculate Soil Moisture Deficit Index (Narasimhan & Srinivasan, 2005)."""
     outvars = model.getOutputStruct(model.model_path + "/global.txt")
     col = outvars['soil_moist'][1]
-    p = np.loadtxt("{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['runoff'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, col:col+model.nlayers]
+    p = np.loadtxt("{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['soil_moist'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, col:col+model.nlayers]
     p = pandas.Series(np.sum(p, axis=1), [datetime(model.startyear, model.startmonth, model.startday) + timedelta(t) for t in range(len(p))])
     db = dbio.connect(model.dbname)
     cur = db.cursor()
@@ -166,9 +166,9 @@ def calcSMDI(model, cid):
     for i in range(7, len(smdi)):
         SW = np.median(p[i-7:i+1])
         if SW == MSW:
-            SD = (SW - MSW) / (MSW - minSW)
+            SD = (SW - MSW) / (MSW - minSW) * 100.0
         else:
-            SD = (SW - MSW) / (maxSW - MSW)
+            SD = (SW - MSW) / (maxSW - MSW) * 100.0
         if i > 7:
             smdi[i] = 0.5 * smdi[i-1] + SD / 50.0
         else:
