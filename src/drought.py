@@ -42,6 +42,7 @@ def calcSRI(duration, model, cid):
         cdf = stats.gamma.cdf(pm, g1, g2, g3)
         sri = stats.norm.ppf(cdf)
         sri[np.isnan(sri)] = 0.0
+        sri[np.isinf(sri)] = 0.0
     return sri
 
 
@@ -66,6 +67,7 @@ def calcSPI(duration, model, cid):
         cdf = stats.gamma.cdf(pm, g1, g2, g3)
         spi = stats.norm.ppf(cdf)
         spi[np.isnan(spi)] = 0.0
+        spi[np.isinf(spi)] = 0.0
     return spi
 
 
