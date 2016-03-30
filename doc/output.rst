@@ -83,12 +83,12 @@ RHEAS also computes derived indices using the raw VIC outputs. Current options i
   * ``spi1``: 30-day Standardised Precipitation Index. # of standard deviations above or below the norm for the previous 30 days' precipitation, compared with the long-term average.
   * ``spi3``: 90-day Standardised Precipitation Index. Same as above, over a 90-day period.
   * ``spi6``: 180-day Standardised Precipitation Index.
-  * ``spi12``: 365-day Standardised Precipitation Index.
+  * ``spi12``: 360-day Standardised Precipitation Index.
   
   * ``sri1``: 30-day Standardised Runoff Index. # of standard deviations above or below the norm for the previous 30 days' runoff, compared with the long-term average.
   * ``sri3``: 90-day Standardised Runoff Index.
   * ``sri6``: 180-day Standardised Runoff Index.
-  * ``sri12``: 365-day Standardised Runoff Index.
+  * ``sri12``: 360-day Standardised Runoff Index.
   
   * ``dryspells``: Cumulative 14-day periods without precipitation.
   
