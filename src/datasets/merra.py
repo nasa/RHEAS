@@ -21,26 +21,12 @@ def dates(dbname):
     return dts
 
 
-def _merraRunid(year):
-    """MERRA files use different run IDs depending on the timestamp year."""
-    if year < 1992:
-        runid = 100
-    elif year > 1991 and year < 2001:
-        runid = 200
-    elif year > 2000 and year < 2011:
-        runid = 300
-    else:
-        runid = 400
-    return runid
-
-
 def _downloadVariable(varname, dbname, dt, bbox):
     """Download specific variable from the MERRA Reanalysis dataset."""
     # FIXME: Grid is not rectangular, but 0.5 x 0.625 degrees
     res = 0.5
     try:
-        runid = _merraRunid(dt.year)
-        url = "http://goldsmr4.sci.gsfc.nasa.gov:80/opendap/MERRA2/M2T1NXSLV.5.12.4/{1}/{2:02d}/MERRA2_{0}.tavg1_2d_slv_Nx.{1:04d}{2:02d}{3:02d}.nc4".format(runid, dt.year, dt.month, dt.day)
+        url = "http://goldsmr4.sci.gsfc.nasa.gov:80/dods/M2T1NXSLV"
         ds = netcdf.Dataset(url)
         lat = ds.variables["lat"][:]
         lon = ds.variables["lon"][:]
@@ -49,19 +35,24 @@ def _downloadVariable(varname, dbname, dt, bbox):
         data = np.zeros((i2-i1, j2-j1))
         lati = np.argsort(lat)[::-1][i1:i2]
         loni = np.argsort(lon)[j1:j2]
+        t = ds.variables["time"]
+        tt = netcdf.num2date(t[:], units=t.units)
+        ti = np.where(tt == dt)[0][0]
         if varname == "tmax":
-            hdata = ds.variables["T2M"][:, lati, loni]
+            hdata = ds.variables["t2m"][ti:ti+24, lati, loni]
             data = np.amax(hdata, axis=0) - 273.15
         elif varname == "tmin":
-            hdata = ds.variables["T2M"][:, lati, loni]
+            hdata = ds.variables["t2m"][ti:ti+24, lati, loni]
             data = np.amin(hdata, axis=0) - 273.15
         elif varname in ["wind"]:
-            hdata = np.sqrt(ds.variables["U10M"][:, lati, loni]**2 + ds.variables["V10M"][:, lati, loni]**2)
+            hdata = np.sqrt(ds.variables["u10m"][ti:ti+24, lati, loni]**2 + ds.variables["v10m"][ti:ti+24, lati, loni]**2)
             data = np.mean(hdata, axis=0)
         lat = np.sort(lat)[::-1][i1:i2]
         lon = np.sort(lon)[j1:j2]
         filename = dbio.writeGeotif(lat, lon, res, data)
-        dbio.ingest(dbname, filename, dt, "{0}.merra".format(varname))
+        table = "{0}.merra".format(varname)
+        dbio.ingest(dbname, filename, dt, table)
+        print("Imported {0} in {1}".format(tt[ti].strftime("%Y-%m-%d"), table))
         os.remove(filename)
     except:
         print("Cannot import MERRA dataset for {0}!".format(dt.strftime("%Y-%m-%d")))
