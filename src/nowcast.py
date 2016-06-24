@@ -173,8 +173,12 @@ def runDSSAT(dbname, options):
         shapefile = options['dssat']['shapefile']
     else:
         shapefile = None
+    if 'assimilate' in options['dssat']:
+        assimilate = options['dssat']['assimilate']
+    else:
+        assimilate = "Y"
     model = dssat.DSSAT(dbname, name, res, startyear, startmonth, startday,
-                        endyear, endmonth, endday, nens, options['vic'], shapefile)
+                        endyear, endmonth, endday, nens, options['vic'], shapefile, assimilate)
     model.run(dssatexe)
 
 

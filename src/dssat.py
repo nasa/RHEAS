@@ -76,7 +76,7 @@ def _run1(modelpath, exe, assimilate="Y"):
 class DSSAT:
 
     def __init__(self, dbname, name, resolution, startyear, startmonth, startday,
-                 endyear, endmonth, endday, nens, vicopts, shapefile=None):
+                 endyear, endmonth, endday, nens, vicopts, shapefile=None, assimilate="Y"):
         self.path = tempfile.mkdtemp(dir=".")
         self.startyear = startyear
         self.startmonth = startmonth
@@ -93,6 +93,7 @@ class DSSAT:
         self.res = resolution
         self.nens = nens
         self.shapefile = shapefile
+        self.assimilate = assimilate
         try:
             self.grid_decimal = - \
                 (decimal.Decimal(self.res).as_tuple().exponent - 1)
@@ -703,7 +704,7 @@ class DSSAT:
                 self.shapefile))
             sys.exit()
 
-    def run(self, dssatexe, crop_threshold=0.1, assimilate="Y"):
+    def run(self, dssatexe, crop_threshold=0.1):
         """Runs DSSAT simulation."""
         exe = dssatexe.split("/")[-1]
         startdt = date(self.startyear, self.startmonth, self.startday)
@@ -767,7 +768,7 @@ class DSSAT:
                     os.chdir(pwd)
         p = multiprocessing.Pool(multiprocessing.cpu_count())
         for modelpath in modelpaths.values():
-            p.apply_async(_run1, (modelpath, exe, assimilate))
+            p.apply_async(_run1, (modelpath, exe, self.assimilate))
         p.close()
         p.join()
         os.chdir(pwd)

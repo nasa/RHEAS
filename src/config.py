@@ -67,6 +67,12 @@ def loadFromFile(config_filename):
                     section, 'initialize')
             except:
                 pass
+        if 'assimilate' in options[section]:
+            try:
+                options[section]['assimilate'] = conf.getboolean(
+                    section, 'assimilate')
+            except:
+                pass
     _checkOptions(options)
     return options
 
@@ -81,6 +87,12 @@ def loadFromMem(contents):
             try:
                 options[section]['initialize'] = conf.getboolean(
                     section, 'initialize')
+            except:
+                pass
+        if 'assimilate' in options[section]:
+            try:
+                options[section]['assimilate'] = conf.getboolean(
+                    section, 'assimilate')
             except:
                 pass
     _checkOptions(options)
