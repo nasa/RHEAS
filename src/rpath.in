@@ -9,3 +9,4 @@
 
 data = '${buildout:directory}/data'
 bins = '${buildout:directory}/bin'
+scripts = '${buildout:directory}/scripts'
