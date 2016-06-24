@@ -7,6 +7,7 @@
 
 """
 
+from __future__ import division
 import output as vicoutput
 from osgeo import ogr, gdal, osr
 import decimal
@@ -89,7 +90,7 @@ class VIC:
         filename = "{0}/{1}".format(rpath.data, snowbands)
         with file(filename) as f:
             line = f.readline()
-        return (len(line.split()) - 1) / 3
+        return int((len(line.split()) - 1) / 3)
 
     def writeSoilFile(self, shapefile):
         """Write soil parameter file for current simulation based on basin shapefile."""
@@ -441,8 +442,8 @@ class VIC:
         outvars = self.getOutputStruct(self.model_path + "/global.txt")
         outdata = {}
         if len(self.lat) > 0 and len(self.lon) > 0:
-            nrows = np.round((max(self.lat) - min(self.lat)) / self.res) + 1
-            ncols = np.round((max(self.lon) - min(self.lon)) / self.res) + 1
+            nrows = int(np.round((max(self.lat) - min(self.lat)) / self.res) + 1)
+            ncols = int(np.round((max(self.lon) - min(self.lon)) / self.res) + 1)
             nt = (date(self.endyear, self.endmonth, self.endday) -
                   date(self.startyear + self.skipyear, self.startmonth, self.startday)).days + 1
             args = vicoutput.variableGroup(args)
@@ -516,8 +517,9 @@ class VIC:
             cur.execute("drop table {0}.{1}".format(self.name, tablename))
             db.commit()
         if dbio.tableExists(self.dbname, self.name, tablename):
-            for dt in [self.startdate + timedelta(t) for t in range((self.enddate - self.startdate).days+1)]:
-                dbio.deleteRasters(self.dbname, "{0}.{1}".format(self.name, tablename), dt)
+            if initialize:
+                for dt in [self.startdate + timedelta(t) for t in range((self.enddate - self.startdate).days+1)]:
+                    dbio.deleteRasters(self.dbname, "{0}.{1}".format(self.name, tablename), dt)
         else:
             sql = "create table {0}.{1} (id serial not null primary key, rid int not null, fdate date not null, rast raster)".format(
                 self.name, tablename)
@@ -541,10 +543,11 @@ class VIC:
                     self.model_path, tablename, dt.year, dt.month, dt.day, lyr + 1)
                 self._writeRaster(data[t, lyr, :, :], filename)
                 tiffiles.append(filename)
-        ps = subprocess.Popen(["{0}/raster2pgsql".format(rpath.bins), "-s", "4326", "-F", "-d", "-t", "auto"] + tiffiles + ["temp"], stdout=subprocess.PIPE)
-        subprocess.Popen(["{0}/psql".format(rpath.bins), "-d", self.dbname], stdin=ps.stdout)
-        ps.stdout.close()
-        ps.wait()
+        ps1 = subprocess.Popen(["{0}/raster2pgsql".format(rpath.bins), "-s", "4326", "-F", "-d", "-t", "auto"] + tiffiles + ["temp"], stdout=subprocess.PIPE)
+        ps2 = subprocess.Popen(["{0}/psql".format(rpath.bins), "-d", self.dbname], stdin=ps1.stdout, stdout=subprocess.PIPE)
+        ps1.stdout.close()
+        ps2.communicate()[0]
+        ps1.wait()
         cur.execute("alter table temp add column fdate date")
         cur.execute("update temp set fdate = date (concat_ws('-',substring(filename from {0} for 4),substring(filename from {1} for 2),substring(filename from {2} for 2)))".format(
             len(tablename) + 2, len(tablename) + 6, len(tablename) + 8))

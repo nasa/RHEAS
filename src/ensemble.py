@@ -187,16 +187,15 @@ class Ensemble:
                  date(self.startyear, self.startmonth, self.startday)).days
         db = dbio.connect(self.models[0].dbname)
         cur = db.cursor()
-        sql = "select distinct (date_part('year', fdate)) as year from precip.{0}".format(
-            options['vic']['precip'])
+        if self.startmonth < self.endmonth:
+            sql = "select distinct (date_part('year', fdate)) as year from precip.{0} where date_part('month', fdate) >= {1} and date_part('month', fdate) <= {2}".format(options['vic']['precip'], self.startmonth, self.endmonth)
+        else:
+            sql = "select distinct (date_part('year', fdate)) as year from precip.{0} where date_part('month', fdate) >= {1} or date_part('month', fdate) <= {2}".format(options['vic']['precip'], self.startmonth, self.endmonth)
         cur.execute(sql)
         years = map(lambda y: int(y[0]), cur.fetchall())
         random.shuffle(years)
-        if self.startyear in years:
-            years.remove(self.startyear)
-        # will need to check whether enough days exist in sampled year before
-        # removing
-        years.remove(max(years))
+        while len(years) < self.nens:
+            years += years
         for e in range(self.nens):
             model = self.models[e]
             model.startyear = years[e]
