@@ -1,7 +1,7 @@
 [nowcast]
 model: vic
-startdate: 2005-1-1
-enddate: 2005-12-31
+startdate: 2011-2-1
+enddate: 2011-2-2
 name: basin
 basin:  ${buildout:directory}/data/tests/basin.shp
 resolution: 0.25
