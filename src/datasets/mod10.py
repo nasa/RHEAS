@@ -56,10 +56,17 @@ def download(dbname, dts, bbox):
                 cmd = " ".join(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(
                     res), str(-res), "{0}/snow1.tif".format(outpath), "{0}/snow2.tif".format(outpath)])
                 subprocess.call(cmd, shell=True)
+                if not os.path.isdir("{0}/snow/mod10".format(rpath.data)):
+                    os.mkdir("{0}/snow/mod10".format(rpath.data))
+                filename = "{0}/snow/mod10/mod10_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
                 subprocess.call(["gdal_translate", "-a_srs", "epsg:4326",
-                                 "{0}/snow2.tif".format(outpath), "{0}/snow3.tif".format(outpath)])
+                                 "{0}/snow2.tif".format(outpath), filename])
                 dbio.ingest(
-                    dbname, "{0}/snow3.tif".format(outpath), dt, table, False)
+                    dbname, filename, dt, table, False)
+                # subprocess.call(["gdal_translate", "-a_srs", "epsg:4326",
+                #                  "{0}/snow2.tif".format(outpath), "{0}/snow3.tif".format(outpath)])
+                # dbio.ingest(
+                #     dbname, "{0}/snow3.tif".format(outpath), dt, table, False)
                 shutil.rmtree(outpath)
             except:
                 print("MOD10 data not available for {0}. Skipping download!".format(

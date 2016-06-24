@@ -89,12 +89,17 @@ def download(dbname, conf):
 
 def ingest(dbname, table, data, lat, lon, res, t, resample=True, overwrite=True):
     """Import data into RHEAS database."""
+    sname, tname = table.split(".")
     if data is not None:
         if len(data.shape) > 2:
             data = data[0, :, :]
-        filename = dbio.writeGeotif(lat, lon, res, data)
+        # filename = dbio.writeGeotif(lat, lon, res, data)
+        filename = "{0}/{1}/{2}/{2}_{3}.tif".format(rpath.data, sname, tname, t.strftime("%Y%m%d"))
+        if not os.path.isdir("{0}/{1}/{2}".format(rpath.data, sname, tname)):
+            os.mkdir("{0}/{1}/{2}".format(rpath.data, sname, tname))
+        dbio.writeGeotif(lat, lon, res, data, filename)
         dbio.ingest(dbname, filename, t, table, resample, overwrite)
         print("Imported {0} in {1}".format(t.strftime("%Y-%m-%d"), table))
-        os.remove(filename)
+        # os.remove(filename)
     else:
         print("WARNING! No data were available to import into {0} for {1}.".format(table, t.strftime("%Y-%m-%d")))

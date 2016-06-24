@@ -536,14 +536,21 @@ class VIC:
             data = data[skipsave:]
             startyear, startmonth, startday = ts.year, ts.month, ts.day
         tiffiles = []
+        if bool(ensemble):
+            ens = str(int(ensemble))
+        else:
+            ens = ""
+        if not os.path.isdir("{0}/{1}".format(rpath.data, self.name)):
+            os.mkdir("{0}/{1}".format(rpath.data, self.name))
         for t in range(data.shape[0]):
             dt = date(startyear, startmonth, startday) + timedelta(t)
             for lyr in range(data.shape[1]):
-                filename = "{0}/{1}_{2}{3:02d}{4:02d}_{5:02d}.tif".format(
-                    self.model_path, tablename, dt.year, dt.month, dt.day, lyr + 1)
+                # filename = "{0}/{1}_{2}{3:02d}{4:02d}_{5:02d}.tif".format(
+                #     self.model_path, tablename, dt.year, dt.month, dt.day, lyr + 1)
+                filename = "{0}/{1}/{2}_{3}_{4}_{5}.tif".format(rpath.data, self.name, tablename, dt.strftime("%Y%m%d"), lyr + 1, ens)
                 self._writeRaster(data[t, lyr, :, :], filename)
                 tiffiles.append(filename)
-        ps1 = subprocess.Popen(["{0}/raster2pgsql".format(rpath.bins), "-s", "4326", "-F", "-d", "-t", "auto"] + tiffiles + ["temp"], stdout=subprocess.PIPE)
+        ps1 = subprocess.Popen(["{0}/raster2pgsql".format(rpath.bins), "-R", "-s", "4326", "-F", "-d", "-t", "auto"] + tiffiles + ["temp"], stdout=subprocess.PIPE)
         ps2 = subprocess.Popen(["{0}/psql".format(rpath.bins), "-d", self.dbname], stdin=ps1.stdout, stdout=subprocess.PIPE)
         ps1.stdout.close()
         ps2.communicate()[0]

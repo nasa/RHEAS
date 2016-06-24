@@ -204,7 +204,7 @@ def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
     # import temporary table
     temptable = ''.join(random.SystemRandom().choice(
         string.ascii_letters) for _ in range(8))
-    subprocess.call("{3}/raster2pgsql -d -s 4326 {0} {2} | {3}/psql -d {1}".format(
+    subprocess.call("{3}/raster2pgsql -R -d -s 4326 {0} {2} | {3}/psql -d {1}".format(
         filename, dbname, temptable, rpath.bins), shell=True)
     cur.execute("alter table {0} add column fdate date".format(temptable))
     cur.execute(

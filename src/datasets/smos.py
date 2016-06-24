@@ -45,11 +45,15 @@ def download(dbname, dt, bbox=None):
     # FIXME: Use spatially variable observation error
     # smv = f.variables['VARIANCE_SM'][ti, i1:i2, j1:j2]
     for tj in range(sm.shape[0]):
-        filename = dbio.writeGeotif(lat, lon, res, sm[tj, :, :])
+        # filename = dbio.writeGeotif(lat, lon, res, sm[tj, :, :])
         t = t0 + timedelta(ti[tj])
+        if not os.path.isdir("{0}/soilmoist/smos".format(rpath.data)):
+            os.mkdir("{0}/soilmoist/smos".format(rpath.data))
+        filename = "{0}/soilmoist/smos/smos_{1}.tif".format(rpath.data, t.strftime("%Y%m%d"))
+        dbio.writeGeotif(lat, lon, res, sm[tj, :, :], filename)
         dbio.ingest(dbname, filename, t, table, False)
         print("Imported SMOS {0}".format(tj))
-        os.remove(filename)
+        # os.remove(filename)
 
 
 class Smos(Soilmoist):

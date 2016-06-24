@@ -76,9 +76,12 @@ def download(dbname, dts, bbox=None):
             for m in range(leadtime):
                 for ci, c in enumerate(["below", "normal", "above"]):
                     data = pds.variables["prob"][tt, m, lati, loni, ci]
-                    filename = dbio.writeGeotif(lat, lon, res, data)
+                    if not os.path.isdir("{0}/{1}/iri".format(rpath.data, table[varname].split(".")[0])):
+                        os.mkdir("{0}/{1}/iri".format(rpath.data, table[varname].split(".")[0]))
+                    filename = "{0}/{1}/iri/iri_{2}_{3}_{4}.tif".format(rpath.data, table[varname].split(".")[0], dt.strftime("%Y%m%d"), m + 1, c)
+                    # filename = dbio.writeGeotif(lat, lon, res, data)
                     ingest(dbname, filename, dt, m + 1, c, table[varname])
-                    os.remove(filename)
+                    # os.remove(filename)
 
 
 def _getResampledTables(dbname, options, res):

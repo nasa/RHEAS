@@ -64,9 +64,14 @@ def download(dbname, dts, bbox):
                         pstr = []
                     else:
                         pstr = ["-projwin", str(bbox[0]), str(bbox[3]), str(bbox[2]), str(bbox[1])]
-                    subprocess.call(["gdal_translate"] + pstr + ["-a_srs", "epsg:4326", "{0}/et2.tif".format(outpath), "{0}/et3.tif".format(outpath)])
-                    dbio.ingest(
-                        dbname, "{0}/et3.tif".format(outpath), dt, table, False)
+                    if not os.path.isdir("{0}/evap/mod16".format(rpath.data)):
+                        os.mkdir("{0}/evap/mod16".format(rpath.data))
+                    filename = "{0}/evap/mod16/mod16_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
+                    subprocess.call(["gdal_translate"] + pstr + ["-a_srs", "epsg:4326", "{0}/et2.tif".format(outpath), filename])
+                    dbio.ingest(dbname, filename, dt, table, False)
+                    # subprocess.call(["gdal_translate"] + pstr + ["-a_srs", "epsg:4326", "{0}/et2.tif".format(outpath), "{0}/et3.tif".format(outpath)])
+                    # dbio.ingest(
+                    #     dbname, "{0}/et3.tif".format(outpath), dt, table, False)
                     shutil.rmtree(outpath)
             except:
                 print("MOD16 data not available for {0}. Skipping download!".format(

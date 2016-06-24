@@ -51,7 +51,10 @@ def download(dbname, dts, bbox):
             else:
                 pstr = ["-projwin", str(bbox[0]), str(bbox[3]), str(bbox[2]), str(bbox[1])]
             subprocess.call(["gdal_translate"] + pstr + ["-ot", "Float32", "{0}/sm2.tif".format(tmppath), "{0}/sm3.tif".format(tmppath)])
-            filename = "{0}/amsre_soilm_{1}.tif".format(tmppath, dt.strftime("%Y%m%d"))
+            # filename = "{0}/amsre_soilm_{1}.tif".format(tmppath, dt.strftime("%Y%m%d"))
+            if not os.path.isdir("{0}/soilmoist/amsre".format(rpath.data)):
+                    os.mkdir("{0}/soilmoist/amsre".format(rpath.data))
+            filename = "{0}/soilmoist/amsre/amsre_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
             cmd = " ".join(["gdal_calc.py", "-A", "{0}/sm3.tif".format(tmppath), "--outfile={0}".format(filename), "--NoDataValue=-9999", "--calc=\"(abs(A)!=9999)*(A/1000.0+9999)-9999\""])
             subprocess.call(cmd, shell=True)
             dbio.ingest(dbname, filename, dt, table, False)

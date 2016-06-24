@@ -53,8 +53,11 @@ def download(dbname, dts, bbox):
                 else:
                     subprocess.call(["gdal_translate", "-a_srs", "epsg:4326", "{0}/prec.tif".format(outpath), "{0}/prec1.tif".format(outpath)])
                 # multiply by 0.1 to get mm/hr and 24 to get mm/day
-                cmd = " ".join(["gdal_calc.py", "-A", "{0}/prec1.tif".format(outpath), "--outfile={0}/prec2.tif".format(outpath), "--calc=\"0.1*A\""])
+                if not os.path.isdir("{0}/precip/gpm".format(rpath.data)):
+                    os.mkdir("{0}/precip/gpm".format(rpath.data))
+                filename = "{0}/precip/gpm/gpm_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
+                cmd = " ".join(["gdal_calc.py", "-A", "{0}/prec1.tif".format(outpath), "--outfile={0}".format(filename), "--calc=\"0.1*A\""])
                 subprocess.call(cmd, shell=True)
-                dbio.ingest(dbname, "{0}/prec2.tif".format(outpath), dt, table, False)
+                dbio.ingest(dbname, filename, dt, table, False)
         except:
             print("WARNING! No data were available to import into {0} for {1}.".format(table, dt.strftime("%Y-%m-%d")))

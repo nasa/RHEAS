@@ -62,10 +62,12 @@ def download(dbname, dts, bbox):
                     cmd = " ".join(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(
                         res), str(-res), "{0}/lai1.tif".format(outpath), "{0}/lai2.tif".format(outpath)])
                     subprocess.call(cmd, shell=True)
+                    if not os.path.isdir("{0}/lai/modis".format(rpath.data)):
+                        os.mkdir("{0}/lai/modis".format(rpath.data))
+                    filename = "{0}/lai/modis/modis_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
                     subprocess.call(["gdal_translate", "-a_srs", "epsg:4326",
-                                     "{0}/lai2.tif".format(outpath), "{0}/lai3.tif".format(outpath)])
-                    dbio.ingest(
-                        dbname, "{0}/lai3.tif".format(outpath), dt, table, False)
+                                     "{0}/lai2.tif".format(outpath), filename])
+                    dbio.ingest(dbname, filename, dt, table, False)
                 shutil.rmtree(outpath)
             else:
                 print("MCD15 data not available for {0}. Skipping download!".format(

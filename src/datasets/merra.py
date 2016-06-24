@@ -49,11 +49,14 @@ def _downloadVariable(varname, dbname, dt, bbox):
             data = np.mean(hdata, axis=0)
         lat = np.sort(lat)[::-1][i1:i2]
         lon = np.sort(lon)[j1:j2]
-        filename = dbio.writeGeotif(lat, lon, res, data)
+        if not os.path.isdir("{0}/{1}/merra".format(rpath.data, varname)):
+                os.mkdir("{0}/{1}/merra".format(rpath.data, varname))
+        filename = "{0}/{1}/merra/merra_{2}.tif".format(rpath.data, varname, ts.strftime("%Y%m%d"))
+        # filename = dbio.writeGeotif(lat, lon, res, data)
         table = "{0}.merra".format(varname)
         dbio.ingest(dbname, filename, dt, table)
         print("Imported {0} in {1}".format(tt[ti].strftime("%Y-%m-%d"), table))
-        os.remove(filename)
+        # os.remove(filename)
     except:
         print("Cannot import MERRA dataset for {0}!".format(dt.strftime("%Y-%m-%d")))
 

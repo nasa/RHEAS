@@ -56,7 +56,11 @@ def download(dbname, dts, bbox=None):
             # sme = f['Soil_Moisture_Retrieval_Data']['soil_moisture_error'][i1:i2, j1:j2]
             lat = np.sort(lat)[::-1][i1:i2]
             lon = np.sort(lon)[j1:j2]
-            filename = dbio.writeGeotif(lat, lon, res, sm)
+            if not os.path.isdir("{0}/soilmoist/smap".format(rpath.data)):
+                os.mkdir("{0}/soilmoist/smap".format(rpath.data))
+            filename = "{0}/soilmoist/smap/smap_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
+            dbio.writeGeotif(lat, lon, res, sm, filename)
+            # filename = dbio.writeGeotif(lat, lon, res, sm)
             dbio.ingest(dbname, filename, dt, table, False)
         else:
             print("No SMAP data available for {0}.".format(dt.strftime("%Y-%m-%d")))
