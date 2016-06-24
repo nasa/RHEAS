@@ -35,9 +35,9 @@ def ingest(dbname, filename, dt, lt, cname, stname):
         cur.execute("create table {0}.{1} (rid serial not null primary key, fdate date, tercile text, leadtime int, rast raster)".format(
             schemaname, tablename))
         db.commit()
-    cur.execute("select * from {0} where fdate='{1}'".format(stname, dt.strftime("%Y-%m-%d")))
+    cur.execute("select * from {0} where fdate='{1}' and tercile = '{2}' and leadtime = {3}".format(stname, dt.strftime("%Y-%m-%d"), cname, lt))
     if bool(cur.rowcount):
-        cur.execute("delete from {0} where fdate='{1}'".format(stname, dt.strftime("%Y-%m-%d")))
+        cur.execute("delete from {0} where fdate='{1}' and tercile = '{2}' and leadtime = {3}".format(stname, dt.strftime("%Y-%m-%d"), cname, lt))
         db.commit()
     dbio.ingest(dbname, filename, dt, stname, False, False)
     sql = "update {0} set tercile = '{1}' where tercile is null".format(
@@ -118,7 +118,7 @@ def _resampleClimatology(dbname, ptable, name, dt0):
     cur.execute(
         "select * from pg_catalog.pg_class c inner join pg_catalog.pg_namespace n on c.relnamespace=n.oid where n.nspname='precip' and c.relname='{0}_iri'".format(ptable))
     if not bool(cur.rowcount):
-        sql = "create table precip.{0}_iri as (with f as (select fdate,st_tile(st_rescale(rast,{0},'average'),{2},{2}) as rast from precip.{1}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
+        sql = "create table precip.{1}_iri as (with f as (select fdate,st_tile(st_rescale(rast,{0},'average'),{2},{2}) as rast from precip.{1}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
             res, ptable, tilesize)
         cur.execute(sql)
         cur.execute(
@@ -194,8 +194,9 @@ def generate(options, models):
         db.commit()
         # retrieve probabilities from IRI seasonal forecast
         _deleteTableIfExists(models.dbname, 'public', 'iri_probs')
-        sql = "create table iri_probs as (with f as (select x,y,st_pixelaspoint(rast,x,y) as geom from precip.{0}_iri_xy,precip.{0}_iri where rid=tile and fdate=date'{1}-{2}-{3}') select x,y,st_value(rast,geom) as prob,tercile,leadtime from f,precip.iri where fdate=date'{4}-{5}-{6}')".format(
-            ptable, dt0.year, dt0.month, dt0.day, dtf.year, dtf.month, dtf.day)
+        sql = "create table iri_probs as (with f as (select x,y,st_pixelaspoint(rast,x,y) as geom from precip.{0}_iri_xy,precip.{0}_iri where rid=tile and fdate=date'{1}-{2}-{3}') select x,y,st_value(rast,geom) as prob,tercile,leadtime from f,precip.iri where fdate=date'{1}-{2}-{3}')".format(
+            ptable, dt0.year, dt0.month, dt0.day)
+            # ptable, dt0.year, dt0.month, dt0.day, dtf.year, dtf.month, dtf.day)
         cur.execute(sql)
         cur.execute("alter table iri_probs add column pg int")
         for ti, t in enumerate(['below', 'normal', 'above']):
