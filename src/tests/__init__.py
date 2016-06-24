@@ -7,6 +7,3 @@
 
 """
 
-from test import testNowcast
-from test import testForecast
-from test import testDatabase
