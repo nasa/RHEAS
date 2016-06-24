@@ -1,7 +1,7 @@
 [forecast]
 model: vic
-startdate: 2010-12-5
-enddate: 2011-2-28
+startdate: 2012-3-1
+enddate: 2012-3-31
 name: basin
 basin:  ${buildout:directory}/data/tests/basin.shp
 resolution: 0.25
