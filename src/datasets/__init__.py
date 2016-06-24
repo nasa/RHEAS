@@ -87,13 +87,13 @@ def download(dbname, conf):
     pass
 
 
-def ingest(dbname, table, data, lat, lon, res, t):
+def ingest(dbname, table, data, lat, lon, res, t, resample=True, overwrite=True):
     """Import data into RHEAS database."""
     if data is not None:
         if len(data.shape) > 2:
             data = data[0, :, :]
         filename = dbio.writeGeotif(lat, lon, res, data)
-        dbio.ingest(dbname, filename, t, table)
+        dbio.ingest(dbname, filename, t, table, resample, overwrite)
         print("Imported {0} in {1}".format(t.strftime("%Y-%m-%d"), table))
         os.remove(filename)
     else:

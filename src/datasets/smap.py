@@ -7,7 +7,7 @@
 
 """
 
-from smos import Smos
+from soilmoist import Soilmoist
 import h5py
 import tempfile
 from ftplib import FTP
@@ -33,8 +33,8 @@ def download(dbname, dts, bbox=None):
     url = "n5eil01u.ecs.nsidc.org"
     ftp = FTP(url)
     ftp.login()
-    for dt in [dts[0] + timedelta(tt) for tt in range((dts[1] - dts[0]).days + 1)]:
-        r = ftp.cwd("/pub/SAN/SMAP/SPL3SMP.002/{0}".format(dt.strftime("%Y.%m.%d")))
+    for dt in [dts[0] + timedelta(tt) for tt in range((dts[-1] - dts[0]).days + 1)]:
+        r = ftp.cwd("/pub/SAN/SMAP/SPL3SMP.003/{0}".format(dt.strftime("%Y.%m.%d")))
         if r.find("successful") > 0:
             outpath = tempfile.mkdtemp()
             fname = [f for f in ftp.nlst() if f.find("h5") > 0][0]
@@ -62,7 +62,7 @@ def download(dbname, dts, bbox=None):
             print("No SMAP data available for {0}.".format(dt.strftime("%Y-%m-%d")))
 
 
-class Smap(Smos):
+class Smap(Soilmoist):
 
     def __init__(self):
         """Initialize SMAP soil moisture object."""

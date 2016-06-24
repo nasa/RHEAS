@@ -35,7 +35,7 @@ def download(dbname, dts, bbox):
     if tiles is not None:
         ftp = FTP(url)
         ftp.login()
-        for dt in [dts[0] + timedelta(dti) for dti in range((dts[1] - dts[0]).days + 1)]:
+        for dt in [dts[0] + timedelta(dti) for dti in range((dts[-1] - dts[0]).days + 1)]:
             try:
                 ftp.cwd("SAN/MOST/MOD10A1.005/{1:04d}.{2:02d}.{3:02d}".format(url, dt.year, dt.month, dt.day))
                 files = [f for f in ftp.nlst() if any(

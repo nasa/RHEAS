@@ -62,6 +62,6 @@ def download(dbname, dts, bbox=None):
     """Downloads MERRA Reanalysis data from the NASA data server,
     and imports them into the database *dbname*. Optionally uses a bounding box to
     limit the region with [minlon, minlat, maxlon, maxlat]."""
-    for dt in [dts[0] + timedelta(dti) for dti in range((dts[1] - dts[0]).days + 1)]:
+    for dt in [dts[0] + timedelta(dti) for dti in range((dts[-1] - dts[0]).days + 1)]:
         for varname in ["tmax", "tmin", "wind"]:
             _downloadVariable(varname, dbname, dt, bbox)

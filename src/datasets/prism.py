@@ -36,7 +36,7 @@ def _downloadVariable(varname, dbname, dts, bbox):
     years = list(set([t.year for t in dts]))
     for yr in years:
         ftp.cwd("{0}".format(yr))
-        filenames = [f for f in ftp.nlst() if datetime.strptime(f.split("_")[-2], "%Y%m%d") >= dts[0] and datetime.strptime(f.split("_")[-2], "%Y%m%d") <= dts[1]]
+        filenames = [f for f in ftp.nlst() if datetime.strptime(f.split("_")[-2], "%Y%m%d") >= dts[0] and datetime.strptime(f.split("_")[-2], "%Y%m%d") <= dts[-1]]
         for fname in filenames:
             dt = datetime.strptime(fname.split("_")[-2], "%Y%m%d")
             with open("{0}/{1}".format(outpath, fname), 'wb') as f:

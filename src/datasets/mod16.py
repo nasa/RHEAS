@@ -35,7 +35,7 @@ def download(dbname, dts, bbox):
     if tiles is not None:
         ftp = FTP(url)
         ftp.login()
-        for dt in [dts[0] + timedelta(dti) for dti in range((dts[1] - dts[0]).days + 1)]:
+        for dt in [dts[0] + timedelta(dti) for dti in range((dts[-1] - dts[0]).days + 1)]:
             try:
                 ftp.cwd(
                     "pub/MODIS/NTSG_Products/MOD16/MOD16A2.105_MERRAGMAO/Y{0}".format(dt.year))

@@ -34,7 +34,7 @@ def download(dbname, dts, bbox):
     ftp.login('kandread@jpl.nasa.gov', 'kandread@jpl.nasa.gov')
     ftp.cwd("data/imerg/gis")
     outpath = tempfile.mkdtemp()
-    for dt in [dts[0] + timedelta(t) for t in range((dts[1] - dts[0]).days+1)]:
+    for dt in [dts[0] + timedelta(t) for t in range((dts[-1] - dts[0]).days+1)]:
         try:
             ftp.cwd("/data/imerg/gis/{0}/{1:02d}".format(dt.year, dt.month))
             filenames = [f for f in ftp.nlst() if re.match(r"3B.*{0}.*S000000.*1day\.tif.*".format(dt.strftime("%Y%m%d")), f) is not None]

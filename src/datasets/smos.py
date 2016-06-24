@@ -39,7 +39,7 @@ def download(dbname, dt, bbox=None):
     lon = lon[j1:j2]
     t0 = datetime(2010, 1, 12)  # initial date of SMOS data
     t1 = (dt[0] - t0).days
-    t2 = (dt[1] - t0).days + 1
+    t2 = (dt[-1] - t0).days + 1
     ti = range(t1, t2)
     sm = f.variables['SM'][ti, smi1:smi2, j1:j2]
     # FIXME: Use spatially variable observation error

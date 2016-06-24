@@ -29,7 +29,7 @@ def fetch(dbname, dt, bbox):
 def download(dbname, dts, bbox=None):
     res = 0.25
     data, lat, lon, dts = fetch(dbname, dts, bbox)
-    for t, dt in enumerate([dts[0] + timedelta(tt) for tt in range((dts[1] - dts[0]).days + 1)]):
+    for t, dt in enumerate([dts[0] + timedelta(tt) for tt in range((dts[-1] - dts[0]).days + 1)]):
         datasets.ingest(dbname, table, data[t, :, :], lat, lon, res, dt)
 
 

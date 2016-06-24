@@ -36,7 +36,7 @@ def download(dbname, dts, bbox):
     date *dt* and imports it into the PostGIS database *dbname*."""
     res = 0.01
     tiles = modis.findTiles(bbox)
-    for dt in [dts[0] + timedelta(dti) for dti in range((dts[1] - dts[0]).days + 1)]:
+    for dt in [dts[0] + timedelta(dti) for dti in range((dts[-1] - dts[0]).days + 1)]:
         temppath = tempfile.mkdtemp()
         url = "https://snow-data.jpl.nasa.gov/modscag-historic/{0}/{1}".format(dt.year, dt.strftime("%j"))
         r = requests.get(url, auth=HTTPDigestAuth(username, password))

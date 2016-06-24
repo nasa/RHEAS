@@ -32,7 +32,7 @@ def download(dbname, dts, bbox):
     ftp = FTP(url)
     ftp.login()
     ftp.cwd("SAN/AMSA/AE_Land3.002")
-    for dt in [dts[0] + timedelta(ti) for ti in range((dts[1] - dts[0]).days+1)]:
+    for dt in [dts[0] + timedelta(ti) for ti in range((dts[-1] - dts[0]).days+1)]:
         datadir = dt.strftime("%Y.%m.%d")
         try:
             tmppath = tempfile.mkdtemp()

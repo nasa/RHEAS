@@ -35,7 +35,7 @@ def download(dbname, dts, bbox):
     burl = "http://e4ftl01.cr.usgs.gov/MOTA/MCD15A2.005"
     tiles = modis.findTiles(bbox)
     if tiles is not None:
-        for dt in [dts[0] + timedelta(dti) for dti in range((dts[1] - dts[0]).days + 1)]:
+        for dt in [dts[0] + timedelta(dti) for dti in range((dts[-1] - dts[0]).days + 1)]:
             outpath = tempfile.mkdtemp()
             url = "{0}/{1:04d}.{2:02d}.{3:02d}".format(
                 burl, dt.year, dt.month, dt.day)
