@@ -11,6 +11,7 @@ import os
 import ConfigParser
 import sys
 import dbio
+import rpath
 from datetime import datetime, timedelta
 import numpy as np
 import gzip
