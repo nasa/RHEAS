@@ -12,8 +12,10 @@ from ftplib import FTP
 from datetime import timedelta
 import tempfile
 import subprocess
+import os
 import datasets
 import dbio
+import rpath
 
 
 table = "soilmoist.amsre"

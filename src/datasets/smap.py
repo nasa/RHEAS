@@ -15,6 +15,8 @@ import numpy as np
 import dbio
 import datasets
 from datetime import timedelta
+import os
+import rpath
 
 
 table = "soilmoist.smap"
@@ -60,7 +62,6 @@ def download(dbname, dts, bbox=None):
                 os.mkdir("{0}/soilmoist/smap".format(rpath.data))
             filename = "{0}/soilmoist/smap/smap_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
             dbio.writeGeotif(lat, lon, res, sm, filename)
-            # filename = dbio.writeGeotif(lat, lon, res, sm)
             dbio.ingest(dbname, filename, dt, table, False)
         else:
             print("No SMAP data available for {0}.".format(dt.strftime("%Y-%m-%d")))

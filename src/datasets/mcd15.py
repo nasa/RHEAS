@@ -18,6 +18,8 @@ import glob
 import shutil
 import datasets
 from datetime import timedelta
+import os
+import rpath
 
 
 table = "lai.modis"

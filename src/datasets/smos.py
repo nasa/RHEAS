@@ -13,6 +13,7 @@ import os
 import netCDF4 as netcdf
 from datetime import datetime, timedelta
 import datasets
+import rpath
 
 
 table = "soilmoist.smos"

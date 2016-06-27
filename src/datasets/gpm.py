@@ -15,6 +15,8 @@ import subprocess
 import datasets
 import dbio
 import re
+import os
+import rpath
 
 
 table = "precip.gpm"

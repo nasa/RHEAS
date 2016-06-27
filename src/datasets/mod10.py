@@ -16,6 +16,8 @@ import subprocess
 import glob
 import shutil
 import modis
+import os
+import rpath
 
 
 table = "snow.mod10"
@@ -63,10 +65,6 @@ def download(dbname, dts, bbox):
                                  "{0}/snow2.tif".format(outpath), filename])
                 dbio.ingest(
                     dbname, filename, dt, table, False)
-                # subprocess.call(["gdal_translate", "-a_srs", "epsg:4326",
-                #                  "{0}/snow2.tif".format(outpath), "{0}/snow3.tif".format(outpath)])
-                # dbio.ingest(
-                #     dbname, "{0}/snow3.tif".format(outpath), dt, table, False)
                 shutil.rmtree(outpath)
             except:
                 print("MOD10 data not available for {0}. Skipping download!".format(

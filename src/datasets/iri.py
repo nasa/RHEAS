@@ -17,6 +17,7 @@ import string
 import numpy as np
 from datetime import date
 from dateutil.relativedelta import relativedelta
+import rpath
 
 
 def dates(dbname):
@@ -79,7 +80,7 @@ def download(dbname, dts, bbox=None):
                     if not os.path.isdir("{0}/{1}/iri".format(rpath.data, table[varname].split(".")[0])):
                         os.mkdir("{0}/{1}/iri".format(rpath.data, table[varname].split(".")[0]))
                     filename = "{0}/{1}/iri/iri_{2}_{3}_{4}.tif".format(rpath.data, table[varname].split(".")[0], dt.strftime("%Y%m%d"), m + 1, c)
-                    # filename = dbio.writeGeotif(lat, lon, res, data)
+                    dbio.writeGeotif(lat, lon, res, data, filename)
                     ingest(dbname, filename, dt, m + 1, c, table[varname])
                     # os.remove(filename)
 

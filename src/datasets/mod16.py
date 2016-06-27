@@ -16,6 +16,8 @@ import shutil
 import dbio
 import datasets
 from datetime import timedelta
+import os
+import rpath
 
 
 table = "evap.mod16"
@@ -69,9 +71,6 @@ def download(dbname, dts, bbox):
                     filename = "{0}/evap/mod16/mod16_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
                     subprocess.call(["gdal_translate"] + pstr + ["-a_srs", "epsg:4326", "{0}/et2.tif".format(outpath), filename])
                     dbio.ingest(dbname, filename, dt, table, False)
-                    # subprocess.call(["gdal_translate"] + pstr + ["-a_srs", "epsg:4326", "{0}/et2.tif".format(outpath), "{0}/et3.tif".format(outpath)])
-                    # dbio.ingest(
-                    #     dbname, "{0}/et3.tif".format(outpath), dt, table, False)
                     shutil.rmtree(outpath)
             except:
                 print("MOD16 data not available for {0}. Skipping download!".format(

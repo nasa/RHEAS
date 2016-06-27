@@ -14,6 +14,7 @@ import os
 from datetime import timedelta
 import dbio
 import datasets
+import rpath
 
 
 def dates(dbname):
@@ -51,8 +52,8 @@ def _downloadVariable(varname, dbname, dt, bbox):
         lon = np.sort(lon)[j1:j2]
         if not os.path.isdir("{0}/{1}/merra".format(rpath.data, varname)):
                 os.mkdir("{0}/{1}/merra".format(rpath.data, varname))
-        filename = "{0}/{1}/merra/merra_{2}.tif".format(rpath.data, varname, ts.strftime("%Y%m%d"))
-        # filename = dbio.writeGeotif(lat, lon, res, data)
+        filename = "{0}/{1}/merra/merra_{2}.tif".format(rpath.data, varname, dt.strftime("%Y%m%d"))
+        dbio.writeGeotif(lat, lon, res, data, filename)
         table = "{0}.merra".format(varname)
         dbio.ingest(dbname, filename, dt, table)
         print("Imported {0} in {1}".format(tt[ti].strftime("%Y-%m-%d"), table))
