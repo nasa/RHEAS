@@ -63,7 +63,7 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
     for t in range(len(ti)):
         if not os.path.isdir("{0}/{1}/ncep".format(rpath.data, varname)):
             os.mkdir("{0}/{1}/ncep".format(rpath.data, varname))
-        filename = "{0}/{1}/ncep/ncep_{2}.tif".format(rpath.data, varname, tt[ti[0]].strftime("%Y%m%d"))
+        filename = "{0}/{1}/ncep/ncep_{2}.tif".format(rpath.data, varname, tt[ti[t]].strftime("%Y%m%d"))
         dbio.writeGeotif(lat, lon, res, data[t, :, :], filename)
         dbio.ingest(dbname, filename, tt[ti[t]], table)
         print("Imported {0} in {1}".format(tt[ti[t]].strftime("%Y-%m-%d"), table))
