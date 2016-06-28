@@ -15,7 +15,6 @@ import sys
 import subprocess
 import os
 import string
-import numpy
 from datetime import date, datetime, timedelta
 import multiprocessing as mp
 import shutil
@@ -451,10 +450,10 @@ class VIC:
                 for var in args:
                     if var in outvars or var in droughtvars:
                         if var in layervars:
-                            outdata[var] = numpy.zeros(
+                            outdata[var] = np.zeros(
                                 (nt, self.nlayers, nrows, ncols)) + self.nodata
                         else:
-                            outdata[var] = numpy.zeros(
+                            outdata[var] = np.zeros(
                                 (nt, 1, nrows, ncols)) + self.nodata
                     else:
                         print "WARNING: Variable {0} not found in output files. Skipping import.".format(var)
@@ -465,7 +464,7 @@ class VIC:
                     for p in prefix:
                         filename = "{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(
                             self.model_path, p, self.lat[c], self.lon[c], self.grid_decimal)
-                        # pdata[p] = numpy.loadtxt(filename)
+                        # pdata[p] = np.loadtxt(filename)
                         pdata[p] = pandas.read_csv(
                             filename, delim_whitespace=True, header=None).values
                     i = int((max(self.lat) + self.res /
@@ -488,7 +487,7 @@ class VIC:
                 year = [t.year for t in dts]
                 month = [t.month for t in dts]
                 day = [t.day for t in dts]
-                outdata["date"] = numpy.array(
+                outdata["date"] = np.array(
                     [datetime(int(year[t]), int(month[t]), int(day[t])) for t in range(len(year))])
         else:
             print("WARNING! No pixels simulated, not saving any output!")
