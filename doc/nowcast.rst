@@ -64,6 +64,16 @@ These are all the necessary options to define our forecast simulation. Then we n
     wind: ncep
 
 .. compound::
+   
+   Setting the meteorological forcings this way will perform a deterministic nowcast simulation. Alternatively, a stochastic simulation can be performed by either requesting multiple datasets for precipitation or explicitly requesting an ensemble simulation ::
+
+    [vic]
+    precip: chirps, trmm
+    temperature: ncep
+    wind: ncep
+    ensemble size: 3
+
+.. compound::
 
    We can opt to initialize the VIC from a a state file saved in the database or an explicitly file name ::
 
@@ -81,7 +91,6 @@ These are all the necessary options to define our forecast simulation. Then we n
    We choose the model output, specifically net shortwave radiation and soil moisture, to the database ::
 
     [vic]
-    exe: bin/vicNl
     precip: chirps
     temperature: ncep
     wind: ncep
@@ -95,15 +104,15 @@ These are all the necessary options to define our forecast simulation. Then we n
 
     [dssat]
     shapefile: data/tests/basin.shp
-    exe: bin/dssat.exe
 
 .. compound::
 
-   and the ensemble size being the other required parameter. Each of the DSSAT ensemble members is forced by the same VIC output retaining the uncertainty only in the DSSAT model parameters. ::
+   and the ensemble size being an optional parameter. Each of the DSSAT ensemble members is forced by the same VIC output retaining the uncertainty only in the DSSAT model parameters. There's also an option to enable or disable the assimilation of soil moisture and LAI data (enabled by default) ::
  
     [dssat]
     shapefile: 
     ensemble size: 50
+    assimilate: on
 
 Finally, let's run the system (inside the ``rheas`` directory)
 

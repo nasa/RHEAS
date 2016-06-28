@@ -13,7 +13,7 @@ The VIC and DSSAT model parameters are contained under the ``vic`` and ``dssat``
 * **rootzones**: number of root zones
 * **basefile**: DSSAT input file template
 
-The requirements for running DSSAT also include the type of cultivar(s), planting start dates and soil properties which have been ingested in the database from various sources. Soil properties and cultivar information are stored as vector tables (``soils`` and ``cultivar`` respectively), while planting start dates are stored as raster maps with the type of crop as an additional column in the ``crops`` table.
+The requirements for running DSSAT also include the type of cultivar(s), planting start dates, a global crop mask and soil properties which have been ingested in the database from various sources. Soil properties and cultivar information are stored as vector tables (``soils`` and ``cultivar`` respectively), while planting start dates and the crop mask are stored as raster maps with the type of crop as an additional column in the ``crops`` and ``cropland`` tables respectively.
 
 Multiple remote sensing datasets can be ingested into the database and are available either to be used as input (i.e. precipitation, temperature, wind speed) or assimilated (i.e. soil moisture, water storage, LAI, evapotranspiration). The following table summarizes the available datasets, their characteristics and the database schema/table they will be installed in.
 
@@ -25,31 +25,35 @@ Multiple remote sensing datasets can be ingested into the database and are avail
 +==================+=========+==========+=================+=================+================+================+======+
 |Precipitation     |CHIRPS   |  1981-   |      Daily      |      5km        |     Africa     |precip.chirps   |  IN  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
-|Precipitation     |TRMM     |  1998-   |      Daily      |      ~25km      |     Global     |precip.trmm     |  IN  |
+|Precipitation     |TRMM     |  1998-   |      Daily      |  0.25 :sup:`o`  |     Global     |precip.trmm     |  IN  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
-|Precipitation     |RFE2     |  2001-   |      Daily      |      ~1km       |     Africa     |precip.rfe2     |  IN  |
+|Precipitation     |RFE2     |  2001-   |      Daily      |  0.10 :sup:`o`  |     Africa     |precip.rfe2     |  IN  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
-|Precipitation     |CMORPH   |  1998-   |      Daily      |      ~25km      |     Global     |precip.cmorph   |  IN  |
+|Precipitation     |CMORPH   |  1998-   |      Daily      |  0.25 :sup:`o`  |     Global     |precip.cmorph   |  IN  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
-|Meteorology       |NCEP     |1981-     |      Daily      |      ~180km     |     Global     |\*.ncep         |  IN  |
+|Precipitation     |GPM      |  2014-   |      Daily      |  0.10 :sup:`o`  |     Global     |precip.gpm      |  IN  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
+|Meteorology       |NCEP     |1981-     |      Daily      |  1.875 :sup:`o` |     Global     |\*.ncep         |  IN  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
-|Soil moisture     |AMSR-E   |2002-2011 |      Daily      |      ~25km      |     Global     |soilm.amsre     |  AS  |
+|Meteorology       |PRISM    |1981-     |      Daily      |      4km        |     CONUS      |\*.prism        |  IN  |
++------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
+|Soil moisture     |AMSR-E   |2002-2011 |      Daily      |  0.25 :sup:`o`  |     Global     |soilm.amsre     |  AS  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
 |Soil moisture     |SMOS     |  2009-   |      Daily      |      ~40km      |     Global     |soilm.smos      |  AS  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
-|Soil moisture     |SMAP     |  2015-   |    3/1 days     |      3/9km      |     Global     |soilm.smap      |  AS  |
+|Soil moisture     |SMAP     |  2015-   |      Daily      |      3/9km      |     Global     |soilm.smap      |  AS  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
 |Evapotranspiration|MOD16    |2000-     |     8 days      |       1km       |     Global     |evap.modis      |  AS  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
-|Water storage     |GRACE    |2002-     |     Monthly     |      ~150km     |     Global     |tws.grace       |  AS  |
-|                  |         |          |                 |                 |                |                |      |
+|Water storage     |GRACE    |2002-     |     Monthly     |   1.0 :sup:`o`  |     Global     |tws.grace       |  AS  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
-|Leaf Area Index   |MCD15    |2002-     |     8 days      |       1km       |     Global     |lai.modis       |  AS  |
-|                  |         |          |                 |                 |                |                |      |
+|Snow cover        |MOD10    |  2001-   |      Daily      |      1km        |     Global     |snow.mod10      |  AS  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
-|Meteorology       |IRI      |2000-     |     Monthly     |       ~250km    |     Global     |\*.iri          |  FC  |
-|                  |         |          |                 |                 |                |                |      |
+|Snow cover        |MODSCAG  |  2001-   |      Daily      |      1km        |     Global     |snow.modscag    |  AS  |
++------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
+|Leaf Area Index   |MCD15    |2002-     |     8 days      |      1km        |     Global     |lai.modis       |  AS  |
++------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
+|Meteorology       |IRI      |2000-     |     Monthly     |    2.5 :sup:`o` |     Global     |\*.iri          |  FC  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
 
 There are three modes for the datasets: ``IN`` corresponds to datasets being used as inputs to the model, ``AS`` refers to datasets being assimilated, and ``FC`` are datasets that are used to provide the meteorological (i.e. precipitation, temperature, and in some cases wind speed) forecasts.

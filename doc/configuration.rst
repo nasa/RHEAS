@@ -151,8 +151,9 @@ DSSAT options
 ----------------------------------
 The options for the DSSAT model include:
 
-* ``shapefile``: a shapefile contains the areas (e.g. administrative boundaries) for which DSSAt will be run (*required*)
-* ``ensemble size``: the size of the ensemble to be used (*required*)
+* ``shapefile``: a shapefile contains the areas (e.g. administrative boundaries) for which DSSAT will be run (*required*)
+* ``ensemble size``: the size of the ensemble to be used (*optional*)
+* ``assimilate``: flag indicating whether to assimilate soil moisture and LAI observations (*optional*)
 
 
 
