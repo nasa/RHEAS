@@ -19,16 +19,19 @@ class testNowcast(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """Create dummy database for testing."""
         dbname = "testdb"
         tests.database.createDatabase(dbname)
         tests.database.ingestTables(dbname)
 
     @classmethod
     def tearDownClass(cls):
+        """Delete testing database."""
         dbname = "testdb"
         tests.database.dropDatabase(dbname)
 
     def setUp(self):
+        """Set parameters for nowcast unit tests."""
         self.dbname = "testdb"
         configfile = "{0}/tests/nowcast.conf".format(rpath.data)
         self.options = config.loadFromFile(configfile)
@@ -40,6 +43,7 @@ class testNowcast(unittest.TestCase):
         tests.database.cultivars(self.dbname)
 
     def tearDown(self):
+        """Clean up data generated after each unit test."""
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute("drop schema {0} cascade".format(self.options['nowcast']['name']))
@@ -48,6 +52,7 @@ class testNowcast(unittest.TestCase):
         db.close()
 
     def testDeterministicVIC(self):
+        """Test deterministic nowcast VIC simulation."""
         nowcast.execute(self.dbname, self.options)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
@@ -57,16 +62,19 @@ class testNowcast(unittest.TestCase):
         db.close()
 
     def testDeterministicDSSAT(self):
+        """Test deterministic nowcast DSSAT simulation."""
         self.options['nowcast']['model'] = 'vic, dssat'
         self.options['nowcast']['startdate'] = "2011-2-21"
         self.options['nowcast']['enddate'] = "2011-4-30"
         nowcast.execute(self.dbname, self.options)
 
     def testEnsembleVIC(self):
+        """Test ensemble nowcast VIC simulation."""
         self.options['vic']['ensemble size'] = 2
         nowcast.execute(self.dbname, self.options)
 
     def testEnsembleDSSAT(self):
+        """Test ensemble nowcast DSSAT simulation."""
         self.options['nowcast']['model'] = 'vic, dssat'
         self.options['vic']['ensemble size'] = 2
         self.options['nowcast']['startdate'] = "2011-2-21"
@@ -74,6 +82,7 @@ class testNowcast(unittest.TestCase):
         nowcast.execute(self.dbname, self.options)
 
     def testAssimilationVIC(self):
+        """Test nowcast VIC simulation with data assimilation."""
         self.options['nowcast']['startdate'] = "2011-1-1"
         self.options['nowcast']['enddate'] = "2011-1-2"
         self.options['vic']['ensemble size'] = 3
@@ -81,6 +90,7 @@ class testNowcast(unittest.TestCase):
         nowcast.execute(self.dbname, self.options)
 
     def testMultiplePrecipVIC(self):
+        """Test VIC simulation with multiple precipitation datasets."""
         self.options['vic']['precip'] = 'chirps, trmm'
         nowcast.execute(self.dbname, self.options)
 

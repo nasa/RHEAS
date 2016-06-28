@@ -13,6 +13,7 @@ import dbio
 
 
 def cultivars(dbname):
+    """Set cultivar parameters for DSSAT unit tests."""
     params = [{'p1': 70, 'p2': 0.3, 'p5': 680, 'g2': 590, 'g3': 8.5, 'phint': 50},
               {'p1': 115, 'p2': 0.5, 'p5': 660, 'g2': 450, 'g3': 10.5, 'phint': 65},
               {'p1': 285, 'p2': 0.5, 'p5': 730, 'g2': 620, 'g3': 8.19, 'phint': 38},
@@ -22,6 +23,7 @@ def cultivars(dbname):
 
 
 def createDatabase(dbname):
+    """Create temporary database for unit testing."""
     subprocess.call(["{0}/createdb".format(rpath.bins), dbname])
     db = dbio.connect(dbname)
     cur = db.cursor()
@@ -40,10 +42,12 @@ def createDatabase(dbname):
 
 
 def dropDatabase(dbname):
+    """Delete temporary database created for unit testing."""
     subprocess.call(["{0}/dropdb".format(rpath.bins), dbname])
 
 
 def ingestTables(dbname):
+    """Ingest datasets needed for the unit tests."""
     subprocess.call(["{0}/psql".format(rpath.bins), "-d", dbname, "-f", "{0}/tests/precip_chirps.sql".format(rpath.data)])
     subprocess.call(["{0}/psql".format(rpath.bins), "-d", dbname, "-f", "{0}/tests/precip_trmm.sql".format(rpath.data)])
     subprocess.call(["{0}/psql".format(rpath.bins), "-d", dbname, "-f", "{0}/tests/tmax_ncep.sql".format(rpath.data)])
