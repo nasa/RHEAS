@@ -25,7 +25,7 @@ def dates(dbname):
 
 
 def ingest(dbname, filename, dt, lt, cname, stname):
-    """Imports Geotif *filename* into database *db*."""
+    """Imports Geotif *filename* into database *dbname*."""
     db = dbio.connect(dbname)
     cur = db.cursor()
     schemaname, tablename = stname.split(".")
@@ -52,7 +52,7 @@ def ingest(dbname, filename, dt, lt, cname, stname):
 
 def download(dbname, dts, bbox=None):
     """Downloads IRI forecast tercile probability data from the IRI data server,
-    and imports them into the database *db*. Optionally uses a bounding box to
+    and imports them into the database *dbname*. Optionally uses a bounding box to
     limit the region with [minlon, minlat, maxlon, maxlat]."""
     leadtime = 3
     res = 2.5
