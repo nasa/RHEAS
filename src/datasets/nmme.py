@@ -14,6 +14,7 @@ import dbio
 import subprocess
 import tempfile
 import os
+import sys
 import shutil
 import zipfile
 from datetime import timedelta
@@ -86,4 +87,24 @@ def download(dbname, dts, bbox=None):
                 ingest(dbname, varname, filename, dt, e+1)
             os.remove(configfile)
     shutil.rmtree(outpath)
-            
+
+
+def generate(options, models):
+    """Generate meteorological forecast forcings from downscaled NMME data."""
+    options['vic']['tmax'] = options['vic']['temperature']
+    options['vic']['tmin'] = options['vic']['temperature']
+    db = dbio.connect(models.dbname)
+    cur = db.cursor()
+    dt0 = date(models.startyear, models.startmonth, models.startday)
+    dt1 = date(models.endyear, models.endmonth, models.endday)
+    # check if forecast period exists in NMME data
+    sql = "select count(distinct(fdate)) from precip.nmme where fdate>=date'{0}' and fdate<=date'{1}'".format(dt0.strftime("%Y-%m-%d"), dt1.strftime("%Y-%m-%d"))
+    cur.execute(sql)
+    ndata = cur.fetchone()[0]
+    if ndata == (dt1 - dt0).days + 1:
+        cur.close()
+        db.close()
+    else:
+        print("ERROR! Not enough data found for requested forecast period! Exiting...")
+        sys.exit()
+
