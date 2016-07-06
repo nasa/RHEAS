@@ -84,6 +84,13 @@ def ingest(dbname, varname, filename, dt, ens):
     sql = "update {0}.nmme set ensemble = {1} where ensemble is null".format(schema[varname], ens)
     cur.execute(sql)
     db.commit()
+    cur.execute("select * from raster_resampled where sname='{0}' and tname like 'nmme_%'".format(schema[varname]))
+    tables = [r[1] for r in cur.fetchall()]
+    for table in tables:
+        cur.execute("select * from {0}.{1} where fdate='{2}' and ensemble = {3}".format(schema[varname], table, dt.strftime("%Y-%m-%d"), ens))
+        if bool(cur.rowcount):
+            cur.execute("delete from {0}.{1} where fdate='{2}' and ensemble = {3}".format(schema[varname], table, dt.strftime("%Y-%m-%d"), ens))
+            db.commit()
     tilesize = (10, 10)
     dbio.createResampledTables(dbname, schema[varname], "nmme", dt, tilesize, False, "and ensemble={0}".format(ens))
     _setEnsemble(dbname, schema[varname], ens)
