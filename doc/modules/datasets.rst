@@ -36,6 +36,14 @@ datasets.decorators module
     :undoc-members:
     :show-inheritance:
 
+datasets.gpm module
+-------------------
+
+.. automodule:: datasets.gpm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 datasets.grace module
 ---------------------
 
@@ -60,6 +68,22 @@ datasets.mcd15 module
     :undoc-members:
     :show-inheritance:
 
+datasets.merra module
+---------------------
+
+.. automodule:: datasets.merra
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+datasets.mod10 module
+---------------------
+
+.. automodule:: datasets.mod10
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 datasets.mod16 module
 ---------------------
 
@@ -76,10 +100,26 @@ datasets.modis module
     :undoc-members:
     :show-inheritance:
 
+datasets.modscag module
+-----------------------
+
+.. automodule:: datasets.modscag
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 datasets.ncep module
 --------------------
 
 .. automodule:: datasets.ncep
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+datasets.prism module
+---------------------
+
+.. automodule:: datasets.prism
     :members:
     :undoc-members:
     :show-inheritance:
@@ -104,6 +144,14 @@ datasets.smos module
 --------------------
 
 .. automodule:: datasets.smos
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+datasets.soilmoist module
+-------------------------
+
+.. automodule:: datasets.soilmoist
     :members:
     :undoc-members:
     :show-inheritance:

@@ -31,7 +31,8 @@ In order to compile RHEAS, we need a C compiler and the Make utilities, as well 
 
 ::
 
- yum install make automake gcc gcc-c++ python-devel
+ sudo dnf groupinstall "Development Tools"
+ sudo dnf install scipy numpy gdal-devel python-dateutil libxslt-devel python-lxml libxslt-python readline-devel geos-devel proj-devel Cython pyproj python-pandas wine
 
 for RPM-based distros (such as RedHat, Fedora, Centos)
 
@@ -90,4 +91,23 @@ After the script finishes you should have a ``rheas`` executable in your ``bin``
 
 Installing on Windows
 --------------------------------
-It is currently possible to run RHEAS in a bash-shell environment such as `Cygwin <https://www.cygwin.com/>`_. However, due to backwards compatability issues with PostGIS dependencies, this method is not currently recommended.
+It is currently possible to run RHEAS in a bash-shell environment such as `Cygwin <https://www.cygwin.com/>`_. However, due to backwards compatibility issues with PostGIS dependencies, this method is not currently recommended.
+
+
+Testing the installation
+--------------------------------
+A number of `unit tests <https://en.wikipedia.org/wiki/Unit_testing>`_ have been created to validate the installation of RHEAS. The tests create a temporary database and perform the following operations:
+
+* Download and ingest the suite of datasets into the database
+* Run nowcasts for VIC and DSSAT
+* Run forecasts for VIC and DSSAT
+
+The tests can be run with
+
+.. highlight:: bash
+
+::
+
+ ./bin/test
+
+

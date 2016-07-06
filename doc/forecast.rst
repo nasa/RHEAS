@@ -110,11 +110,12 @@ These are all the necessary options to define our forecast simulation. Then we n
 
 .. compound::
 
-   and the ensemble size being the other required parameter. The forecasts from VIC are randomly paired with each of the DSSAT ensemble members in order to capture uncertainty both in the DSSAT model parameters and the hydroclimatological forcings. ::
+   and the ensemble size being another parameter that can optionally be set. The forecasts from VIC are randomly paired with each of the DSSAT ensemble members in order to capture uncertainty both in the DSSAT model parameters and the hydroclimatological forcings. Similarly to a nowcast, assimilation cna be enabled/disabled with an option. ::
  
     [dssat]
     shapefile: data/tests/basin.shp
     ensemble size: 50
+    assimilate: no
 
 Finally, let's run the system (inside the ``rheas`` directory)
 

@@ -636,7 +636,8 @@ class DSSAT:
 
     def writeConfigFile(self, modelpath, nlayers, startdate, enddate):
         """Write DSSAT-ENKF config file."""
-        fout = open("{0}/ENKF_CONFIG.TXT".format(modelpath), 'w')
+        configfilename="ENKF_CONFIG.TXT"
+        fout = open("{0}/{1}".format(modelpath, configfilename), 'w')
         fout.write("!Start_DOY_of_Simulation:\n{0}\n".format(
             int(startdate.strftime("%j"))))
         fout.write("!End_DOY_of_Simulation\n{0}\n".format(
@@ -647,6 +648,7 @@ class DSSAT:
         ndays = (date(self.endyear, 12, 31) - date(self.startyear, 1, 1)).days
         fout.write("!Number_of_RS_data\n{0}".format(ndays))
         fout.close()
+        return configfilename
 
     def save(self, modelpaths, startdt):
         """Saves DSSAT output to database."""

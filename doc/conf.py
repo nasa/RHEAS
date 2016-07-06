@@ -15,6 +15,19 @@
 import sys
 import os
 
+# Mock out the imports for some modules
+from mock import MagicMock
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+            return Mock()
+
+MOCK_MODULES = ['argparse', 'numpy', 'pandas', 'psycopg2', 'scipy', 'scipy.linalg', 'netCDF4',
+                'scipy.stats', 'scipy.spatial', 'scipy.spatial.distance', 'GDAL', 'lxml', 'lxml.html',
+                'requests', 'h5py', 'osgeo', 'python-dateutil', 'dateutil', 'dateutil.relativedelta', 'requests.auth']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.

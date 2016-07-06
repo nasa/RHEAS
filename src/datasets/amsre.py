@@ -1,4 +1,4 @@
-"""Class definition for the AMSR-E Soil Mositure data type.
+""" Class definition for the AMSR-E Soil Mositure data type.
 
 .. module:: amsre
    :synopsis: Definition of the AMSRE class

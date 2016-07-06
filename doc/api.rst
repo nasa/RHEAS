@@ -55,4 +55,82 @@ After the configuration file has been created, the database can be initialized/u
 where ``data.conf`` is the name of the configuration file.
 
   
+Using a custom database
+------------------------------------------
+
+Assuming that you have created (using RHEAS or not) a PostGIS database (named ``customdb`` here as an example) that contains the necessary schemas and tables, it can be used to perform nowcast and forecast simulations by
+
+.. highlight:: bash
+
+::
+
+./bin/rheas -d customdb nowcast.conf
+
+where ``nowcast.conf`` is the RHEAS configuration file.
+
+
+Writing custom scripts with the RHEAS API
+--------------------------------------------
+
+RHEAS exposes most of its functions within each module, allowing for a relatively simple API to be used to further customize it.
+
+In the first example, we will assume that we want to run a deterministic VIC simulation but use custom meteorological data (from Numpy arrays). We first initialize a VIC object
+
+.. highlight:: python
+
+::
+
+   import vic
+   model = vic.VIC(".", "customdb", 0.25, 2015, 1, 1, 2015, 3, 31, "customname")
+
+and then write the VIC global and soil parameter files
+
+.. highlight:: python
+
+::
+
+   model.writeParamFile()
+   model.writeSoilFile("basin.shp")
+
+where ``basin.shp`` is a shapefile that describes our basin. Assuming that we have Numpy arrays containing the data for precipitation (``prec``), air temperature (``tmax`` and ``tmin``) and wind speed (``wind``) we can then write out the forcings for VIC, run the model and save the output into the database
+
+.. highlight:: python
+
+::
+
+   model.writeForcings(prec, tmax, tmin, wind)
+   model.run(vicexe)
+   model.save("db", ["runoff"])
+
+
+In a second example of using the RHEAS API, we will assume that we have a customized version of the DSSAT model (as an executable) that needs an additional line written in its configuration file. In order to achieve that, we will `decorate <https://wiki.python.org/moin/PythonDecorators>`_ the corresponding DSSAT class method and replace one of its parameters. We begin by initializing the DSSAT object
+
+.. highlight:: python
+
+::
+
+   model = dssat.DSSAT("customdb", "customname", 0.25, 2015, 1, 1, 2015, 3, 31, 40, vicoptions, "basin.shp", True)
+
+and then decorate the function ``writeConfigFile`` to change its behavior
+
+.. highlight:: python
+
+::
+
+   def addLineToConfig(func):
+       def wrapper(*args, **kwargs):
+           fname = func(args, kwargs)
+	   with open(fname, 'a') as fout:
+	        fout.write("Additional line with parameters")
+	return wrapper
+	
+   model.writeConfigFile = addLineToConfig(model.writeConfigFile)
+
+Finally, we run the customized DSSAT model
+
+.. highlight:: python
+
+::
+
+   model.run("dssat_new.exe")
 

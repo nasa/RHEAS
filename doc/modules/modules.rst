@@ -16,6 +16,5 @@ src
    nowcast
    raster
    rheas
-   rpath
    tests
    vic

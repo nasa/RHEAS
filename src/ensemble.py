@@ -140,6 +140,8 @@ class Ensemble:
             pass
         elif method.lower() == "iri":
             self.__fromDataset("iri", options)
+        elif method.lower() == "nmme":
+            self.__fromDataset("nmme", options)
         else:
             print(
                 "ERROR! No appropriate method for generating meteorological forecast ensemble, exiting!")

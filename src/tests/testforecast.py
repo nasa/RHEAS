@@ -19,6 +19,7 @@ class testForecast(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """Create dummy database for testing."""
         dbname = "testdb"
         tests.database.createDatabase(dbname)
         tests.database.ingestTables(dbname)
@@ -27,10 +28,12 @@ class testForecast(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """Delete testing database."""
         dbname = "testdb"
         tests.database.dropDatabase(dbname)
 
     def setUp(self):
+        """Set parameters for forecast unit tests."""
         self.dbname = "testdb"
         configfile = "{0}/tests/forecast.conf".format(rpath.data)
         self.options = config.loadFromFile(configfile)
@@ -41,6 +44,7 @@ class testForecast(unittest.TestCase):
         tests.database.cultivars(self.dbname)
 
     def tearDown(self):
+        """Clean up data generated after each unit test."""
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute("drop schema {0} cascade".format(self.options['forecast']['name']))
@@ -49,17 +53,21 @@ class testForecast(unittest.TestCase):
         db.close()
 
     def testEspVIC(self):
+        """Test ESP forecast VIC simulation, with random initialization."""
         self.options['forecast']['ensemble size'] = 2
         self.options['forecast']['method'] = "esp"
         forecast.execute(self.dbname, self.options)
 
     def testEspVICwithPerturb(self):
+        """Test ESP forecast VIC simulation, with initialization
+        from perturbed model simulations."""
         self.options['forecast']['ensemble size'] = 2
         self.options['forecast']['method'] = "esp"
         self.options['vic']['initialize'] = "perturb"
         forecast.execute(self.dbname, self.options)
 
     def testIriVIC(self):
+        """Test forecast VIC simulations using IRI forecast data."""
         self.options['forecast']['startdate'] = "2012-2-1"
         self.options['forecast']['enddate'] = "2012-4-30"
         self.options['forecast']['ensemble size'] = 1
@@ -67,6 +75,7 @@ class testForecast(unittest.TestCase):
         forecast.execute(self.dbname, self.options)
 
     def testEspVICwithAssimilation(self):
+        """Test ESP forecast VIC simulation with data assimilation."""
         self.options['forecast']['startdate'] = "2011-1-1"
         self.options['forecast']['enddate'] = "2011-1-31"
         self.options['vic']['ensemble size'] = 3
@@ -75,6 +84,7 @@ class testForecast(unittest.TestCase):
         forecast.execute(self.dbname, self.options)
 
     def testEspDSSAT(self):
+        """Test ESP forecast DSSAT simulation."""
         self.options['forecast']['model'] = 'vic, dssat'
         self.options['forecast']['ensemble size'] = 2
         self.options['forecast']['method'] = "esp"
