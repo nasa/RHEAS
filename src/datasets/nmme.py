@@ -113,16 +113,22 @@ def download(dbname, dts, bbox=None):
     shutil.rmtree(outpath)
 
 
-def _queryDataset(dbname, tablename, name, startyear, startmonth, startday, endyear, endmonth, endday, ens):
+def _queryDataset(dbname, tablename, name, startyear, startmonth, startday, endyear, endmonth, endday, ens=None):
     """Retrieve meteorological forcing dataset from database."""
     temptable = ''.join(random.SystemRandom().choice(string.ascii_letters) for _ in range(8))
-    sql = "create table {0}_xy as (select gid,st_worldtorastercoordx(rast,geom) as x,st_worldtorastercoordy(rast,geom) as y,rid as tile from {4},{5}.basin where fdate=date'{1}-{2}-{3}' and st_intersects(rast,geom) and ensemble={6})".format(temptable, startyear, startmonth, startday, tablename, name, ens)
+    if ens is None:
+        sql = "create table {0}_xy as (select gid,st_worldtorastercoordx(rast,geom) as x,st_worldtorastercoordy(rast,geom) as y,rid as tile from {4},{5}.basin where fdate=date'{1}-{2}-{3}' and st_intersects(rast,geom))".format(temptable, startyear, startmonth, startday, tablename, name)
+    else:
+        sql = "create table {0}_xy as (select gid,st_worldtorastercoordx(rast,geom) as x,st_worldtorastercoordy(rast,geom) as y,rid as tile from {4},{5}.basin where fdate=date'{1}-{2}-{3}' and st_intersects(rast,geom) and ensemble={6})".format(temptable, startyear, startmonth, startday, tablename, name, ens)
     db = dbio.connect(dbname)
     cur = db.cursor()
     cur.execute(sql)
     cur.execute("create index {0}_xy_r on {0}_xy(tile)".format(temptable))
     db.commit()
-    sql = "select gid,fdate,st_nearestvalue(rast,x,y) from {0},{1}_xy where rid=tile and fdate>=date'{2}-{3}-{4}' and fdate<=date'{5}-{6}-{7} and ensemble={8}' order by gid,fdate".format(tablename, temptable, startyear, startmonth, startday, endyear, endmonth, endday, ens)
+    if ens is None:
+        sql = "select gid,fdate,st_nearestvalue(rast,x,y) from {0},{1}_xy where rid=tile and fdate>=date'{2}-{3}-{4}' and fdate<=date'{5}-{6}-{7}' order by gid,fdate".format(tablename, temptable, startyear, startmonth, startday, endyear, endmonth, endday)
+    else:
+        sql = "select gid,fdate,st_nearestvalue(rast,x,y) from {0},{1}_xy where rid=tile and fdate>=date'{2}-{3}-{4}' and fdate<=date'{5}-{6}-{7}' and ensemble={8} order by gid,fdate".format(tablename, temptable, startyear, startmonth, startday, endyear, endmonth, endday, ens)
     cur.execute(sql)
     data = [r for r in cur.fetchall()]
     cur.execute("drop table {0}_xy".format(temptable))
@@ -132,32 +138,33 @@ def _queryDataset(dbname, tablename, name, startyear, startmonth, startday, endy
     return data
 
 
-def _getForcings(options, models, res, nens=10):
+def _getForcings(options, models, res):
     """Retrieve meteorological forcings for ensemble."""
+    nens = len(models)
     db = dbio.connect(models.dbname)
     cur = db.cursor()
     rtables = dbio.getResampledTables(models.dbname, options, res)
     rsmp = rtables['precip'].split("_")[1]
-    prec = []
-    tmax = []
-    tmin = []
-    temp = []
+    prec = [None] * nens
+    tmax = [None] * nens
+    tmin = [None] * nens
+    temp = [None] * nens
     for e in range(nens):
         prec[e] = _queryDataset(models.dbname, "precip.nmme_{0}".format(rsmp), models.name, models.startyear, models.startmonth, models.startday, models.endyear, models.endmonth, models.endday, e+1)
         temp[e] = _queryDataset(models.dbname, "tmax.nmme_{0}".format(rsmp), models.name, models.startyear, models.startmonth, models.startday, models.endyear, models.endmonth, models.endday, e+1)
-    sql = "select distinct(date_part('year',fdate)) from tmax.{0}"
+    sql = "select distinct(date_part('year',fdate)) from tmax.{0}".format(rtables['tmax'])
     cur.execute(sql)
     years = [r[0] for r in cur.fetchall()]
     years.remove(min(years))
     years.remove(max(years))
     if len(years) > 0:
-        ndays = (datetime(models.endyear, models.endmonth, models.endday) - datetime(models.startyear, models.startmonth, models.startday)).days + 1
-        yr = np.random.choice(years)
+        ndays = (datetime(models.endyear, models.endmonth, models.endday) - datetime(models.startyear, models.startmonth, models.startday)).days
+        yr = int(np.random.choice(years))
         t0 = datetime(yr, models.startmonth, models.startday)
         t1 = t0 + timedelta(ndays)
-        vtmax = _queryDataset(models.dbname, "tmax.{0}".format(rtables['tmax']), models.name, t0.startyear, t0.startmonth, t0.startday, t1.endyear, t1.endmonth, t1.endday)
-        vtmin = _queryDataset(models.dbname, "tmin.{0}".format(rtables['tmin']), models.name, t0.startyear, t0.startmonth, t0.startday, t1.endyear, t1.endmonth, t1.endday)
-        wind = _queryDataset(models.dbname, "wind.{0}".format(rtables['wind']), models.name, t0.startyear, t0.startmonth, t0.startday, t1.endyear, t1.endmonth, t1.endday)
+        vtmax = _queryDataset(models.dbname, "tmax.{0}".format(rtables['tmax']), models.name, t0.year, t0.month, t0.day, t1.year, t1.month, t1.day)
+        vtmin = _queryDataset(models.dbname, "tmin.{0}".format(rtables['tmin']), models.name, t0.year, t0.month, t0.day, t1.year, t1.month, t1.day)
+        wind = _queryDataset(models.dbname, "wind.{0}".format(rtables['wind']), models.name, t0.year, t0.month, t0.day, t1.year, t1.month, t1.day)
         for e in range(nens):
             tmax[e] = [(vtmax[i][0], vtmax[i][1], temp[e][i][2] + 0.5 * (vtmax[i][2] - vtmin[i][2])) for i in range(len(vtmax))]
             tmin[e] = [(vtmin[i][0], vtmin[i][1], temp[e][i][2] - 0.5 * (vtmax[i][2] - vtmin[i][2])) for i in range(len(vtmin))]
@@ -184,7 +191,7 @@ def generate(options, models):
             print("ERROR! No data found to generate VIC forcings for NMME forecast. Exiting...")
             sys.exit()
         else:
-            for e in len(models):
+            for e in range(len(models)):
                 models[e].writeForcings(prec[e], tmax[e], tmin[e], wind)
     else:
         print("ERROR! Not enough data found for requested forecast period! Exiting...")
