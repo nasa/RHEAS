@@ -104,8 +104,11 @@ def download(dbname, dts, bbox=None):
     a bounding box to limit the region with [minlon, minlat, maxlon, maxlat]."""
     nens = 10
     varnames = ["Precipitation", "Temperature"]
+    schema = {'Precipitation': 'precip', 'Temperature': 'tmax'}
     outpath = tempfile.mkdtemp()
     for varname in varnames:
+        if not os.path.isdir("{0}/{1}/nmme".format(rpath.data, schema[varname])):
+            os.mkdir("{0}/{1}/nmme".format(rpath.data, schema[varname]))
         for e in range(nens):
             configfile = _writeCservConfig(bbox, dts[0], dts[-1], varname, e+1)
             subprocess.call(["python", "{0}/ClimateSERV_API_Access.py".format(rpath.scripts), "-config", configfile,
@@ -115,7 +118,9 @@ def download(dbname, dts, bbox=None):
             f.extractall(outpath, filenames)
             for filename in filenames:
                 dt = datetime.strptime(filename.split("_")[-1][1:-4], "%Y%m%d")
-                ingest(dbname, varname, "{0}/{1}".format(outpath, filename), dt, e+1)
+                lfilename = "{0}/{1}/nmme/nmme_{2}_{3}.tif".format(rpath.data, schema[varname], dt.strftime("%Y%m%d"), e+1)
+                shutil.copyfile("{0}/{1}".format(outpath, filename), lfilename)
+                ingest(dbname, varname, lfilename, dt, e+1)
             os.remove(configfile)
     shutil.rmtree(outpath)
 
