@@ -536,7 +536,7 @@ class VIC:
             startyear, startmonth, startday = ts.year, ts.month, ts.day
         tiffiles = []
         if bool(ensemble):
-            ens = str(int(ensemble))
+            ens = "_{0:02d}".format(ensemble)
         else:
             ens = ""
         if not os.path.isdir("{0}/{1}".format(rpath.data, self.name)):
@@ -546,7 +546,7 @@ class VIC:
             for lyr in range(data.shape[1]):
                 # filename = "{0}/{1}_{2}{3:02d}{4:02d}_{5:02d}.tif".format(
                 #     self.model_path, tablename, dt.year, dt.month, dt.day, lyr + 1)
-                filename = "{0}/{1}/{2}_{3}_{4}_{5}.tif".format(rpath.data, self.name, tablename, dt.strftime("%Y%m%d"), lyr + 1, ens)
+                filename = "{0}/{1}/{2}_{3}_{4:02d}{5}.tif".format(rpath.data, self.name, tablename, dt.strftime("%Y%m%d"), lyr + 1, ens)
                 self._writeRaster(data[t, lyr, :, :], filename)
                 tiffiles.append(filename)
         ps1 = subprocess.Popen(["{0}/raster2pgsql".format(rpath.bins), "-R", "-s", "4326", "-F", "-d", "-t", "auto"] + tiffiles + ["temp"], stdout=subprocess.PIPE)
