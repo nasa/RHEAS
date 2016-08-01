@@ -18,9 +18,12 @@ import glob
 import shutil
 import datasets
 from datetime import timedelta
+import requests
 
 
 table = "lai.modis"
+username = "rheas"
+password = "nasaRhea5"
 
 
 def dates(dbname):
@@ -39,17 +42,16 @@ def download(dbname, dts, bbox):
             outpath = tempfile.mkdtemp()
             url = "{0}/{1:04d}.{2:02d}.{3:02d}".format(
                 burl, dt.year, dt.month, dt.day)
-            connection = urllib.urlopen(url)
-            dom = html.fromstring(connection.read())
+            req = requests.get(url, auth=(username, password))
+            if req.status_code == 200:
+            dom = html.fromstring(req.text)
             files = [link for link in dom.xpath('//a/@href')]
             if len(files) > 0:
-                filenames = [filter(lambda s: re.findall(
-                    r'MCD.*h{0:02d}v{1:02d}.*hdf$'.format(t[1], t[0]), s), files) for t in tiles]
+                filenames = [filter(lambda s: re.findall(r'MCD.*h{0:02d}v{1:02d}.*hdf$'.format(t[1], t[0]), s), files) for t in tiles]
                 for filename in filenames:
                     if len(filename) > 0:
                         filename = filename[0]
-                        urllib.urlretrieve(
-                            "{0}/{1}".format(url, filename), "{0}/{1}".format(outpath, filename))
+                        subprocess.call(["wget", "-L", "--load-cookies", ".cookiefile", "--save-cookies", ".cookiefile", "--user", username, "--password", password, "{0}/{1}".format(url, filename), "-O", "{0}/{1}".format(outpath, filename)])
                         subprocess.call(["gdal_translate", "HDF4_EOS:EOS_GRID:{0}/{1}:MOD_Grid_MOD15A2:Lai_1km".format(
                             outpath, filename), "{0}/{1}".format(outpath, filename).replace("hdf", "tif")])
                 tifs = glob.glob("{0}/*.tif".format(outpath))
