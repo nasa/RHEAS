@@ -7,9 +7,11 @@
 
 """
 
-ebTemplate = """OUTFILE         eb      10
+ebTemplate = """OUTFILE         eb      12
 OUTVAR          OUT_NET_SHORT           %.4f    *       *
 OUTVAR          OUT_NET_LONG            %.4f    *       *
+OUTVAR          OUT_SHORTWAVE           %.4f    *       *
+OUTVAR          OUT_LONGWAVE            %.4f    *       *
 OUTVAR          OUT_LATENT              %.4f    *       *
 OUTVAR          OUT_SENSIBLE            %.4f    *       *
 OUTVAR          OUT_GRND_FLUX           %.4f    *       *

@@ -203,7 +203,7 @@ class DSSAT:
         date_sql = "fdate>=date '{0}-{1}-{2}' and fdate<=date '{3}-{4}-{5}'".format(
             self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday)
         data = {}
-        varnames = ["net_short", "net_long",
+        varnames = ["shortwave", "longwave",
                     "soil_moist", "rainf", "tmax", "tmin"]
         if self.lai is not None:
             varnames.append("lai")
@@ -250,8 +250,8 @@ class DSSAT:
         cur.close()
         db.close()
         if "ensemble" in sqlvars:
-            weather = [np.vstack((data["net_short"][e] + data["net_long"][e], data["tmax"][
-                                 e], data["tmin"][e], data["rainf"][e])).T for e in range(len(data["net_short"]))]
+            weather = [np.vstack((data["shortwave"][e] + data["longwave"][e], data["tmax"][
+                                 e], data["tmin"][e], data["rainf"][e])).T for e in range(len(data["shortwave"]))]
             sm = [np.zeros((len(year), nlayers))] * len(data["soil_moist"])
             if self.lai is not None:
                 lai = dict(zip([date(year[i], month[i], day[i]) for i in range(
@@ -262,7 +262,7 @@ class DSSAT:
                         data["soil_moist"][e]) if layers[mi] == l + 1]
         else:
             weather = np.vstack(
-                (data["net_short"] + data["net_long"], data["tmax"], data["tmin"], data["rainf"])).T
+                (data["shortwave"] + data["longwave"], data["tmax"], data["tmin"], data["rainf"])).T
             if self.lai is not None:
                 lai = dict(zip([date(year[i], month[i], day[i])
                                 for i in range(len(year))], np.array(data["lai"]).T))
@@ -330,22 +330,22 @@ class DSSAT:
         lons = ncfile.variables['lon'][:]
         i = np.where(lats == lat)[0][0]
         j = np.where(lons == lon)[0][0]
-        net_short = ncfile.variables['net_short'][:]
-        net_long = ncfile.variables['net_long'][:]
+        shortwave = ncfile.variables['shortwave'][:]
+        longwave = ncfile.variables['longwave'][:]
         tmax = ncfile.variables['tmax'][:]
         tmin = ncfile.variables['tmin'][:]
         rainf = ncfile.variables['rainf'][:]
         soilmoist = ncfile.variables['soil_moist'][:]
         if ensemble:
-            nens = net_short.shape[1]
-            weather = [np.vstack((net_short[:, e, i, j] + net_long[:, e, i, j], tmax[
+            nens = shortwave.shape[1]
+            weather = [np.vstack((shortwave[:, e, i, j] + longwave[:, e, i, j], tmax[
                                  :, e, i, j], tmin[:, e, i, j], rainf[:, e, i, j])).T for e in range(nens)]
             sm = [soilmoist[:, e, :, i, j] for e in range(nens)]
             lai = dict(
                 zip(dt, np.mean(ncfile.variables['lai'][:, :, i, j], axis=1)))
         else:
-            weather = np.vstack((net_short[
-                                :, i, j] + net_long[:, i, j], tmax[:, i, j], tmin[:, i, j], rainf[:, i, j])).T.data
+            weather = np.vstack((shortwave[
+                                :, i, j] + longwave[:, i, j], tmax[:, i, j], tmin[:, i, j], rainf[:, i, j])).T.data
             sm = soilmoist[:, :, i, j]
             lai = dict(zip(dt, ncfile.variables['lai'][:, i, j]))
         ncfile.close()
