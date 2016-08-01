@@ -46,33 +46,33 @@ def download(dbname, dts, bbox):
                 burl, dt.year, dt.month, dt.day)
             req = requests.get(url, auth=(username, password))
             if req.status_code == 200:
-            dom = html.fromstring(req.text)
-            files = [link for link in dom.xpath('//a/@href')]
-            if len(files) > 0:
-                filenames = [filter(lambda s: re.findall(r'MCD.*h{0:02d}v{1:02d}.*hdf$'.format(t[1], t[0]), s), files) for t in tiles]
-                for filename in filenames:
-                    if len(filename) > 0:
-                        filename = filename[0]
-                        subprocess.call(["wget", "-L", "--load-cookies", ".cookiefile", "--save-cookies", ".cookiefile", "--user", username, "--password", password, "{0}/{1}".format(url, filename), "-O", "{0}/{1}".format(outpath, filename)])
-                        subprocess.call(["gdal_translate", "HDF4_EOS:EOS_GRID:{0}/{1}:MOD_Grid_MOD15A2:Lai_1km".format(
-                            outpath, filename), "{0}/{1}".format(outpath, filename).replace("hdf", "tif")])
-                tifs = glob.glob("{0}/*.tif".format(outpath))
-                if len(tifs) > 0:
-                    subprocess.call(
-                        ["gdal_merge.py", "-o", "{0}/lai.tif".format(outpath)] + tifs)
-                    cmd = " ".join(["gdal_calc.py", "-A", "{0}/lai.tif".format(outpath), "--outfile={0}/lai1.tif".format(
-                        outpath), "--NoDataValue=-9999", "--calc=\"(A<101.0)*(0.1*A+9999.0)-9999.0\""])
-                    subprocess.call(cmd, shell=True)
-                    cmd = " ".join(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(
-                        res), str(-res), "{0}/lai1.tif".format(outpath), "{0}/lai2.tif".format(outpath)])
-                    subprocess.call(cmd, shell=True)
-                    if not os.path.isdir("{0}/lai/modis".format(rpath.data)):
-                        os.mkdir("{0}/lai/modis".format(rpath.data))
-                    filename = "{0}/lai/modis/modis_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
-                    subprocess.call(["gdal_translate", "-a_srs", "epsg:4326",
-                                     "{0}/lai2.tif".format(outpath), filename])
-                    dbio.ingest(dbname, filename, dt, table, False)
-                shutil.rmtree(outpath)
+                dom = html.fromstring(req.text)
+                files = [link for link in dom.xpath('//a/@href')]
+                if len(files) > 0:
+                    filenames = [filter(lambda s: re.findall(r'MCD.*h{0:02d}v{1:02d}.*hdf$'.format(t[1], t[0]), s), files) for t in tiles]
+                    for filename in filenames:
+                        if len(filename) > 0:
+                            filename = filename[0]
+                            subprocess.call(["wget", "-L", "--load-cookies", ".cookiefile", "--save-cookies", ".cookiefile", "--user", username, "--password", password, "{0}/{1}".format(url, filename), "-O", "{0}/{1}".format(outpath, filename)])
+                            subprocess.call(["gdal_translate", "HDF4_EOS:EOS_GRID:{0}/{1}:MOD_Grid_MOD15A2:Lai_1km".format(
+                                outpath, filename), "{0}/{1}".format(outpath, filename).replace("hdf", "tif")])
+                    tifs = glob.glob("{0}/*.tif".format(outpath))
+                    if len(tifs) > 0:
+                        subprocess.call(
+                            ["gdal_merge.py", "-o", "{0}/lai.tif".format(outpath)] + tifs)
+                        cmd = " ".join(["gdal_calc.py", "-A", "{0}/lai.tif".format(outpath), "--outfile={0}/lai1.tif".format(
+                            outpath), "--NoDataValue=-9999", "--calc=\"(A<101.0)*(0.1*A+9999.0)-9999.0\""])
+                        subprocess.call(cmd, shell=True)
+                        cmd = " ".join(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(
+                            res), str(-res), "{0}/lai1.tif".format(outpath), "{0}/lai2.tif".format(outpath)])
+                        subprocess.call(cmd, shell=True)
+                        if not os.path.isdir("{0}/lai/modis".format(rpath.data)):
+                            os.mkdir("{0}/lai/modis".format(rpath.data))
+                        filename = "{0}/lai/modis/modis_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
+                        subprocess.call(["gdal_translate", "-a_srs", "epsg:4326",
+                                        "{0}/lai2.tif".format(outpath), filename])
+                        dbio.ingest(dbname, filename, dt, table, False)
+                    shutil.rmtree(outpath)
             else:
                 print("MCD15 data not available for {0}. Skipping download!".format(
                     dt.strftime("%Y-%m-%d")))
