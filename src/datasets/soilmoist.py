@@ -13,10 +13,11 @@ import dbio
 
 class Soilmoist(object):
 
-    def __init__(self):
+    def __init__(self, uncert=None):
         """Initialize SMOS soil moisture object."""
         self.statevar = ["soil_moist"]
         self.obsvar = "soil_moist"
+        self.uncert = uncert
 
     def x(self, dt, models):
         """Retrieve state variable from database."""
@@ -83,5 +84,8 @@ class Soilmoist(object):
 
     def E(self, nens):
         """Generate observation error vector."""
-        e = np.random.normal(0.0, self.stddev, (self.nobs, nens))
+        if self.uncert is None:
+            e = np.random.normal(0.0, self.stddev, (self.nobs, nens))
+        else:
+            e = self.uncert(size=(self.nobs, nens))
         return e

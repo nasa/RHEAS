@@ -12,6 +12,8 @@ from datetime import date
 import numpy as np
 from collections import OrderedDict
 from scipy.spatial.distance import cdist
+from functools import partial
+import re
 import dbio
 
 
@@ -75,7 +77,20 @@ def assimilate(options, dt, models, method="letkf"):
         # dynamically load observation module and get data
         obsmod = __import__("datasets." + name, fromlist=[name])
         obsobj = getattr(obsmod, name.capitalize())
-        obs = obsobj()
+        # check whether user has set uncertainty parameters for observation
+        if 'observations' in options and name in options['observations']:
+            try:
+                sname = re.split(" |,", options['observations']['name]'])[0].lower()
+                params = map(float, re.split(" |,", options['observations']['name]'])[1:])
+                smod = __import__("scipy.stats", fromlist=[sname])
+                sdist = getattr(smod, sname)
+            except:
+                print("WARNING! No distribution {0} available for dataset {1}, falling back to default.".format(sname, name))
+            else:
+                rvs = partial(sdist.rvs, *params)
+                obs = obsobj(rvs)
+        else:
+            obs = obsobj()
         data, lat, lon = obs.get(dt, models)
         if data is not None:
             if obs.obsvar not in Y:
