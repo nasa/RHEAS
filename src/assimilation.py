@@ -90,7 +90,7 @@ def assimilate(options, dt, models, method="letkf"):
                 obs = obsobj(rvs)
         else:
             obs = obsobj()
-       data, lat, lon = obs.get(dt, models)
+        data, lat, lon = obs.get(dt, models)
         if data is not None:
             if obs.obsvar not in Y:
                 Y[obs.obsvar] = data
