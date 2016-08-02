@@ -13,6 +13,7 @@ import numpy as np
 from collections import OrderedDict
 from scipy.spatial.distance import cdist
 from functools import partial
+import re
 import dbio
 
 
