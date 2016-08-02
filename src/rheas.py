@@ -40,18 +40,18 @@ def update(dbname, configfile):
                 mod = __import__("datasets.{0}".format(name), fromlist=[name])
             except:
                 mod = None
+            if conf.has_option(name, 'startdate'):
+                t0 = datetime.strptime(conf.get(name, 'startdate'), "%Y-%m-%d")
+            else:
+                t0 = None
+            if conf.has_option(name, 'enddate'):
+                t1 = datetime.strptime(conf.get(name, 'enddate'), "%Y-%m-%d")
+            else:
+                t1 = datetime.today()
             if mod is None:
                 # download generic datasets
-                datasets.download(dbname, conf)
+                datasets.download(dbname, (t0, t1), bbox, conf, name)
             else:
-                if conf.has_option(name, 'startdate'):
-                    t0 = datetime.strptime(conf.get(name, 'startdate'), "%Y-%m-%d")
-                else:
-                    t0 = None
-                if conf.has_option(name, 'enddate'):
-                    t1 = datetime.strptime(conf.get(name, 'enddate'), "%Y-%m-%d")
-                else:
-                    t1 = datetime.today()
                 dt = mod.dates(dbname)
                 if t0 is None:
                     if dt is None:
