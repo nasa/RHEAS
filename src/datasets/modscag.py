@@ -7,6 +7,7 @@
 
 """
 
+from snowcover import Snowcover
 import dbio
 from datetime import timedelta
 import datasets
@@ -71,51 +72,10 @@ def download(dbname, dts, bbox):
                     dt.strftime("%Y-%m-%d")))
 
 
-class Modscag(object):
+class Modscag(Snowcover):
 
-    def __init__(self):
-        """Initialize MODSCAG snow cover fraction object."""
-        self.statevar = ["swq"]
-        self.obsvar = "snow_cover"
+    def __init__(self, uncert=None):
+        super(Modscag, self).__init__(uncert)
         self.res = 0.01
         self.stddev = 0.05
-        self.tablename = table
-
-    def x(self, dt, models):
-        """Retrieve state variable from database."""
-        data = {}
-        db = dbio.connect(models.dbname)
-        cur = db.cursor()
-        for s in self.statevar:
-            sql = "select ensemble,st_x(geom),st_y(geom),val from (select ensemble,(ST_PixelAsCentroids(rast)).* from {0}.{1} where fdate=date '{2}-{3}-{4}') foo group by ensemble,geom order by ensemble".format(
-                models.name, s, dt.year, dt.month, dt.day)
-            cur.execute(sql)
-            e, lon, lat, vals = zip(*cur.fetchall())
-            gid = [models[0].lgid[(l[0], l[1])] for l in zip(lat, lon)]
-            nens = max(e)
-            data[s] = np.array(vals).reshape((len(vals) / nens, nens))
-            lat = np.array(lat).reshape((len(lat) / nens, nens))
-            lon = np.array(lon).reshape((len(lon) / nens, nens))
-            gid = np.array(gid).reshape((len(gid) / nens, nens))
-        cur.close()
-        db.close()
-        return data, lat, lon, gid
-
-    def get(self, dt, models):
-        """Retrieve observations from database for date *dt*."""
-        db = dbio.connect(models.dbname)
-        cur = db.cursor()
-        sql = "select st_x(geom),st_y(geom),val from (select (st_pixelascentroids(st_clip(rast,geom))).* from {0},{1}.basin where st_intersects(rast,geom) and fdate=date '{2}-{3}-{4}') foo".format(
-            self.tablename, models.name, dt.year, dt.month, dt.day)
-        cur.execute(sql)
-        if bool(cur.rowcount):
-            lon, lat, data = zip(*cur.fetchall())
-            data = np.array(data).reshape((len(data), 1))
-            lat = np.array(lat).reshape((len(lat), 1))
-            lon = np.array(lon).reshape((len(lon), 1))
-            self.nobs = len(data)
-        else:
-            data = lat = lon = None
-        cur.close()
-        db.close()
-        return data, lat, lon
+        self.tablename = "snow.modscag"
