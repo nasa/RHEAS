@@ -85,7 +85,6 @@ The options for the VIC model include:
 
   * ``net_long``:  net downward longwave flux [W/m2] 
   * ``net_short``:  net downward shortwave flux [W/m2
-
   * ``snow_cover``:  fractional area of snow cover [fraction] 
   * ``salbedo``:  snow pack albedo [fraction] 
   * ``snow_depth``:  depth of snow pack [cm] 
@@ -100,13 +99,10 @@ The options for the VIC model include:
   * ``surfstor``:  storage of liquid water and ice (not snow) on surface (ponding) [mm] 
   * ``swe``:  snow water equivalent in snow pack (including vegetation-intercepted snow)  [mm] 
   * ``wdew``:  total moisture interception storage in canopy [mm] 
-  * ``zwt``:  water table position [cm] (zwt within lowest unsaturated layer) 
-  * ``zwt_lumped``:  lumped water table position [cm] (zwt of total moisture across all layers, lumped together) 
   * ``baseflow``:  baseflow out of the bottom layer  [mm]
   * ``evap``:  total net evaporation [mm]
   * ``evap_bare``:  net evaporation from bare soil [mm]
   * ``evap_canop``:  net evaporation from canopy interception [mm]
-  * ``inflow``:  moisture that reaches top of soil column [mm]
   * ``prec``:  incoming precipitation [mm]
   * ``rainf``:  rainfall  [mm]
   * ``refreeze``:  refreezing of water in the snow  [mm]
@@ -116,32 +112,20 @@ The options for the VIC model include:
   * ``transp_veg``:  net transpiration from vegetation [mm]
   * ``albedo``:  average surface albedo [fraction] 
   * ``baresoilt``:  bare soil surface temperature [C]
-  * ``rad_temp``:  average radiative surface temperature [K] 
-  * ``snow_pack_temp``:  snow pack temperature [C]
   * ``snow_surf_temp``:  snow surface temperature [C]
   * ``soil_temp``:  soil temperature [C] for each soil layer 
-  * ``soil_tnode``:  soil temperature [C] for each soil thermal node 
   * ``surf_temp``:  average surface temperature [C]
   * ``vegt``:  average vegetation canopy temperature [C]
   * ``advection``:  advected energy [W/m2] 
   * ``grnd_flux``:  net heat flux into ground [W/m2] 
-  * ``in_long``:  incoming longwave at ground surface (under veg) [W/m2] 
   * ``latent``:  net upward latent heat flux [W/m2] 
   * ``melt_energy``:  energy of fusion (melting) in snowpack [W/m2] 
-  * ``r_net``:  net downward radiation flux [W/m2] 
   * ``rfrz_energy``:  net energy used to refreeze liquid water in snowpack [W/m2] 
   * ``sensible``:  net upward sensible heat flux [W/m2] 
-  * ``snow_flux``:  energy flux through snow pack [W/m2] 
   * ``aero_cond``:  "scene" aerodynamic conductance [m/s]
   * ``air_temp``:  air temperature [C]
   * ``longwave``:  incoming longwave [W/m2] 
-  * ``pressure``:  near surface atmospheric pressure [kPa]
-  * ``qair``:  specific humidity [kg/kg] 
-  * ``rel_humid``:  relative humidity [%]
   * ``shortwave``:  incoming shortwave [W/m2] 
-  * ``tskc``:  cloud cover fraction [fraction] 
-  * ``vegcover``:  fractional area of plants [fraction] 
-  * ``wind``:  near surface wind speed [m/s] 
 
 * ``observations``: a comma-separated list of the observations to be assimilated into VIC. Any of the datasets with ``AS`` mode outlined in the :ref:`database table <database>` can be used with their table name (without the schema, e.g. ``grace``)
 * ``update``: the date or frequency when assimilation should be performed. Valid options for the assimilation frequency are: ``daily``, ``weekly``, and ``monthly``. If this option is not set, assimilation is performed whenever the observation is available during the simulation period. When performing a forecast simulation, this option is not taken into account and assimilation is performed at the forecast initialization date
@@ -153,7 +137,7 @@ The options for the DSSAT model include:
 
 * ``shapefile``: a shapefile contains the areas (e.g. administrative boundaries) for which DSSAT will be run (*required*)
 * ``ensemble size``: the size of the ensemble to be used (*optional*)
-* ``assimilate``: flag indicating whether to assimilate soil moisture and LAI observations (*optional*)
+* ``assimilate``: flag indicating whether to assimilate soil moisture (``sm``), LAI (``lai``) observations or both (*optional*)
 
 
 
