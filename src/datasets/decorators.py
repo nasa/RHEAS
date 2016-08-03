@@ -34,7 +34,7 @@ def path(fetch):
         filename = url.format(dt.year, dt.month, dt.day)
         try:
             shutil.copy(filename, outpath)
-            lfilename = "{0}/{1}".format(outpath, filename.split("/")[-1])
+            lfilename = filename.split("/")[-1]
         except:
             lfilename = None
         return outpath, lfilename, bbox, dt

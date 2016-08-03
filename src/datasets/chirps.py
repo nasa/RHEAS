@@ -8,7 +8,7 @@
 
 """
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from datasets.decorators import geotiff, http
 import datasets
 
