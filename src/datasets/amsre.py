@@ -62,9 +62,9 @@ def download(dbname, dts, bbox):
 
 class Amsre(Soilmoist):
 
-    def __init__(self):
+    def __init__(self, uncert=None):
         """Initialize AMSR-E soil moisture object."""
-        super(Amsre, self).__init__()
+        super(Amsre, self).__init__(uncert)
         self.res = 0.25
         self.stddev = 0.01
         self.tablename = "soilmoist.amsre"

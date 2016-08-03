@@ -64,9 +64,9 @@ def download(dbname, dts, bbox=None):
 
 class Smap(Soilmoist):
 
-    def __init__(self):
+    def __init__(self, uncert=None):
         """Initialize SMAP soil moisture object."""
-        super(Smap, self).__init__()
+        super(Smap, self).__init__(uncert)
         self.res = 0.36
         self.stddev = 0.001
         self.tablename = "soilmoist.smap"

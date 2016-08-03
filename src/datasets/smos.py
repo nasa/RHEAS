@@ -57,9 +57,9 @@ def download(dbname, dt, bbox=None):
 
 class Smos(Soilmoist):
 
-    def __init__(self):
+    def __init__(self, uncert=None):
         """Initialize SMOS soil moisture object."""
-        super(Smos, self).__init__()
+        super(Smos, self).__init__(uncert)
         self.res = 0.25
         self.stddev = 0.01
         self.tablename = "soilmoist.smos"

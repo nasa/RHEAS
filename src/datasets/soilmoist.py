@@ -84,8 +84,12 @@ class Soilmoist(object):
 
     def E(self, nens):
         """Generate observation error vector."""
-        if self.uncert is None:
+        e = None
+        if self.uncert is not None:
+            try:
+                e = self.uncert(size=(self.nobs, nens))
+            except:
+                print("WARNING! Error using provided parameters in observation error PDF. Reverting to default.")
+        if e is None:
             e = np.random.normal(0.0, self.stddev, (self.nobs, nens))
-        else:
-            e = self.uncert(size=(self.nobs, nens))
         return e
