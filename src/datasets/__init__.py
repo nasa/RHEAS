@@ -87,7 +87,7 @@ def download(dbname, dts, bbox, conf, name):
     """Download a generic dataset based on user-provided information."""
     try:
         url = conf.get(name, 'path')
-        res = conf.get(name, 'res')
+        res = conf.getfloat(name, 'res')
         table = conf.get(name, 'table')
     except:
         url = res = table = None
@@ -101,7 +101,7 @@ def download(dbname, dts, bbox, conf, name):
             data, lat, lon, t = fetch(dbname, dt, bbox)
             ingest(dbname, table, data, lat, lon, res, t)
     else:
-        print("WARNING! Missing options for local dataset. Nothing ingested!")
+        print("WARNING! Missing options for local dataset {0}. Nothing ingested!".format(name))
 
 
 def ingest(dbname, table, data, lat, lon, res, t, resample=True, overwrite=True):
