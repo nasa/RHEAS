@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import gzip
 import zipfile
+from decorators import geotiff, path
 
 
 def uncompress(filename, outpath):
@@ -83,9 +84,25 @@ def spatialSubset(lat, lon, res, bbox):
     return i1, i2+1, j1, j2+1
 
 
-def download(dbname, conf):
+def download(dbname, dts, bbox, conf, name):
     """Download a generic dataset based on user-provided information."""
-    pass
+    try:
+        url = conf.get(name, 'path')
+        res = conf.getfloat(name, 'res')
+        table = conf.get(name, 'table')
+    except:
+        url = res = table = None
+
+    @geotiff
+    @path
+    def fetch(dbname, dt, bbox):
+        return url, bbox, dt
+    if url is not None and res is not None and table is not None:
+        for dt in [dts[0] + timedelta(tt) for tt in range((dts[-1] - dts[0]).days + 1)]:
+            data, lat, lon, t = fetch(dbname, dt, bbox)
+            ingest(dbname, table, data, lat, lon, res, t)
+    else:
+        print("WARNING! Missing options for local dataset {0}. Nothing ingested!".format(name))
 
 
 def ingest(dbname, table, data, lat, lon, res, t, resample=True, overwrite=True):

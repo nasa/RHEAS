@@ -125,19 +125,6 @@ def calcDrySpells(model, cid, droughtfun=np.mean, duration=14, recovduration=2):
     return np.cumsum(ndroughts)
 
 
-def calcPDSI(model, cid, prec, evap):
-    """Calculate the Palmer Drought Severity Index."""
-    # FIXME: Not functional at the moment
-    dt = [date(model.startyear, model.startmonth, model.startday) +
-          timedelta(t) for t in range(len(prec))]
-    prec = pandas.Series(prec, dt).resample('M', how='mean')
-    evap = pandas.Series(evap, dt).resample('M', how='mean')
-    # Z = d * K
-    pdsi = np.zeros(len(dt))
-    # pdsi[1:] = 0.897 * pdsi[:-1] + 1.0 / 3.0 * Z
-    return pdsi
-
-
 def calcSMDI(model, cid):
     """Calculate Soil Moisture Deficit Index (Narasimhan & Srinivasan, 2005)."""
     outvars = model.getOutputStruct(model.model_path + "/global.txt")

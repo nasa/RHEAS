@@ -41,7 +41,7 @@ for RPM-based distros (such as RedHat, Fedora, Centos)
 ::
 
  sudo aptitude update && sudo aptitude -y upgrade  
- sudo aptitude install git build-essential python-numpy python-scipy python-gdal python-argparse python-dateutil libgdal-dev libproj-dev libxslt-dev libreadline-dev cython python-pandas
+ sudo aptitude -y install git build-essential python-numpy python-scipy python-gdal python-argparse python-dateutil libgdal-dev libproj-dev libxslt-dev libreadline-dev cython python-pandas
  sudo dpkg --add-architecture i386
  sudo aptitude update
  sudo aptitude -y install wine winetricks
@@ -56,7 +56,7 @@ If you're on a MacOS, the easiest way to install the dependencies is by using th
 
    brew update
    brew install python readline gdal netcdf wine winetricks sfcgal
-   pip install numpy scipy gdal argparse py-dateutil
+   pip install numpy scipy gdal argparse py-dateutil lxml requests
 
 We then clone and uncompress the software archive
 
