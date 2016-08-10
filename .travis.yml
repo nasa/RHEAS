@@ -2,21 +2,16 @@ language: python
 python:
   - "2.7"
 addons:
-  postgresql: "9.1"
+  postgresql: "9.4"
 services:
   - postgresql
 virtualenv:
   system_site_packages: true
 # install prerequisites
 before_install:
-  - sudo add-apt-repository ppa:ubuntugis/ppa -y
-  - sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable -y
-  - sudo rm -f /etc/apt/sources.list.d/pgdg-source.list
   - sudo apt-get update -qq
-  - sudo apt-get remove postgresql-9.1-postgis-2.1 
-  - sudo apt-get install -y build-essential python-numpy python-scipy python-gdal python-argparse python-dateutil libgdal1-dev libproj-dev libxslt-dev libreadline-dev cython python-pandas python-h5py python-psycopg2 python-pip postgresql-9.1-postgis-2.1
+  - sudo apt-get install -y build-essential python-numpy python-scipy libgdal1h libhdf5-dev libnetcdf-dev cython python-pandas python-h5py python-pip python-psycopg2 python-gdal 
   - sudo pip install netCDF4
-  - sudo apt-get install -y wine winetricks
   - psql -U postgres -c "create extension postgis"
   - psql -U postgres -c "create extension postgis_topology"
   - python bootstrap.py
