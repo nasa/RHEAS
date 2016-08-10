@@ -601,7 +601,7 @@ class DSSAT:
         sql = "select p1,p2,p5,g2,g3,phint from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(
             self.name, ens + 1, gid)
         cur.execute(sql)
-        if bool(cur.rowcount):
+        if not bool(cur.rowcount):
             sql = "select p1,p2,p5,g2,g3,phint from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(
                 self.name, ens + 1, gid)
             cur.execute(sql)
