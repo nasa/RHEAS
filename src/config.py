@@ -72,7 +72,7 @@ def loadFromFile(config_filename):
                 options[section]['assimilate'] = conf.getboolean(
                     section, 'assimilate')
             except:
-                pass
+                options[section]['assimilate'] = conf.get(section, 'assimilate')
     _checkOptions(options)
     return options
 
