@@ -55,5 +55,7 @@ Multiple remote sensing datasets can be ingested into the database and are avail
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
 |Meteorology       |IRI      |2000-     |     Monthly     |    2.5 :sup:`o` |     Global     |\*.iri          |  FC  |
 +------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
+|Meteorology       |NMME     |2000-     |      Daily      |  0.5 :sup:`o`   |     Global     |\*.nmme         |  FC  |
++------------------+---------+----------+-----------------+-----------------+----------------+----------------+------+
 
 There are three modes for the datasets: ``IN`` corresponds to datasets being used as inputs to the model, ``AS`` refers to datasets being assimilated, and ``FC`` are datasets that are used to provide the meteorological (i.e. precipitation, temperature, and in some cases wind speed) forecasts.
