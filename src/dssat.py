@@ -63,20 +63,23 @@ def addCultivar(dbname, shapefile, params, nens=40, crop="maize"):
             "Shapefile {0} cannot be found. Not adding cultivars!".format(shapefile))
 
 
-def _run1(modelpath, exe, assimilate="Y"):
+def _run1(modelpath, exe, assimilate):
     """Runs DSSAT simulation for individual pixel."""
     os.chdir(modelpath)
     # devnull = open(os.devnull, 'wb')
     # subprocess.call("wine {0} SOIL_MOISTURE.ASC LAI.txt SM{1} LAI{1}".format(exe, assimilate), shell=True)#, stdout=subprocess.PIPE, stderr=devnull)
     # devnull.close()
-    if assimilate.lower() == "sm" or assimilate.lower() == "y":
-        sm_assim = "Y"
+    if bool(assimilate):
+        if str(assimilate).lower() is "sm":
+            sm_assim = "Y"
+            lai_assim = "N"
+        elif str(assimilate).lower() is "lai":
+            sm_assim = "N"
+            lai_assim = "Y"
+        else:
+            sm_assim = lai_assim = "Y"
     else:
-        sm_assim = "N"
-    if assimilate.lower() == "lai" or assimilate.lower() == "y":
-        lai_assim = "Y"
-    else:
-        lai_assim = "N"
+        sm_assim = lai_assim = "N"
     subprocess.call(["wine", exe, "SOIL_MOISTURE.ASC", "LAI.txt",
                      "SM{0}".format(sm_assim), "LAI{0}".format(lai_assim)])
 
@@ -84,7 +87,7 @@ def _run1(modelpath, exe, assimilate="Y"):
 class DSSAT:
 
     def __init__(self, dbname, name, resolution, startyear, startmonth, startday,
-                 endyear, endmonth, endday, nens, vicopts, shapefile=None, assimilate="Y"):
+                 endyear, endmonth, endday, nens, vicopts, shapefile=None, assimilate=True):
         self.path = tempfile.mkdtemp(dir=".")
         self.startyear = startyear
         self.startmonth = startmonth
