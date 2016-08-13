@@ -44,6 +44,10 @@ def download(dbname, dt, bbox=None):
         print("WARNING! Reseting start date to {0}".format(t0.strftime("%Y-%m-%d")))
         t1 = 0
     t2 = (dt[-1] - t0).days + 1
+    nt, _, _ = f.variables['SM'].shape
+    if t2 > nt:
+        t2 = nt
+        print("WARNING! Reseting end date to {0}".format((t0 + timedelta(t2)).strftime("%Y-%m-%d")))
     ti = range(t1, t2)
     sm = f.variables['SM'][ti, smi1:smi2, j1:j2]
     # FIXME: Use spatially variable observation error
