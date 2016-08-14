@@ -8,6 +8,7 @@
 """
 
 from osgeo import ogr
+import logging
 
 # Tile coordinate table (from http://modis-land.gsfc.nasa.gov/pdf/sn_bound_10deg.txt)
 # iv  ih    lon_min    lon_max   lat_min   lat_max
@@ -666,6 +667,8 @@ tiles = [
 def findTiles(bbox):
     """Returns the tile IDs that need to be downloaded for
     a given region bounded by *bbox*."""
+    log = logging.getLogger(__name__)
+
     def intersects(bbox, tile):
         if tile[2] != -999.0 and tile[3] != -999.0 and tile[4] != -99.0 and tile[5] != -99.0:
             tiler = ogr.Geometry(ogr.wkbLinearRing)
@@ -688,7 +691,7 @@ def findTiles(bbox):
         else:
             return False
     if bbox is None:
-        print("No bounding box provided for MODIS dataset. Skipping download!")
+        log.warning("No bounding box provided for MODIS dataset. Skipping download!")
         ids = None
     else:
         ids = [(t[0], t[1]) for t in tiles if intersects(bbox, t)]

@@ -15,6 +15,7 @@ import tempfile
 import subprocess
 import zipfile
 import dbio
+import logging
 
 
 table = {"ppt": "precip.prism", "tmax": "tmax.prism", "tmin": "tmin.prism"}
@@ -28,6 +29,7 @@ def dates(dbname):
 def _downloadVariable(varname, dbname, dts, bbox):
     """Downloads the PRISM data products for a specific variable and a set of
     dates *dt*. *varname* can be ppt, tmax or tmin."""
+    log = logging.getLogger(__name__)
     url = "prism.oregonstate.edu"
     ftp = FTP(url)
     ftp.login()
@@ -49,7 +51,9 @@ def _downloadVariable(varname, dbname, dts, bbox):
                 lfilename = fname
             tfilename = lfilename.replace(".bil", ".tif")
             if bbox is not None:
-                subprocess.call(["gdal_translate", "-projwin", "{0}".format(bbox[0]), "{0}".format(bbox[3]), "{0}".format(bbox[2]), "{0}".format(bbox[1]), "{0}/{1}".format(outpath, lfilename), "{0}/{1}".format(outpath, tfilename)])
+                proc = subprocess.Popen(["gdal_translate", "-projwin", "{0}".format(bbox[0]), "{0}".format(bbox[3]), "{0}".format(bbox[2]), "{0}".format(bbox[1]), "{0}/{1}".format(outpath, lfilename), "{0}/{1}".format(outpath, tfilename)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
                 dbio.ingest(dbname, "{0}/{1}".format(outpath, tfilename), dt, table[varname], False)
             else:
                 dbio.ingest(dbname, "{0}/{1}".format(outpath, lfilename), dt, table[varname], False)
