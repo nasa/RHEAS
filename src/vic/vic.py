@@ -26,12 +26,14 @@ import dbio
 import rpath
 import random
 from raster import TileReader
+import logging
 
 
 class VIC:
 
     def __init__(self, path, dbname, resolution, startyear, startmonth, startday,
                  endyear, endmonth, endday, name="", savestate="", nlayer=3):
+        log = logging.getLogger(__name__)
         self.model_path = path
         self.nodata = -9999.
         if bool(name):
@@ -53,7 +55,7 @@ class VIC:
         cur.execute(
             "select resolution from vic.input order by abs(resolution - {0})".format(resolution))
         if not bool(cur.rowcount):
-            print("No appropriate VIC input files found in the database. Exiting!")
+            log.error("No appropriate VIC input files found in the database. Exiting!")
             sys.exit()
         self.res = cur.fetchone()[0]
         cur.close()
@@ -149,6 +151,7 @@ class VIC:
 
     def stateFile(self):
         """Retrieve state file path from database."""
+        log = logging.getLogger(__name__)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select filename from {0}.state where fdate = date '{1}-{2}-{3}'".format(
@@ -158,8 +161,7 @@ class VIC:
         if bool(result):
             filename = result[0]
         else:
-            print(
-                "WARNING! No state file found for requested date, initializing from default.")
+            log.warning("No state file found for requested date, initializing from default.")
             filename = None
         cur.close()
         db.close()
@@ -340,8 +342,9 @@ class VIC:
 
     def getForcings(self, options):
         """Get meteorological forcings from database."""
+        log = logging.getLogger(__name__)
         if not ('precip' in options and 'temperature' in options and 'wind' in options):
-            print "ERROR! No data source provided for VIC forcings"
+            log.error("No data source provided for VIC forcings")
             sys.exit()
         datasets = ["precip." + options["precip"], "tmax." + options["temperature"],
                     "tmin." + options["temperature"], "wind." + options["wind"]]
@@ -374,6 +377,7 @@ class VIC:
 
     def writeForcings(self, prec, tmax, tmin, wind, lai=None):
         """Write VIC meteorological forcing data files."""
+        log = logging.getLogger(__name__)
         if not os.path.exists(self.model_path + '/forcings'):
             os.mkdir(self.model_path + '/forcings')
         ndays = (date(self.endyear, self.endmonth, self.endday) -
@@ -392,7 +396,7 @@ class VIC:
                     self.gid[gid][0], self.gid[gid][1], self.grid_decimal)
                 fout = open(
                     "{0}/forcings/{1}".format(self.model_path, filename), 'w')
-                print "writing " + filename
+                log.info("writing " + filename)
                 fout.write("{0:f} {1:.2f} {2:.2f} {3:.1f}\n".format(
                     prec[i][2], tmax[i][2], tmin[i][2], wind[i][2]))
             else:
@@ -401,10 +405,13 @@ class VIC:
 
     def run(self, vicexec):
         """Run VIC model."""
+        log = logging.getLogger(__name__)
         if not os.path.exists(self.model_path + '/output'):
             os.mkdir(self.model_path + '/output')
-        subprocess.call(
-            "{0} -g {1}/global.txt".format(vicexec, self.model_path), shell=True)
+        proc = subprocess.Popen([vicexec, "-g", "{0}/global.txt".format(self.model_path)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out, err = proc.communicate()
+        log.debug(out)
+        # subprocess.call("{0} -g {1}/global.txt".format(vicexec, self.model_path), shell=True)
 
     def getOutputStruct(self, globalfile):
         """Creates a dictionary with output variable-file pairs."""
@@ -436,6 +443,7 @@ class VIC:
 
     def readOutput(self, args):
         """Reads VIC output for selected variables."""
+        log = logging.getLogger(__name__)
         droughtvars = ["spi1", "spi3", "spi6", "spi12", "sri1", "sri3", "sri6", "sri12", "severity", "dryspells", "smdi"]
         layervars = ["soil_moist", "soil_temp", "smliqfrac", "smfrozfrac"]
         outvars = self.getOutputStruct(self.model_path + "/global.txt")
@@ -456,7 +464,7 @@ class VIC:
                             outdata[var] = np.zeros(
                                 (nt, 1, nrows, ncols)) + self.nodata
                     else:
-                        print "WARNING: Variable {0} not found in output files. Skipping import.".format(var)
+                        log.warning("Variable {0} not found in output files. Skipping import.".format(var))
                 prefix = set([outvars[v][0]
                               for v in outdata.keys() if v not in droughtvars])
                 for c in range(len(self.lat)):
@@ -482,7 +490,7 @@ class VIC:
                         else:
                             outdata[v][:, 0, i, j] = pdata[
                                 outvars[v][0]][:, outvars[v][1]]
-                    print "Read output for {0}|{1}".format(self.lat[c], self.lon[c])
+                    log.info("Read output for {0}|{1}".format(self.lat[c], self.lon[c]))
                 dts = [date(self.startyear + self.skipyear, self.startmonth, self.startday) + timedelta(t) for t in range(nt)]
                 year = [t.year for t in dts]
                 month = [t.month for t in dts]
@@ -490,7 +498,7 @@ class VIC:
                 outdata["date"] = np.array(
                     [datetime(int(year[t]), int(month[t]), int(day[t])) for t in range(len(year))])
         else:
-            print("WARNING! No pixels simulated, not saving any output!")
+            log.info("No pixels simulated, not saving any output!")
         return outdata
 
     def _writeRaster(self, data, filename):
@@ -509,10 +517,11 @@ class VIC:
 
     def writeToDB(self, data, dates, tablename, initialize, ensemble=False, skipsave=0):
         """Writes output data into database."""
+        log = logging.getLogger(__name__)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         if dbio.tableExists(self.dbname, self.name, tablename) and ensemble and not dbio.columnExists(self.dbname, self.name, tablename, "ensemble"):
-            print("WARNING! Table {0} exists but does not contain ensemble information. Overwriting entire table!")
+            log.warning("Table {0} exists but does not contain ensemble information. Overwriting entire table!")
             cur.execute("drop table {0}.{1}".format(self.name, tablename))
             db.commit()
         if dbio.tableExists(self.dbname, self.name, tablename):

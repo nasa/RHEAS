@@ -19,6 +19,7 @@ from datetime import date, timedelta
 import rpath
 import raster
 import dbio
+import logging
 
 
 def runVIC(dbname, options):
@@ -184,20 +185,21 @@ def runDSSAT(dbname, options):
 
 def execute(dbname, options):
     """Driver routine for a nowcast simulation."""
+    log = logging.getLogger(__name__)
     nowcast_options = options['nowcast']
     if 'model' in nowcast_options:
         if 'vic' in nowcast_options['model']:
             if 'vic' in options:
                 runVIC(dbname, options)
             else:
-                print "ERROR! No configuration options for VIC model."
+                log.error("No configuration options for VIC model.")
                 sys.exit()
         if 'dssat' in nowcast_options['model']:
             if 'dssat' in options:
                 runDSSAT(dbname, options)
             else:
-                print "ERROR! No configuration options for DSSAT model."
+                log.error("No configuration options for DSSAT model.")
                 sys.exit()
     else:
-        print "ERROR! No model selected for nowcast."
+        log.error("No model selected for nowcast.")
         sys.exit()

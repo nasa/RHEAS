@@ -15,6 +15,7 @@ from scipy.spatial.distance import cdist
 from functools import partial
 import re
 import dbio
+import logging
 
 
 def observationDates(obsnames, dbname, startyear, startmonth, startday, endyear, endmonth, endday, update):
@@ -63,6 +64,7 @@ def observationDates(obsnames, dbname, startyear, startmonth, startday, endyear,
 
 def assimilate(options, dt, models, method="letkf"):
     """Assimilate multiple observations into the VIC model."""
+    log = logging.getLogger(__name__)
     obsnames = options['vic']['observations'].split(",")
     X = OrderedDict()
     Xlat = OrderedDict()
@@ -85,7 +87,7 @@ def assimilate(options, dt, models, method="letkf"):
                 smod = __import__("scipy.stats", fromlist=[sname])
                 sdist = getattr(smod, sname)
             except:
-                print("WARNING! No distribution {0} available for dataset {1}, falling back to default.".format(sname, name))
+                log.warning("No distribution {0} available for dataset {1}, falling back to default.".format(sname, name))
             else:
                 rvs = partial(sdist.rvs, *params)
                 obs = obsobj(rvs)

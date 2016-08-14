@@ -12,15 +12,17 @@ import sys
 import os
 import re
 import StringIO
+import logging
 
 
 def _readFromFile(config_filename):
     """Reads a RHEAS configuration from a file."""
+    log = logging.getLogger(__name__)
     conf = ConfigParser.ConfigParser()
     try:
         conf.read(config_filename)
     except:
-        print "ERROR! File not found: {}".format(config_filename)
+        log.error("File not found: {}".format(config_filename))
         sys.exit()
     return conf
 
@@ -37,22 +39,22 @@ def _parseConfig(config):
 
 def _checkOptions(options):
     """Checks for minimum required options in the RHEAS configuration."""
+    log = logging.getLogger(__name__)
     if 'nowcast' in options:
         simtype = 'nowcast'
     elif 'forecast' in options:
         simtype = 'forecast'
     else:
-        print("No configuration found for either a nowcast or a forecast. Exiting...")
+        log.error("No configuration found for either a nowcast or a forecast. Exiting...")
         sys.exit()
     if not all((opt in options[simtype] for opt in ('model', 'startdate', 'enddate', 'name', 'basin', 'resolution'))):
-        print("Missing options for {0}. Need (model, startdate, enddate, name, basin, resolution) options. Exiting...".format(
+        log.error("Missing options for {0}. Need (model, startdate, enddate, name, basin, resolution) options. Exiting...".format(
             simtype))
         sys.exit()
     if 'resolution' in options[simtype]:
         res = options[simtype]['resolution']
         if res < 0:
-            print(
-                "Bad value for spatial resolution ({0}). Exiting...".format(res))
+            log.error("Bad value for spatial resolution ({0}). Exiting...".format(res))
             sys.exit()
 
 
@@ -101,6 +103,7 @@ def loadFromMem(contents):
 
 def getResolution(options):
     """Get spatial resolution from configuration options."""
+    log = logging.getLogger(__name__)
     try:
         res = float(options['resolution'])
     except:
@@ -109,7 +112,7 @@ def getResolution(options):
             units = {'k': 1.0, 'm': 1000.0}
             res = float(s.group(1)) / (110.0 * units[s.group(2)[0]])
         except:
-            print("No appropriate resolution has been set. Exiting!")
+            log.error("No appropriate resolution has been set. Exiting!")
             sys.exit()
     return res
 
@@ -129,12 +132,12 @@ def getVICExecutable(options):
 
 def getBasinFile(options):
     """Get basin file name from configuration options."""
+    log = logging.getLogger(__name__)
     basin = None
     if 'basin' in options and os.path.isfile(options['basin']):
         basin = options['basin']
     else:
-        print(
-            "Basin file {0} not provided or does not exist. Exiting!".format(basin))
+        log.error("Basin file {0} not provided or does not exist. Exiting!".format(basin))
         sys.exit()
     return basin
 

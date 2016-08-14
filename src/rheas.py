@@ -58,7 +58,7 @@ def update(dbname, configfile):
                 dt = mod.dates(dbname)
                 if t0 is None:
                     if dt is None:
-                        log.warning("WARNING! Date information for {0} not found in the database or data.conf. Please add a startdate in the data.conf file.".format(name))
+                        log.warning("Date information for {0} not found in the database or data.conf. Please add a startdate in the data.conf file.".format(name))
                     else:
                         dt = (dt[0], t1)
                 else:
@@ -71,9 +71,9 @@ def run():
     """Main RHEAS routine."""
     config_filename, dbname, db_update, verbose = parseArgs()
     if verbose:
-        logging.basicConfig(level=logging.DEBUG, format='%(message)s')
+        logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
     else:
-        logging.basicConfig(level=logging.INFO, format='%(message)s')
+        logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     log = logging.getLogger(__name__)
     if dbname is None:
         dbname = "rheas"

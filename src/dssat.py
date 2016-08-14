@@ -17,12 +17,12 @@ import decimal
 import shutil
 import numpy as np
 from datetime import date, timedelta
-import netCDF4 as netcdf
 import multiprocessing
 from collections import OrderedDict
 import rpath
 import random
 import dbio
+import logging
 
 
 def addCultivar(dbname, shapefile, params, nens=40, crop="maize"):
@@ -65,10 +65,8 @@ def addCultivar(dbname, shapefile, params, nens=40, crop="maize"):
 
 def _run1(modelpath, exe, assimilate):
     """Runs DSSAT simulation for individual pixel."""
+    log = logging.getLogger(__name__)
     os.chdir(modelpath)
-    # devnull = open(os.devnull, 'wb')
-    # subprocess.call("wine {0} SOIL_MOISTURE.ASC LAI.txt SM{1} LAI{1}".format(exe, assimilate), shell=True)#, stdout=subprocess.PIPE, stderr=devnull)
-    # devnull.close()
     if bool(assimilate):
         if str(assimilate).lower() is "sm":
             sm_assim = "Y"
@@ -80,14 +78,16 @@ def _run1(modelpath, exe, assimilate):
             sm_assim = lai_assim = "Y"
     else:
         sm_assim = lai_assim = "N"
-    subprocess.call(["wine", exe, "SOIL_MOISTURE.ASC", "LAI.txt",
-                     "SM{0}".format(sm_assim), "LAI{0}".format(lai_assim)])
+    proc = subprocess.Popen(["wine", exe, "SOIL_MOISTURE.ASC", "LAI.txt", "SM{0}".format(sm_assim), "LAI{0}".format(lai_assim)])
+    out, err = proc.communicate()
+    log.debug(out)
 
 
 class DSSAT:
 
     def __init__(self, dbname, name, resolution, startyear, startmonth, startday,
                  endyear, endmonth, endday, nens, vicopts, shapefile=None, assimilate=True):
+        log = logging.getLogger(__name__)
         self.path = tempfile.mkdtemp(dir=".")
         self.startyear = startyear
         self.startmonth = startmonth
@@ -124,7 +124,7 @@ class DSSAT:
         cur.execute(
             "select * from information_schema.tables where table_name='basin' and table_schema=%s", (name,))
         if not bool(cur.rowcount):
-            print "ERROR! No simulation named {0} exists in database. You might have to run VIC.".format(name)
+            log.error("No simulation named {0} exists in database. You might have to run VIC.".format(name))
             sys.exit()
         cur.execute(
             'select basefile from vic.input where resolution=%f;' % self.res)
@@ -321,49 +321,9 @@ class DSSAT:
         cur.close()
         db.close()
 
-    def _readVICOutputFromNetCDF(self, lat, lon, depths, ncfilename):
-        """Reads VIC output from a NetCDF file."""
-        try:
-            ncfile = netcdf.Dataset(ncfilename)
-        except:
-            print("Could not find NetCDF file {0}.".format(ncfilename))
-            sys.exit()
-        try:
-            ensemble = bool(ncfile.getncattr("ensemble"))
-        except:
-            ensemble = False
-        t = ncfile.variables['time']
-        dt = netcdf.num2date(t[:].astype('int'), units=t.units)
-        year = np.array([tt.year for tt in dt])
-        month = np.array([tt.month for tt in dt])
-        day = np.array([tt.day for tt in dt])
-        lats = ncfile.variables['lat'][:]
-        lons = ncfile.variables['lon'][:]
-        i = np.where(lats == lat)[0][0]
-        j = np.where(lons == lon)[0][0]
-        shortwave = ncfile.variables['shortwave'][:]
-        longwave = ncfile.variables['longwave'][:]
-        tmax = ncfile.variables['tmax'][:]
-        tmin = ncfile.variables['tmin'][:]
-        rainf = ncfile.variables['rainf'][:]
-        soilmoist = ncfile.variables['soil_moist'][:]
-        if ensemble:
-            nens = shortwave.shape[1]
-            weather = [np.vstack((shortwave[:, e, i, j] + longwave[:, e, i, j], tmax[
-                                 :, e, i, j], tmin[:, e, i, j], rainf[:, e, i, j])).T for e in range(nens)]
-            sm = [soilmoist[:, e, :, i, j] for e in range(nens)]
-            lai = dict(
-                zip(dt, np.mean(ncfile.variables['lai'][:, :, i, j], axis=1)))
-        else:
-            weather = np.vstack((shortwave[
-                                :, i, j] + longwave[:, i, j], tmax[:, i, j], tmin[:, i, j], rainf[:, i, j])).T.data
-            sm = soilmoist[:, :, i, j]
-            lai = dict(zip(dt, ncfile.variables['lai'][:, i, j]))
-        ncfile.close()
-        return year, month, day, weather, sm, lai
-
     def readVICOutput(self, gid, depths):
         """Reads DSSAT time-varying inputs by reading either from files or a database."""
+        log = logging.getLogger(__name__)
         if isinstance(self.datafrom, list):
             inputs = []
             while len(inputs) < self.nens:
@@ -374,8 +334,7 @@ class DSSAT:
             year, month, day, weather, sm, lai = self._readVICOutputFromDB(
                 gid, depths)
         else:
-            print(
-                "VIC output was not saved in the database. Cannot proceed with the DSSAT simulation.")
+            log.error("VIC output was not saved in the database. Cannot proceed with the DSSAT simulation.")
             sys.exit()
         return year, month, day, weather, sm, lai
 
@@ -421,6 +380,7 @@ class DSSAT:
 
     def writeControlFile(self, modelpath, vsm, depths, startdate, gid, lat, lon, planting, fertildates, irrigdates):
         """Writes DSSAT control file for specific pixel."""
+        log = logging.getLogger(__name__)
         if isinstance(vsm, list):
             vsm = (vsm * (int(self.nens / len(vsm)) + 1))[:self.nens]
         else:
@@ -429,7 +389,7 @@ class DSSAT:
             fin = open(self.basefile)
             blines = fin.readlines()
         except IOError:
-            print "ERROR opening {0}".format(self.basefile)
+            log.error("Error opening {0}".format(self.basefile))
             sys.exit()
         profiles = self._sampleSoilProfiles(gid)
         profiles = [p[0] for p in profiles]
@@ -501,7 +461,7 @@ class DSSAT:
                         assert planting >= date(self.startyear, self.startmonth, self.startday) and planting <= date(
                             self.endyear, self.endmonth, self.endday)
                     except:
-                        print("Planting date selected outside simulation period.")
+                        log.error("Planting date selected outside simulation period.")
                         sys.exit()
                     dts = "{0:04d}{1}".format(
                         planting.year, planting.strftime("%j"))
@@ -547,8 +507,7 @@ class DSSAT:
                             assert dt >= date(self.startyear, self.startmonth, self.startday) and dt <= date(
                                 self.endyear, self.endmonth, self.endday)
                         except:
-                            print(
-                                "Irrigation date selected outside simulation period.")
+                            log.error("Irrigation date selected outside simulation period.")
                             sys.exit()
                         dts = "{0:04d}{1}".format(dt.year, dt.strftime("%j"))
                         fout.write(
@@ -570,8 +529,7 @@ class DSSAT:
                             assert dt >= date(self.startyear, self.startmonth, self.startday) and dt <= date(
                                 self.endyear, self.endmonth, self.endday)
                         except:
-                            print(
-                                "Fertilization date selected outside simulation period.")
+                            log.error("Fertilization date selected outside simulation period.")
                             sys.exit()
                         dts = "{0:04d}{1}".format(dt.year, dt.strftime("%j"))
                         fout.write(blines[l + 1].replace(olddate, dts).replace(
@@ -703,6 +661,7 @@ class DSSAT:
 
     def _readShapefile(self):
         """Read areas from shapefile where DSSAT will be run."""
+        log = logging.getLogger(__name__)
         try:
             cmd = "{0}/shp2pgsql -s 4326 -d -I -g geom {1} {2}.agareas | {0}/psql -d {3}".format(rpath.bins, self.shapefile, self.name, self.dbname)
             subprocess.call(cmd, shell=True)
@@ -713,12 +672,13 @@ class DSSAT:
             geoms = cur.fetchall()
             return geoms
         except:
-            print("Shapefile {0} for DSSAT simulation does not exist. Exiting...".format(
+            log.error("Shapefile {0} for DSSAT simulation does not exist. Exiting...".format(
                 self.shapefile))
             sys.exit()
 
     def run(self, dssatexe, crop_threshold=0.1):
         """Runs DSSAT simulation."""
+        log = logging.getLogger(__name__)
         exe = dssatexe.split("/")[-1]
         startdt = date(self.startyear, self.startmonth, self.startday)
         self.readVICSoil()
@@ -759,7 +719,7 @@ class DSSAT:
                     dz, smi = self.writeControlFile(modelpath, sm, depths, simstartdt, gid, self.lat[
                                                     c], self.lon[c], pdt, None, None)
                     if simstartdt < vicstartdt:
-                        print("No input data for DSSAT corresponding to starting date {0}. Need to run VIC for these dates. Exiting...".format(
+                        log.error("No input data for DSSAT corresponding to starting date {0}. Need to run VIC for these dates. Exiting...".format(
                             simstartdt.strftime('%Y-%m-%d')))
                         sys.exit()
                     ti0 = [i for i in range(len(year)) if simstartdt == date(
@@ -776,7 +736,7 @@ class DSSAT:
                     self.writeLAI(modelpath, gid, viclai=vlai)
                     self.writeConfigFile(modelpath, smi.shape[1], simstartdt, date(
                         year[ti1], month[ti1], day[ti1]))
-                    print("Wrote DSSAT for planting date {0}".format(
+                    log.info("Wrote DSSAT for planting date {0}".format(
                         pdt.strftime("%Y-%m-%d")))
                     os.chdir(pwd)
         p = multiprocessing.Pool(multiprocessing.cpu_count())
@@ -788,5 +748,5 @@ class DSSAT:
         if simstartdt:
             self.save(modelpaths, simstartdt)
         else:
-            print("WARNING! No crop areas found!")
+            log.warning("No crop areas found!")
         shutil.rmtree(self.path)

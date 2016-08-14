@@ -16,10 +16,12 @@ import psycopg2 as pg
 import string
 import rpath
 import sys
+import logging
 
 
 def connect(dbname):
     """Connect to database *dbname*."""
+    log = logging.getLogger(__name__)
     try:
         db = pg.connect(database=dbname)
     except pg.OperationalError:
@@ -27,7 +29,7 @@ def connect(dbname):
         try:
             db = pg.connect(database=dbname, host="/tmp/")
         except:
-            print("Cannot connect to database {0}. Please restart it by running \n {1}/pg_ctl -D {2}/postgres restart".format(
+            log.error("Cannot connect to database {0}. Please restart it by running \n {1}/pg_ctl -D {2}/postgres restart".format(
                 dbname, rpath.bins, rpath.data))
             sys.exit()
     return db
@@ -105,12 +107,13 @@ def writeGeotif(lat, lon, res, data, filename=None):
 def deleteRasters(dbname, tablename, dt, squery=""):
     """If date already exists delete associated rasters before
     ingesting, and optionally constrain with subquery."""
+    log = logging.getLogger(__name__)
     db = connect(dbname)
     cur = db.cursor()
     sql = "select * from {0} where fdate='{1}'".format(tablename, dt.strftime("%Y-%m-%d"))
     cur.execute(sql)
     if bool(cur.rowcount):
-        print("WARNING! Overwriting raster in {0} table for {1}".format(tablename, dt.strftime("%Y-%m-%d")))
+        log.warning("WARNING! Overwriting raster in {0} table for {1}".format(tablename, dt.strftime("%Y-%m-%d")))
         cur.execute("delete from {0} where fdate='{1}' {2}".format(tablename, dt.strftime("%Y-%m-%d"), squery))
         db.commit()
     cur.close()
@@ -231,6 +234,7 @@ def createResampledTables(dbname, sname, tname, dt, tilesize, overwrite, squery=
 
 def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
     """Imports Geotif *filename* into database *db*."""
+    log = logging.getLogger(__name__)
     tilesize = (10, 10)
     db = connect(dbname)
     cur = db.cursor()
@@ -259,7 +263,7 @@ def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
     db.commit()
     # create materialized views for resampled rasters
     if resample:
-        print("Creating resampled table for {0}.{1}".format(schemaname, tablename))
+        log.info("Creating resampled table for {0}.{1}".format(schemaname, tablename))
         createResampledTables(dbname, schemaname, tablename, dt, tilesize, overwrite)
     # delete temporary table
     cur.execute("drop table {0}".format(temptable))
