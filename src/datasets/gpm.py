@@ -9,7 +9,7 @@
 
 
 from ftplib import FTP
-from datetime import timedelta
+from datetime import datetime, timedelta
 import tempfile
 import subprocess
 import datasets
@@ -38,7 +38,10 @@ def download(dbname, dts, bbox):
     outpath = tempfile.mkdtemp()
     for dt in [dts[0] + timedelta(t) for t in range((dts[-1] - dts[0]).days+1)]:
         try:
-            ftp.cwd("/data/imerg/gis/{0}/{1:02d}".format(dt.year, dt.month))
+            if dt.year < datetime.today().year:
+                ftp.cwd("/data/imerg/gis/{0}/{1:02d}".format(dt.year, dt.month))
+            else:
+                ftp.cwd("/data/imerg/gis/{0:02d}".format(dt.month))
             filenames = [f for f in ftp.nlst() if re.match(r"3B.*{0}.*S000000.*1day\.tif.*".format(dt.strftime("%Y%m%d")), f) is not None]
             if len(filenames) > 0:
                 fname = filenames[0]
