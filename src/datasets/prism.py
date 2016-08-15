@@ -54,9 +54,9 @@ def _downloadVariable(varname, dbname, dts, bbox):
                 proc = subprocess.Popen(["gdal_translate", "-projwin", "{0}".format(bbox[0]), "{0}".format(bbox[3]), "{0}".format(bbox[2]), "{0}".format(bbox[1]), "{0}/{1}".format(outpath, lfilename), "{0}/{1}".format(outpath, tfilename)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 out, err = proc.communicate()
                 log.debug(out)
-                dbio.ingest(dbname, "{0}/{1}".format(outpath, tfilename), dt, table[varname], False)
+                dbio.ingest(dbname, "{0}/{1}".format(outpath, tfilename), dt, table[varname], True)
             else:
-                dbio.ingest(dbname, "{0}/{1}".format(outpath, lfilename), dt, table[varname], False)
+                dbio.ingest(dbname, "{0}/{1}".format(outpath, lfilename), dt, table[varname], True)
         ftp.cwd("..")
 
 
