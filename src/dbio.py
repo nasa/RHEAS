@@ -268,6 +268,6 @@ def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
     # delete temporary table
     cur.execute("drop table {0}".format(temptable))
     db.commit()
-    log.info("Imported {0} in {1}".format(dt.strftime("%y-%m-%d"), stname))
+    log.info("Imported {0} in {1}".format(dt.strftime("%Y-%m-%d"), stname))
     cur.close()
     db.close()
