@@ -186,6 +186,7 @@ def createResampledCatalog(dbname):
     $func$ language plpgsql;"""
     cur.execute(sql)
     cur.execute("create or replace view raster_resampled as (select r_table_schema as sname,r_table_name as tname,resampled(r_table_schema,r_table_name) as resolution from raster_columns)")
+    db.commit()
     cur.close()
     db.close()
 
