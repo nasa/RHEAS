@@ -113,7 +113,7 @@ def deleteRasters(dbname, tablename, dt, squery=""):
     sql = "select * from {0} where fdate='{1}'".format(tablename, dt.strftime("%Y-%m-%d"))
     cur.execute(sql)
     if bool(cur.rowcount):
-        log.warning("WARNING! Overwriting raster in {0} table for {1}".format(tablename, dt.strftime("%Y-%m-%d")))
+        log.warning("Overwriting raster in {0} table for {1}".format(tablename, dt.strftime("%Y-%m-%d")))
         cur.execute("delete from {0} where fdate='{1}' {2}".format(tablename, dt.strftime("%Y-%m-%d"), squery))
         db.commit()
     cur.close()

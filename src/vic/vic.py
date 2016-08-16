@@ -551,11 +551,10 @@ class VIC:
                     self.model_path, tablename, dt.year, dt.month, dt.day, lyr + 1)
                 self._writeRaster(data[t, lyr, :, :], filename)
                 tiffiles.append(filename)
-        ps1 = subprocess.Popen(["{0}/raster2pgsql".format(rpath.bins), "-s", "4326", "-F", "-d", "-t", "auto"] + tiffiles + ["temp"], stdout=subprocess.PIPE)
-        ps2 = subprocess.Popen(["{0}/psql".format(rpath.bins), "-d", self.dbname], stdin=ps1.stdout, stdout=subprocess.PIPE)
-        ps1.stdout.close()
-        ps2.communicate()[0]
-        ps1.wait()
+        cmd = " ".join(["{0}/raster2pgsql".format(rpath.bins), "-s", "4326", "-F", "-d", "-t", "auto"] + tiffiles + ["temp", "|", "{0}/psql".format(rpath.bins), "-d", self.dbname])
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        sout, err = proc.communicate()
+        log.debug(sout)
         cur.execute("alter table temp add column fdate date")
         cur.execute("update temp set fdate = date (concat_ws('-',substring(filename from {0} for 4),substring(filename from {1} for 2),substring(filename from {2} for 2)))".format(
             len(tablename) + 2, len(tablename) + 6, len(tablename) + 8))
