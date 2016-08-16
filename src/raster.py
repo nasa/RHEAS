@@ -8,6 +8,7 @@
 """
 
 import dbio
+import logging
 
 
 class TileReader:
@@ -45,6 +46,7 @@ def _columnExists(cursor, name, colname):
 
 def stddev(dbname, name):
     """Calculate ensemble standard deviation from raster."""
+    log = logging.getLogger(__name__)
     schemaname, tablename = name.split(".")
     db = dbio.connect(dbname)
     cur = db.cursor()
@@ -62,7 +64,7 @@ def stddev(dbname, name):
             schemaname, tablename, ssql)
         cur.execute(sql)
     else:
-        print("WARNING! Cannot calculate uncertainty maps, no ensemble exists.")
+        log.warning("Cannot calculate uncertainty maps, no ensemble exists.")
     db.commit()
     cur.close()
     db.close()
@@ -70,6 +72,7 @@ def stddev(dbname, name):
 
 def mean(dbname, name):
     """Calculate ensemble average from raster."""
+    log = logging.getLogger(__name__)
     schemaname, tablename = name.split(".")
     db = dbio.connect(dbname)
     cur = db.cursor()
@@ -86,7 +89,7 @@ def mean(dbname, name):
         sql = "create table {0}_mean as ({1})".format(tablename, ssql)
         cur.execute(sql)
     else:
-        print("WARNING! Cannot calculate ensemble average maps, no ensemble exists.")
+        log.warning("Cannot calculate ensemble average maps, no ensemble exists.")
     db.commit()
     cur.close()
     db.close()

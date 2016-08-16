@@ -20,6 +20,7 @@ import os
 from dateutil.relativedelta import relativedelta
 import rpath
 import dbio
+import logging
 
 
 class Ensemble:
@@ -134,6 +135,7 @@ class Ensemble:
 
     def writeForcings(self, method, options):
         """Write forcings for the ensemble based on method (ESP, BCSD)."""
+        log = logging.getLogger(__name__)
         if method.lower() == "esp":
             self._ESP(options)
         elif method.lower() == "bcsd":
@@ -143,8 +145,7 @@ class Ensemble:
         elif method.lower() == "nmme":
             self.__fromDataset("nmme", options)
         else:
-            print(
-                "ERROR! No appropriate method for generating meteorological forecast ensemble, exiting!")
+            log.error("No appropriate method for generating meteorological forecast ensemble, exiting!")
             sys.exit()
 
     def __fromDataset(self, dataset, options):
@@ -383,6 +384,7 @@ class Ensemble:
         1) deterministic (default): each ensemble member has an identical state
         2) random: each ensemble member gets a random day from climatology
         3) perturb: perturb precipitation and temperature"""
+        log = logging.getLogger(__name__)
         forcings = {'temperature': options['vic'][
             'temperature'], 'wind': options['vic']['wind']}
         if 'lai' in options['vic']:
@@ -405,8 +407,7 @@ class Ensemble:
                 statefiles = map(lambda q: q[0], cur.fetchall())
                 statefiles = list(np.random.choice(statefiles, self.nens))
             else:
-                print(
-                    "WARNING! No statefiles found in the database. Not initializing ensemble!")
+                log.warning("No statefiles found in the database. Not initializing ensemble!")
                 statefiles = []
             cur.close()
             db.close()
@@ -417,7 +418,7 @@ class Ensemble:
             statefiles = self._initializePerturb(
                 basin, forcings, vicexe, initdays=initdays, saveindb=saveindb, saveto=saveto, saveargs=saveargs, skipsave=skipsave, overwrite=overwrite)
         else:
-            print("No appropriate method to initialize the ensemble found!")
+            log.error("No appropriate method to initialize the ensemble found!")
             sys.exit()
         self.setStateFiles(statefiles)
 

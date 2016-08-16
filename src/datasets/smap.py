@@ -15,6 +15,7 @@ import numpy as np
 import dbio
 import datasets
 from datetime import timedelta
+import logging
 
 
 table = "soilmoist.smap"
@@ -29,6 +30,7 @@ def download(dbname, dts, bbox=None):
     """Downloads SMAP soil mositure data for a set of dates *dt*
     and imports them into the PostGIS database *dbname*. Optionally
     uses a bounding box to limit the region with [minlon, minlat, maxlon, maxlat]."""
+    log = logging.getLogger(__name__)
     res = 0.36
     url = "n5eil01u.ecs.nsidc.org"
     ftp = FTP(url)
@@ -59,7 +61,7 @@ def download(dbname, dts, bbox=None):
             filename = dbio.writeGeotif(lat, lon, res, sm)
             dbio.ingest(dbname, filename, dt, table, False)
         else:
-            print("No SMAP data available for {0}.".format(dt.strftime("%Y-%m-%d")))
+            log.warning("No SMAP data available for {0}.".format(dt.strftime("%Y-%m-%d")))
 
 
 class Smap(Soilmoist):

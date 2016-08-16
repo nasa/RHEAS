@@ -12,13 +12,13 @@ import tempfile
 import dbio
 from lxml import html
 import re
-import urllib
 import subprocess
 import glob
 import shutil
 import datasets
 from datetime import timedelta
 import requests
+import logging
 
 
 table = "lai.modis"
@@ -34,6 +34,7 @@ def dates(dbname):
 def download(dbname, dts, bbox):
     """Downloads the combined MODIS LAI data product MCD15 for
     a specific date *dt* and imports them into the PostGIS database *dbname*."""
+    log = logging.getLogger(__name__)
     res = 0.01
     burl = "http://e4ftl01.cr.usgs.gov/MOTA/MCD15A2.005"
     tiles = modis.findTiles(bbox)
@@ -51,24 +52,30 @@ def download(dbname, dts, bbox):
                     for filename in filenames:
                         if len(filename) > 0:
                             filename = filename[0]
-                            subprocess.call(["wget", "-L", "--load-cookies", ".cookiefile", "--save-cookies", ".cookiefile", "--user", username, "--password", password, "{0}/{1}".format(url, filename), "-O", "{0}/{1}".format(outpath, filename)])
-                            subprocess.call(["gdal_translate", "HDF4_EOS:EOS_GRID:{0}/{1}:MOD_Grid_MOD15A2:Lai_1km".format(
-                                outpath, filename), "{0}/{1}".format(outpath, filename).replace("hdf", "tif")])
+                            proc = subprocess.Popen(["wget", "-L", "--load-cookies", ".cookiefile", "--save-cookies", ".cookiefile", "--user", username, "--password", password, "{0}/{1}".format(url, filename), "-O", "{0}/{1}".format(outpath, filename)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                            out, err = proc.communicate()
+                            log.debug(out)
+                            proc = subprocess.Popen(["gdal_translate", "HDF4_EOS:EOS_GRID:{0}/{1}:MOD_Grid_MOD15A2:Lai_1km".format(
+                                outpath, filename), "{0}/{1}".format(outpath, filename).replace("hdf", "tif")], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                            out, err = proc.communicate()
+                            log.debug(out)
                     tifs = glob.glob("{0}/*.tif".format(outpath))
                     if len(tifs) > 0:
-                        subprocess.call(
-                            ["gdal_merge.py", "-o", "{0}/lai.tif".format(outpath)] + tifs)
-                        cmd = " ".join(["gdal_calc.py", "-A", "{0}/lai.tif".format(outpath), "--outfile={0}/lai1.tif".format(
-                            outpath), "--NoDataValue=-9999", "--calc=\"(A<101.0)*(0.1*A+9999.0)-9999.0\""])
-                        subprocess.call(cmd, shell=True)
-                        cmd = " ".join(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(
-                            res), str(-res), "{0}/lai1.tif".format(outpath), "{0}/lai2.tif".format(outpath)])
-                        subprocess.call(cmd, shell=True)
-                        subprocess.call(["gdal_translate", "-a_srs", "epsg:4326",
-                                        "{0}/lai2.tif".format(outpath), "{0}/lai3.tif".format(outpath)])
+                        proc = subprocess.Popen(["gdal_merge.py", "-o", "{0}/lai.tif".format(outpath)] + tifs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                        out, err = proc.communicate()
+                        log.debug(out)
+                        proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/lai.tif".format(outpath), "--outfile={0}/lai1.tif".format(outpath), "--NoDataValue=-9999", "--calc=\"(A<101.0)*(0.1*A+9999.0)-9999.0\""], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                        out, err = proc.communicate()
+                        log.debug(out)
+                        proc = subprocess.Popen(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(res), str(-res), "{0}/lai1.tif".format(outpath), "{0}/lai2.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                        out, err = proc.communicate()
+                        log.debug(out)
+                        proc = subprocess.Popen(["gdal_translate", "-a_srs", "epsg:4326", "{0}/lai2.tif".format(outpath), "{0}/lai3.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                        out, err = proc.communicate()
+                        log.debug(out)
                         dbio.ingest(
                             dbname, "{0}/lai3.tif".format(outpath), dt, table, False)
                     shutil.rmtree(outpath)
             else:
-                print("MCD15 data not available for {0}. Skipping download!".format(
+                log.warning("MCD15 data not available for {0}. Skipping download!".format(
                     dt.strftime("%Y-%m-%d")))

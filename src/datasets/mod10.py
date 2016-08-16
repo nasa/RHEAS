@@ -16,6 +16,7 @@ import subprocess
 import glob
 import shutil
 import modis
+import logging
 
 
 table = "snow.mod10"
@@ -29,6 +30,7 @@ def dates(dbname):
 def download(dbname, dts, bbox):
     """Downloads the Terra MODIS snow cover fraction data product MOD10 for
     a specific date *dt* and imports them into the PostGIS database *dbname*."""
+    log = logging.getLogger(__name__)
     res = 0.005
     url = "n5eil01u.ecs.nsidc.org"
     tiles = modis.findTiles(bbox)
@@ -45,24 +47,30 @@ def download(dbname, dts, bbox):
                 for fname in files:
                         with open("{0}/{1}".format(outpath, fname), 'wb') as f:
                             ftp.retrbinary("RETR {0}".format(fname), f.write)
-                        subprocess.call(["gdal_translate", "HDF4_EOS:EOS_GRID:{0}/{1}:MOD_Grid_Snow_500m:Fractional_Snow_Cover".format(
-                            outpath, fname), "{0}/{1}".format(outpath, fname).replace("hdf", "tif")])
+                        proc = subprocess.Popen(["gdal_translate", "HDF4_EOS:EOS_GRID:{0}/{1}:MOD_Grid_Snow_500m:Fractional_Snow_Cover".format(outpath, fname), "{0}/{1}".format(outpath, fname).replace("hdf", "tif")], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                        out, err = proc.communicate()
+                        log.debug(out)
                 tifs = glob.glob("{0}/*.tif".format(outpath))
-                subprocess.call(
-                    ["gdal_merge.py", "-a_nodata", "-9999", "-o", "{0}/snow.tif".format(outpath)] + tifs)
-                cmd = " ".join(["gdal_calc.py", "-A", "{0}/snow.tif".format(outpath), "--outfile={0}/snow1.tif".format(
-                    outpath), "--NoDataValue=-9999", "--calc=\"(A<101.0)*(A+9999.0)-9999.0\""])
-                subprocess.call(cmd, shell=True)
-                cmd = " ".join(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(
-                    res), str(-res), "{0}/snow1.tif".format(outpath), "{0}/snow2.tif".format(outpath)])
-                subprocess.call(cmd, shell=True)
-                subprocess.call(["gdal_translate", "-a_srs", "epsg:4326",
-                                 "{0}/snow2.tif".format(outpath), "{0}/snow3.tif".format(outpath)])
+                proc = subprocess.Popen(
+                    ["gdal_merge.py", "-a_nodata", "-9999", "-o", "{0}/snow.tif".format(outpath)] + tifs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
+                proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/snow.tif".format(outpath), "--outfile={0}/snow1.tif".format(
+                    outpath), "--NoDataValue=-9999", "--calc=\"(A<101.0)*(A+9999.0)-9999.0\""], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
+                proc = subprocess.Popen(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(
+                    res), str(-res), "{0}/snow1.tif".format(outpath), "{0}/snow2.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
+                proc = subprocess.Popen(["gdal_translate", "-a_srs", "epsg:4326", "{0}/snow2.tif".format(outpath), "{0}/snow3.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
                 dbio.ingest(
                     dbname, "{0}/snow3.tif".format(outpath), dt, table, False)
                 shutil.rmtree(outpath)
             except:
-                print("MOD10 data not available for {0}. Skipping download!".format(
+                log.warning("MOD10 data not available for {0}. Skipping download!".format(
                     dt.strftime("%Y-%m-%d")))
 
 

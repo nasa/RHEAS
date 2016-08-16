@@ -15,6 +15,7 @@ import subprocess
 import datasets
 import dbio
 import re
+import logging
 
 
 table = "precip.gpm"
@@ -28,6 +29,7 @@ def dates(dbname):
 def download(dbname, dts, bbox):
     """Downloads the PRISM data products for a set of
     dates *dt* and imports them into the PostGIS database *dbname*."""
+    log = logging.getLogger(__name__)
     url = "jsimpson.pps.eosdis.nasa.gov"
     ftp = FTP(url)
     # FIXME: Change to RHEAS-specific password
@@ -50,14 +52,21 @@ def download(dbname, dts, bbox):
                 tfname = fname.replace("tif", "tfw")
                 fname = datasets.uncompress(fname, outpath)
                 datasets.uncompress(tfname, outpath)
-                subprocess.call(["gdalwarp", "-t_srs", "epsg:4326", "{0}/{1}".format(outpath, fname), "{0}/prec.tif".format(outpath)])
+                proc = subprocess.Popen(["gdalwarp", "-t_srs", "epsg:4326", "{0}/{1}".format(outpath, fname), "{0}/prec.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
                 if bbox is not None:
-                    subprocess.call(["gdal_translate", "-a_srs", "epsg:4326", "-projwin", "{0}".format(bbox[0]), "{0}".format(bbox[3]), "{0}".format(bbox[2]), "{0}".format(bbox[1]), "{0}/prec.tif".format(outpath), "{0}/prec1.tif".format(outpath)])
+                    proc = subprocess.Popen(["gdal_translate", "-a_srs", "epsg:4326", "-projwin", "{0}".format(bbox[0]), "{0}".format(bbox[3]), "{0}".format(bbox[2]), "{0}".format(bbox[1]), "{0}/prec.tif".format(outpath), "{0}/prec1.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                    out, err = proc.communicate()
+                    log.debug(out)
                 else:
-                    subprocess.call(["gdal_translate", "-a_srs", "epsg:4326", "{0}/prec.tif".format(outpath), "{0}/prec1.tif".format(outpath)])
+                    proc = subprocess.Popen(["gdal_translate", "-a_srs", "epsg:4326", "{0}/prec.tif".format(outpath), "{0}/prec1.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                    out, err = proc.communicate()
+                    log.debug(out)
                 # multiply by 0.1 to get mm/hr and 24 to get mm/day
-                cmd = " ".join(["gdal_calc.py", "-A", "{0}/prec1.tif".format(outpath), "--outfile={0}/prec2.tif".format(outpath), "--calc=\"0.1*A\""])
-                subprocess.call(cmd, shell=True)
+                proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/prec1.tif".format(outpath), "--outfile={0}/prec2.tif".format(outpath), "--calc=\"0.1*A\""], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
                 dbio.ingest(dbname, "{0}/prec2.tif".format(outpath), dt, table, False)
         except:
-            print("WARNING! No data were available to import into {0} for {1}.".format(table, dt.strftime("%Y-%m-%d")))
+            log.warning("No data were available to import into {0} for {1}.".format(table, dt.strftime("%Y-%m-%d")))

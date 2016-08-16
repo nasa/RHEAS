@@ -17,6 +17,7 @@ import string
 import numpy as np
 from datetime import date
 from dateutil.relativedelta import relativedelta
+import logging
 
 
 def dates(dbname):
@@ -165,6 +166,7 @@ def _getForcings(e, dbname, ptable, rtables, name, dt0, dt1):
 
 def generate(options, models):
     """Generate meteorological forecast forcings by resampling fine-scale climatology."""
+    log = logging.getLogger(__name__)
     options['vic']['tmax'] = options['vic']['temperature']
     options['vic']['tmin'] = options['vic']['temperature']
     leadtime = 3
@@ -227,8 +229,7 @@ def generate(options, models):
             models[e].writeForcings(data['precip'], data['tmax'], data[
                                     'tmin'], data['wind'])
     else:
-        print(
-            "WARNING! IRI forecast was not issued for requested date {0}.".format(dt0))
+        log.warning("IRI forecast was not issued for requested date {0}.".format(dt0))
     # Clean-up temporary tables
     cur.execute("drop table precip.{0}_iri_xy".format(ptable))
     cur.execute("drop table iri_psum")
