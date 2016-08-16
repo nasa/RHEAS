@@ -242,8 +242,10 @@ def ingest(dbname, filename, dt, stname, resample=True, overwrite=True):
     # import temporary table
     temptable = ''.join(random.SystemRandom().choice(
         string.ascii_letters) for _ in range(8))
-    subprocess.call("{3}/raster2pgsql -d -s 4326 {0} {2} | {3}/psql -d {1}".format(
-        filename, dbname, temptable, rpath.bins), shell=True)
+    cmd = "{3}/raster2pgsql -d -s 4326 {0} {2} | {3}/psql -d {1}".format(filename, dbname, temptable, rpath.bins)
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    out, err = proc.communicate()
+    log.debug(out)
     cur.execute("alter table {0} add column fdate date".format(temptable))
     cur.execute(
         "update {3} set fdate = date '{0}-{1}-{2}'".format(dt.year, dt.month, dt.day, temptable))
