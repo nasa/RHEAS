@@ -67,6 +67,6 @@ def download(dbname, dts, bbox):
                 proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/prec1.tif".format(outpath), "--outfile={0}/prec2.tif".format(outpath), "--calc=\"0.1*A\""], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 out, err = proc.communicate()
                 log.debug(out)
-                dbio.ingest(dbname, "{0}/prec2.tif".format(outpath), dt, table, False)
+                dbio.ingest(dbname, "{0}/prec2.tif".format(outpath), dt, table, True)
         except:
             log.warning("No data were available to import into {0} for {1}.".format(table, dt.strftime("%Y-%m-%d")))
