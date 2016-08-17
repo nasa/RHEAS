@@ -9,6 +9,7 @@
 
 import numpy as np
 import dbio
+import logging
 
 
 class Soilmoist(object):
@@ -84,12 +85,13 @@ class Soilmoist(object):
 
     def E(self, nens):
         """Generate observation error vector."""
+        log = logging.getLogger(__name__)
         e = None
         if self.uncert is not None:
             try:
                 e = self.uncert(size=(self.nobs, nens))
             except:
-                print("WARNING! Error using provided parameters in observation error PDF. Reverting to default.")
+                log.warning("Error using provided parameters in observation error PDF. Reverting to default.")
         if e is None:
             e = np.random.normal(0.0, self.stddev, (self.nobs, nens))
         return e

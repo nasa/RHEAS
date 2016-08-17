@@ -17,6 +17,7 @@ import numpy as np
 import gzip
 import zipfile
 from decorators import geotiff, path
+import logging
 
 
 def uncompress(filename, outpath):
@@ -40,11 +41,12 @@ def uncompress(filename, outpath):
 def readDatasetList(filename):
     """Read list of datasets to be fetched and imported into
     the RHEAS database."""
+    log = logging.getLogger(__name__)
     conf = ConfigParser.ConfigParser()
     try:
         conf.read(filename)
     except:
-        print "ERROR! File not found: {}".format(filename)
+        log.error("File not found: {}".format(filename))
         sys.exit()
     return conf
 
@@ -86,6 +88,7 @@ def spatialSubset(lat, lon, res, bbox):
 
 def download(dbname, dts, bbox, conf, name):
     """Download a generic dataset based on user-provided information."""
+    log = logging.getLogger(__name__)
     try:
         url = conf.get(name, 'path')
         res = conf.getfloat(name, 'res')
@@ -102,12 +105,13 @@ def download(dbname, dts, bbox, conf, name):
             data, lat, lon, t = fetch(dbname, dt, bbox)
             ingest(dbname, table, data, lat, lon, res, t)
     else:
-        print("WARNING! Missing options for local dataset {0}. Nothing ingested!".format(name))
+        log.warning("Missing options for local dataset {0}. Nothing ingested!".format(name))
 
 
 def ingest(dbname, table, data, lat, lon, res, t, resample=True, overwrite=True):
     """Import data into RHEAS database."""
     sname, tname = table.split(".")
+    log = logging.getLogger(__name__)
     if data is not None:
         if len(data.shape) > 2:
             data = data[0, :, :]
@@ -117,7 +121,7 @@ def ingest(dbname, table, data, lat, lon, res, t, resample=True, overwrite=True)
             os.mkdir("{0}/{1}/{2}".format(rpath.data, sname, tname))
         dbio.writeGeotif(lat, lon, res, data, filename)
         dbio.ingest(dbname, filename, t, table, resample, overwrite)
-        print("Imported {0} in {1}".format(t.strftime("%Y-%m-%d"), table))
-        # os.remove(filename)
+        log.info("Imported {0} in {1}".format(t.strftime("%Y-%m-%d"), table))
+        os.remove(filename)
     else:
-        print("WARNING! No data were available to import into {0} for {1}.".format(table, t.strftime("%Y-%m-%d")))
+        log.warning("No data were available to import into {0} for {1}.".format(table, t.strftime("%Y-%m-%d")))

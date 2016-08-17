@@ -14,6 +14,7 @@ import netCDF4 as netcdf
 from datetime import datetime, timedelta
 import datasets
 import rpath
+import logging
 
 
 table = "soilmoist.smos"
@@ -28,6 +29,7 @@ def download(dbname, dt, bbox=None):
     """Downloads SMOS soil mositure data for a set of dates *dt*
     and imports them into the PostGIS database *dbname*. Optionally
     uses a bounding box to limit the region with [minlon, minlat, maxlon, maxlat]."""
+    log = logging.getLogger(__name__)
     res = 0.25
     url = "http://rheas:rheasjpl@cp34-bec.cmima.csic.es/thredds/dodsC/NRTSM001D025A_ALL"
     f = netcdf.Dataset(url)
@@ -41,13 +43,13 @@ def download(dbname, dt, bbox=None):
     t0 = datetime(2010, 1, 12)  # initial date of SMOS data
     t1 = (dt[0] - t0).days
     if t1 < 0:
-        print("WARNING! Reseting start date to {0}".format(t0.strftime("%Y-%m-%d")))
+        log.warning("Reseting start date to {0}".format(t0.strftime("%Y-%m-%d")))
         t1 = 0
     t2 = (dt[-1] - t0).days + 1
     nt, _, _ = f.variables['SM'].shape
     if t2 > nt:
         t2 = nt
-        print("WARNING! Reseting end date to {0}".format((t0 + timedelta(t2)).strftime("%Y-%m-%d")))
+        log.warning("Reseting end date to {0}".format((t0 + timedelta(t2)).strftime("%Y-%m-%d")))
     ti = range(t1, t2)
     sm = f.variables['SM'][ti, smi1:smi2, j1:j2]
     # FIXME: Use spatially variable observation error
@@ -60,8 +62,8 @@ def download(dbname, dt, bbox=None):
         filename = "{0}/soilmoist/smos/smos_{1}.tif".format(rpath.data, t.strftime("%Y%m%d"))
         dbio.writeGeotif(lat, lon, res, sm[tj, :, :], filename)
         dbio.ingest(dbname, filename, t, table, False)
-        print("Imported SMOS {0}".format(tj))
-        # os.remove(filename)
+        log.info("Imported SMOS {0}".format(tj))
+        os.remove(filename)
 
 
 class Smos(Soilmoist):

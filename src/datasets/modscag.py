@@ -22,6 +22,7 @@ import shutil
 import numpy as np
 import os
 import rpath
+import logging
 
 
 table = "snow.modscag"
@@ -37,6 +38,7 @@ def dates(dbname):
 def download(dbname, dts, bbox):
     """Downloads the MODSCAG snow cover fraction data product for a specific
     date *dt* and imports it into the PostGIS database *dbname*."""
+    log = logging.getLogger(__name__)
     res = 0.01
     tiles = modis.findTiles(bbox)
     for dt in [dts[0] + timedelta(dti) for dti in range((dts[-1] - dts[0]).days + 1)]:
@@ -55,13 +57,17 @@ def download(dbname, dts, bbox):
                         fout.write(r.content)
             tifs = glob.glob("{0}/*.tif".format(temppath))
             if len(tifs) > 0:
-                subprocess.call(["gdal_merge.py", "-o", "{0}/snow.tif".format(temppath)] + tifs)
-                cmd = " ".join(["gdal_calc.py", "-A", "{0}/snow.tif".format(temppath), "--outfile={0}/snow1.tif".format(
-                    temppath), "--NoDataValue=-9999", "--calc=\"(A<101.0)*(A+9999.0)-9999.0\""])
-                subprocess.call(cmd, shell=True)
-                cmd = " ".join(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(
-                    res), str(-res), "{0}/snow1.tif".format(temppath), "{0}/snow2.tif".format(temppath)])
-                subprocess.call(cmd, shell=True)
+                proc = subprocess.Popen(["gdal_merge.py", "-o", "{0}/snow.tif".format(temppath)] + tifs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
+                proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/snow.tif".format(temppath), "--outfile={0}/snow1.tif".format(
+                    temppath), "--NoDataValue=-9999", "--calc=\"(A<101.0)*(A+9999.0)-9999.0\""], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
+                proc = subprocess.Popen(["gdalwarp", "-t_srs", "'+proj=latlong +ellps=sphere'", "-tr", str(
+                    res), str(-res), "{0}/snow1.tif".format(temppath), "{0}/snow2.tif".format(temppath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
                 if bbox is None:
                     pstr = []
                 else:
@@ -69,11 +75,13 @@ def download(dbname, dts, bbox):
                 if not os.path.isdir("{0}/snow/modscag".format(rpath.data)):
                     os.mkdir("{0}/snow/modscag".format(rpath.data))
                 filename = "{0}/snow/modscag/modscag_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
-                subprocess.call(["gdal_translate", "-a_srs", "epsg:4326"] + pstr + ["{0}/snow2.tif".format(temppath), filename])
+                proc = subprocess.Popen(["gdal_translate", "-a_srs", "epsg:4326"] + pstr + ["{0}/snow2.tif".format(temppath), filename], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out, err = proc.communicate()
+                log.debug(out)
                 dbio.ingest(dbname, filename, dt, table, False)
                 shutil.rmtree(temppath)
             else:
-                print("MODSCAG data not available for {0}. Skipping download!".format(
+                log.warning("MODSCAG data not available for {0}. Skipping download!".format(
                     dt.strftime("%Y-%m-%d")))
 
 

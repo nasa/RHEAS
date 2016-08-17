@@ -11,11 +11,11 @@ temperature from the NCEP Reanalysis stored at the IRI Data Library.
 import netCDF4 as netcdf
 import numpy as np
 import os
-from datetime import timedelta
 import dbio
 import datasets
 import rpath
 from decorators import resetDatetime
+import logging
 
 
 def dates(dbname):
@@ -25,6 +25,7 @@ def dates(dbname):
 
 def _downloadVariable(varname, dbname, dt, bbox=None):
     """Download specific variable from the NCEP Reanalysis dataset."""
+    log = logging.getLogger(__name__)
     res = 1.875
     if varname == "tmax":
         urls = ["http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.maximum/.temp/dods"]
@@ -66,8 +67,8 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
         filename = "{0}/{1}/ncep/ncep_{2}.tif".format(rpath.data, varname, tt[ti[t]].strftime("%Y%m%d"))
         dbio.writeGeotif(lat, lon, res, data[t, :, :], filename)
         dbio.ingest(dbname, filename, tt[ti[t]], table)
-        print("Imported {0} in {1}".format(tt[ti[t]].strftime("%Y-%m-%d"), table))
-        # os.remove(filename)
+        log.info("Imported {0} in {1}".format(tt[ti[t]].strftime("%Y-%m-%d"), table))
+        os.remove(filename)
 
 
 def download(dbname, dts, bbox=None):

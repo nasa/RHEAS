@@ -15,6 +15,7 @@ from datetime import timedelta
 import dbio
 import datasets
 import rpath
+import logging
 
 
 def dates(dbname):
@@ -25,6 +26,7 @@ def dates(dbname):
 def _downloadVariable(varname, dbname, dt, bbox):
     """Download specific variable from the MERRA Reanalysis dataset."""
     # FIXME: Grid is not rectangular, but 0.5 x 0.625 degrees
+    log = logging.getLogger(__name__)
     res = 0.5
     try:
         url = "http://goldsmr4.sci.gsfc.nasa.gov:80/dods/M2T1NXSLV"
@@ -56,10 +58,10 @@ def _downloadVariable(varname, dbname, dt, bbox):
         dbio.writeGeotif(lat, lon, res, data, filename)
         table = "{0}.merra".format(varname)
         dbio.ingest(dbname, filename, dt, table)
-        print("Imported {0} in {1}".format(tt[ti].strftime("%Y-%m-%d"), table))
-        # os.remove(filename)
+        log.info("Imported {0} in {1}".format(tt[ti].strftime("%Y-%m-%d"), table))
+        os.remove(filename)
     except:
-        print("Cannot import MERRA dataset for {0}!".format(dt.strftime("%Y-%m-%d")))
+        log.warning("Cannot import MERRA dataset for {0}!".format(dt.strftime("%Y-%m-%d")))
 
 
 def download(dbname, dts, bbox=None):

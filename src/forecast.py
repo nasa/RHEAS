@@ -16,6 +16,7 @@ from datetime import date
 import dssat
 import rpath
 import raster
+import logging
 
 
 def runVIC(dbname, options):
@@ -89,20 +90,21 @@ def runDSSAT(dbname, options):
 
 def execute(dbname, options):
     """Driver routine for a forecast simulation."""
+    log = logging.getLogger(__name__)
     forecast_options = options['forecast']
     if 'model' in forecast_options:
         if 'vic' in forecast_options['model']:
             if 'vic' in options:
                 runVIC(dbname, options)
             else:
-                print "ERROR! No configuration options for VIC model."
+                log.error("No configuration options for VIC model.")
                 sys.exit()
         if 'dssat' in forecast_options['model']:
             if 'dssat' in options:
                 runDSSAT(dbname, options)
             else:
-                print "ERROR! No configuration options for DSSAT model."
+                log.error("No configuration options for DSSAT model.")
                 sys.exit()
     else:
-        print "ERROR! No model selected for forecast."
+        log.error("No model selected for forecast.")
         sys.exit()

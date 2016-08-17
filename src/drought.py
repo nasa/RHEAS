@@ -13,6 +13,7 @@ import scipy.stats as stats
 from datetime import date, datetime, timedelta
 import pandas
 import dbio
+import logging
 
 
 def _movingAverage(data, n):
@@ -25,14 +26,14 @@ def _movingAverage(data, n):
 def calcSRI(duration, model, cid):
     """Calculate Standardized Runoff Index for specified month
     *duration*."""
+    log = logging.getLogger(__name__)
     outvars = model.getOutputStruct(model.model_path + "/global.txt")
     startdate = date(model.startyear + model.skipyear, model.startmonth, model.startday)
     enddate = date(model.endyear, model.endmonth, model.endday)
     nt = (enddate - startdate).days + 1
     ndays = ((startdate + relativedelta(months=duration)) - startdate).days + 1
     if duration < 1 or ndays > nt:
-        print(
-            "WARNING! Cannot calculate SRI with {0} months duration.".format(duration))
+        log.warning("Cannot calculate SRI with {0} months duration.".format(duration))
         sri = np.zeros(nt)
     else:
         p = np.loadtxt("{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['runoff'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, outvars['runoff'][1]]
@@ -49,14 +50,14 @@ def calcSRI(duration, model, cid):
 def calcSPI(duration, model, cid):
     """Calculate Standardized Precipitation Index for specified month
     *duration*."""
+    log = logging.getLogger(__name__)
     startdate = date(model.startyear + model.skipyear, model.startmonth, model.startday)
     enddate = date(model.endyear, model.endmonth, model.endday)
     nt = (enddate - startdate).days + 1
     ndays = ((startdate + relativedelta(months=duration)) - startdate).days + 1
     # tablename = "precip."+model.precip
     if duration < 1 or ndays > nt:
-        print(
-            "WARNING! Cannot calculate SPI with {0} months duration.".format(duration))
+        log.warning("Cannot calculate SPI with {0} months duration.".format(duration))
         spi = np.zeros(nt)
     else:
         p = np.loadtxt("{0}/forcings/data_{1:.{3}f}_{2:.{3}f}".format(model.model_path,
@@ -73,6 +74,7 @@ def calcSPI(duration, model, cid):
 
 def calcSeverity(model, cid, varname="soil_moist"):
     """Calculate drought severity from *climatology* table stored in database."""
+    log = logging.getLogger(__name__)
     outvars = model.getOutputStruct(model.model_path + "/global.txt")
     col = outvars[varname][1]
     if varname in ["soil_moist"]:
@@ -100,7 +102,7 @@ def calcSeverity(model, cid, varname="soil_moist"):
         else:
             clim = p
     else:
-        print("WARNING! Climatology table does not exist. Severity calculation will be inaccurate!")
+        log.warning("Climatology table does not exist. Severity calculation will be inaccurate!")
         clim = p
     s = 100.0 - np.array(map(lambda v: stats.percentileofscore(clim, v), p))
     return s
@@ -127,6 +129,7 @@ def calcDrySpells(model, cid, droughtfun=np.mean, duration=14, recovduration=2):
 
 def calcSMDI(model, cid):
     """Calculate Soil Moisture Deficit Index (Narasimhan & Srinivasan, 2005)."""
+    log = logging.getLogger(__name__)
     outvars = model.getOutputStruct(model.model_path + "/global.txt")
     col = outvars['soil_moist'][1]
     p = np.loadtxt("{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(model.model_path, outvars['soil_moist'][0], model.gid[cid][0], model.gid[cid][1], model.grid_decimal))[:, col:col+model.nlayers]
@@ -146,7 +149,7 @@ def calcSMDI(model, cid):
         else:
             clim = p
     else:
-        print("WARNING! Climatology table does not exist. SMDI calculation will be inaccurate!")
+        log.warning("Climatology table does not exist. SMDI calculation will be inaccurate!")
         clim = p
     smdi = np.zeros(len(p))
     MSW = clim.median()

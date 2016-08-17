@@ -21,6 +21,7 @@ import random
 import string
 import numpy as np
 from datetime import datetime, timedelta
+import logging
 
 
 def dates(dbname):
@@ -30,6 +31,7 @@ def dates(dbname):
 
 def _writeCservConfig(bbox, startdate, enddate, varname, ens):
     """Write ClimateSERV configuration file."""
+    log = logging.getLogger(__name__)
     with tempfile.NamedTemporaryFile(dir=".", delete=False) as fcfg:
         fcfg.write("[DEFAULT]\n")
         fcfg.write("APIAccessKey = 1dd4d855e8b64a35b65b4841dcdbaa8b_as\n")
@@ -38,7 +40,7 @@ def _writeCservConfig(bbox, startdate, enddate, varname, ens):
         fcfg.write("EarliestDate = {0}\n".format(startdate.strftime("%m/%d/%Y")))
         if (enddate - startdate).days > 180:
             enddate = startdate + timedelta(180)
-            print("WARNING! NMME forecast range cannot be longer than 180 days. Resetting end date!")
+            log.warning("NMME forecast range cannot be longer than 180 days. Resetting end date!")
         fcfg.write("LatestDate = {0}\n".format(enddate.strftime("%m/%d/%Y")))
         fcfg.write("SeasonalEnsemble = ens{0:02d}\n".format(ens))
         fcfg.write("SeasonalVariable = {0}\n".format(varname))
@@ -102,6 +104,7 @@ def download(dbname, dts, bbox=None):
     """Downloads NMME ensemble forecast data from the SERVIR ClimateSERV
     data server, and imports them into the database *dbname*. Optionally uses
     a bounding box to limit the region with [minlon, minlat, maxlon, maxlat]."""
+    log = logging.getLogger(__name__)
     nens = 10
     varnames = ["Precipitation", "Temperature"]
     schema = {'Precipitation': 'precip', 'Temperature': 'tmax'}
@@ -111,8 +114,9 @@ def download(dbname, dts, bbox=None):
             os.mkdir("{0}/{1}/nmme".format(rpath.data, schema[varname]))
         for e in range(nens):
             configfile = _writeCservConfig(bbox, dts[0], dts[-1], varname, e+1)
-            subprocess.call(["python", "{0}/ClimateSERV_API_Access.py".format(rpath.scripts), "-config", configfile,
-                             "-outfile", "{0}/{1}_{2}.zip".format(outpath, varname, e+1)])
+            proc = subprocess.Popen(["python", "{0}/ClimateSERV_API_Access.py".format(rpath.scripts), "-config", configfile, "-outfile", "{0}/{1}_{2}.zip".format(outpath, varname, e+1)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            out, err = proc.communicate()
+            log.debug(out)
             f = zipfile.ZipFile("{0}/{1}_{2}.zip".format(outpath, varname, e+1))
             filenames = filter(lambda s: s.endswith("tif"), f.namelist())
             f.extractall(outpath, filenames)
@@ -187,6 +191,7 @@ def _getForcings(options, models, res):
 
 def generate(options, models):
     """Generate meteorological forecast forcings from downscaled NMME data."""
+    log = logging.getLogger(__name__)
     options['vic']['tmax'] = options['vic']['temperature']
     options['vic']['tmin'] = options['vic']['temperature']
     db = dbio.connect(models.dbname)
@@ -200,13 +205,13 @@ def generate(options, models):
     if ndata == (dt1 - dt0).days + 1:
         prec, tmax, tmin, wind = _getForcings(options, models, models.res)
         if tmax is None or tmin is None or wind is None:
-            print("ERROR! No data found to generate VIC forcings for NMME forecast. Exiting...")
+            log.error("No data found to generate VIC forcings for NMME forecast. Exiting...")
             sys.exit()
         else:
             for e in range(len(models)):
                 models[e].writeForcings(prec[e], tmax[e], tmin[e], wind)
     else:
-        print("ERROR! Not enough data found for requested forecast period! Exiting...")
+        log.error("Not enough data found for requested forecast period! Exiting...")
         sys.exit()
     cur.close()
     db.close()

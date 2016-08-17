@@ -17,6 +17,7 @@ import zipfile
 import dbio
 import os
 import rpath
+import logging
 
 
 table = {"ppt": "precip.prism", "tmax": "tmax.prism", "tmin": "tmin.prism"}
@@ -30,6 +31,7 @@ def dates(dbname):
 def _downloadVariable(varname, dbname, dts, bbox):
     """Downloads the PRISM data products for a specific variable and a set of
     dates *dt*. *varname* can be ppt, tmax or tmin."""
+    log = logging.getLogger(__name__)
     url = "prism.oregonstate.edu"
     ftp = FTP(url)
     ftp.login()
@@ -56,7 +58,9 @@ def _downloadVariable(varname, dbname, dts, bbox):
             if not os.path.isdir("{0}/precip/prism".format(rpath.data)):
                     os.mkdir("{0}/precip/prism".format(rpath.data))
             filename = "{0}/precip/prism/prism_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
-            subprocess.call(["gdal_translate", "-a_srs", "epsg:4326"] + pstr + ["{0}/{1}".format(outpath, lfilename), filename])
+            proc = subprocess.Popen(["gdal_translate", "-a_srs", "epsg:4326"] + pstr + ["{0}/{1}".format(outpath, lfilename), filename], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            out, err = proc.communicate()
+            log.debug(out)
             dbio.ingest(dbname, filename, dt, table)
         ftp.cwd("..")
 
