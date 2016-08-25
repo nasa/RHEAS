@@ -178,15 +178,17 @@ def createResampledCatalog(dbname):
     """Create catalog that holds information on resampled rasters."""
     db = connect(dbname)
     cur = db.cursor()
-    sql = """create or replace function resampled(_s text, _t text, out result double precision) as
-    $func$
-    begin
-    execute format('select st_scalex(rast) from %s.%s limit 1',quote_ident(_s),quote_ident(_t)) into result;
-    end
-    $func$ language plpgsql;"""
-    cur.execute(sql)
-    cur.execute("create or replace view raster_resampled as (select r_table_schema as sname,r_table_name as tname,resampled(r_table_schema,r_table_name) as resolution from raster_columns)")
-    db.commit()
+    cur.execute("select * from information_schema.tables where table_name='raster_resampled'")
+    if not bool(cur.rowcount):
+        sql = """create or replace function resampled(_s text, _t text, out result double precision) as
+        $func$
+        begin
+        execute format('select st_scalex(rast) from %s.%s limit 1',quote_ident(_s),quote_ident(_t)) into result;
+        end
+        $func$ language plpgsql;"""
+        cur.execute(sql)
+        cur.execute("create or replace view raster_resampled as (select r_table_schema as sname,r_table_name as tname,resampled(r_table_schema,r_table_name) as resolution from raster_columns)")
+        db.commit()
     cur.close()
     db.close()
 
