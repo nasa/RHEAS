@@ -15,6 +15,7 @@ import dbio
 import datasets
 from decorators import resetDatetime
 import logging
+from datetime import timedelta
 
 
 def dates(dbname):
@@ -45,7 +46,6 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
         i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
         t = pds.variables["T"]
         tt = netcdf.num2date(t[:], units=t.units)
-        # ti = [tj for tj in range(len(tt)) if tt[tj] >= dt]
         ti = [tj for tj in range(len(tt)) if resetDatetime(tt[tj]) >= dt[0] and resetDatetime(tt[tj]) <= dt[1]]
         if len(ti) > 0:
             lati = np.argsort(lat)[::-1][i1:i2]
@@ -55,8 +55,8 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
             else:
                 data = np.sqrt(
                     data ** 2.0 + pds.variables[dsvar[ui]][ti, 0, lati, loni] ** 2.0)
-        if "temp" in dsvar:
-            data -= 273.15
+            if "temp" in dsvar:
+                data -= 273.15
         lat = np.sort(lat)[::-1][i1:i2]
         lon = np.sort(lon)[j1:j2]
     table = "{0}.ncep".format(varname)
@@ -65,6 +65,10 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
         dbio.ingest(dbname, filename, tt[ti[t]], table)
         log.info("Imported {0} in {1}".format(tt[ti[t]].strftime("%Y-%m-%d"), table))
         os.remove(filename)
+    for dtt in [dt[0] + timedelta(days=tj, hours=12) for tj in range((dt[-1]-dt[0]).days + 1)]:
+        if dtt not in tt:
+            log.warning("NCEP data not available for {0}. Skipping download!".format(
+                dtt.strftime("%Y-%m-%d")))
 
 
 def download(dbname, dts, bbox=None):
