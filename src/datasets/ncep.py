@@ -16,7 +16,7 @@ import datasets
 import rpath
 from decorators import resetDatetime
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 
 def dates(dbname):
@@ -28,24 +28,24 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
     """Download specific variable from the NCEP Reanalysis dataset."""
     log = logging.getLogger(__name__)
     res = 1.875
+    baseurl = "http://www.esrl.noaa.gov/psd/thredds/dodsC/Datasets/ncep.reanalysis.dailyavgs/surface_gauss"
     if varname == "tmax":
-        urls = ["http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.maximum/.temp/dods"]
-        dsvar = ["temp"]
+        urls = ["{0}/tmax.2m.gauss.{1}.nc".format(baseurl, dt[0].year)]
+        dsvar = ["tmax"]
     elif varname == "tmin":
-        urls = ["http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.minimum/.temp/dods"]
-        dsvar = ["temp"]
+        urls = ["{0}/tmin.2m.gauss.{1}.nc".format(baseurl, dt[0].year)]
+        dsvar = ["tmin"]
     else:
-        urls = ["http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.u/dods",
-                "http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.v/dods"]
-        dsvar = ["u", "v"]
+        urls = ["{0}/uwnd.10m.gauss.{1}.nc".format(baseurl, dt[0].year), "{0}/vwnd.10m.gauss.{1}.nc".format(baseurl, dt[0].year)]
+        dsvar = ["uwnd", "vwnd"]
     data = None
     for ui, url in enumerate(urls):
         pds = netcdf.Dataset(url)
-        lat = pds.variables["Y"][:]
-        lon = pds.variables["X"][:]
+        lat = pds.variables["lat"][:]
+        lon = pds.variables["lon"][:]
         lon[lon > 180] -= 360.0
         i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
-        t = pds.variables["T"]
+        t = pds.variables["time"]
         tt = netcdf.num2date(t[:], units=t.units)
         ti = [tj for tj in range(len(tt)) if resetDatetime(tt[tj]) >= dt[0] and resetDatetime(tt[tj]) <= dt[1]]
         if len(ti) > 0:
@@ -80,5 +80,8 @@ def download(dbname, dts, bbox=None):
     and imports them into the database *db*. Optionally uses a bounding box to
     limit the region with [minlon, minlat, maxlon, maxlat]."""
     # for dt in [dts[0] + timedelta(tt) for tt in range((dts[1] - dts[0]).days + 1)]:
-    for varname in ["tmax", "tmin", "wind"]:
-        _downloadVariable(varname, dbname, dts, bbox)
+    years = range(dts[0].year, dts[-1].year + 1)
+    for yr in years:
+        dt = [max(datetime(yr, 1, 1), dts[0]), min(datetime(yr, 12, 31), dts[-1])]
+        for varname in ["tmax", "tmin", "wind"]:
+            _downloadVariable(varname, dbname, dt, bbox)
