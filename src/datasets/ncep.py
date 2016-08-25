@@ -69,7 +69,7 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
         dbio.ingest(dbname, filename, tt[ti[t]], table)
         log.info("Imported {0} in {1}".format(tt[ti[t]].strftime("%Y-%m-%d"), table))
         os.remove(filename)
-    for dtt in [dt[0] + timedelta(days=tj, hours=12) for tj in range((dt[-1]-dt[0]).days + 1)]:
+    for dtt in [dt[0] + timedelta(days=tj) for tj in range((dt[-1]-dt[0]).days + 1)]:
         if dtt not in tt:
             log.warning("NCEP data not available for {0}. Skipping download!".format(
                 dtt.strftime("%Y-%m-%d")))
