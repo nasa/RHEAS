@@ -51,10 +51,10 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
             lati = np.argsort(lat)[::-1][i1:i2]
             loni = np.argsort(lon)[j1:j2]
             if data is None:
-                data = pds.variables[dsvar[ui]][ti, 0, lati, loni]
+                data = pds.variables[dsvar[ui]][ti, lati, loni]
             else:
                 data = np.sqrt(
-                    data ** 2.0 + pds.variables[dsvar[ui]][ti, 0, lati, loni] ** 2.0)
+                    data ** 2.0 + pds.variables[dsvar[ui]][ti, lati, loni] ** 2.0)
             if "temp" in dsvar:
                 data -= 273.15
         lat = np.sort(lat)[::-1][i1:i2]
