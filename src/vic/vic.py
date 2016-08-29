@@ -382,8 +382,11 @@ class VIC:
             os.mkdir(self.model_path + '/forcings')
         ndays = (date(self.endyear, self.endmonth, self.endday) -
                  date(self.startyear, self.startmonth, self.startday)).days + 1
-        assert len(prec) == len(self.lat) * ndays and len(tmax) == len(self.lat) * ndays and len(
-            tmin) == len(self.lat) * ndays and len(wind) == len(self.lat) * ndays
+        try:
+            assert len(prec) == len(self.lat) * ndays and len(tmax) == len(self.lat) * ndays and len(tmin) == len(self.lat) * ndays and len(wind) == len(self.lat) * ndays
+        except:
+            log.error("Missing meteorological data in database for VIC simulation. Exiting...")
+            sys.exit()
         cgid = None
         fout = None
         for i in range(len(prec)):
