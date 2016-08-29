@@ -365,7 +365,7 @@ class VIC:
             reader = TileReader(self.dbname, rtables[
                                 v], self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday)
             data[v] = p.map_async(reader, tiles[v])
-        data = {v: [i for s in data[v].get() for i in s] for v in data}
+        data = {v: [i for s in data[v].get() for i in s if i[2] is not None] for v in data}
         p.close()
         p.join()
         for s in data:
@@ -382,8 +382,11 @@ class VIC:
             os.mkdir(self.model_path + '/forcings')
         ndays = (date(self.endyear, self.endmonth, self.endday) -
                  date(self.startyear, self.startmonth, self.startday)).days + 1
-        assert len(prec) == len(self.lat) * ndays and len(tmax) == len(self.lat) * ndays and len(
-            tmin) == len(self.lat) * ndays and len(wind) == len(self.lat) * ndays
+        try:
+            assert len(prec) == len(self.lat) * ndays and len(tmax) == len(self.lat) * ndays and len(tmin) == len(self.lat) * ndays and len(wind) == len(self.lat) * ndays
+        except:
+            log.error("Missing meteorological data in database for VIC simulation. Exiting...")
+            sys.exit()
         cgid = None
         fout = None
         for i in range(len(prec)):
@@ -406,6 +409,7 @@ class VIC:
     def run(self, vicexec):
         """Run VIC model."""
         log = logging.getLogger(__name__)
+        log.info("Running VIC...")
         if not os.path.exists(self.model_path + '/output'):
             os.mkdir(self.model_path + '/output')
         proc = subprocess.Popen([vicexec, "-g", "{0}/global.txt".format(self.model_path)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

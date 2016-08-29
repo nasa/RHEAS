@@ -67,7 +67,6 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
         filename = "{0}/{1}/ncep/ncep_{2}.tif".format(rpath.data, varname, tt[ti[t]].strftime("%Y%m%d"))
         dbio.writeGeotif(lat, lon, res, data[t, :, :], filename)
         dbio.ingest(dbname, filename, tt[ti[t]], table)
-        log.info("Imported {0} in {1}".format(tt[ti[t]].strftime("%Y-%m-%d"), table))
         os.remove(filename)
     for dtt in [dt[0] + timedelta(days=tj) for tj in range((dt[-1]-dt[0]).days + 1)]:
         if dtt not in tt:
