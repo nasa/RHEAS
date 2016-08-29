@@ -365,7 +365,7 @@ class VIC:
             reader = TileReader(self.dbname, rtables[
                                 v], self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday)
             data[v] = p.map_async(reader, tiles[v])
-        data = {v: [i for s in data[v].get() for i in s] for v in data}
+        data = {v: [i for s in data[v].get() for i in s if i[2] is not None] for v in data}
         p.close()
         p.join()
         for s in data:
