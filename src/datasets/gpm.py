@@ -52,11 +52,11 @@ def download(dbname, dts, bbox):
                 tfname = fname.replace("tif", "tfw")
                 fname = datasets.uncompress(fname, outpath)
                 datasets.uncompress(tfname, outpath)
-                proc = subprocess.Popen(["gdalwarp", "-t_srs", "epsg:4326", "{0}/{1}".format(outpath, fname), "{0}/prec.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                proc = subprocess.Popen(["gdalwarp", "-t_srs", "-ot", "Float32", "epsg:4326", "{0}/{1}".format(outpath, fname), "{0}/prec.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 out, err = proc.communicate()
                 log.debug(out)
                 if bbox is not None:
-                    proc = subprocess.Popen(["gdal_translate", "-a_srs", "epsg:4326", "-projwin", "{0}".format(bbox[0]), "{0}".format(bbox[3]), "{0}".format(bbox[2]), "{0}".format(bbox[1]), "{0}/prec.tif".format(outpath), "{0}/prec1.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                    proc = subprocess.Popen(["gdal_translate", "-ot", "Float32", "-a_srs", "epsg:4326", "-projwin", "{0}".format(bbox[0]), "{0}".format(bbox[3]), "{0}".format(bbox[2]), "{0}".format(bbox[1]), "{0}/prec.tif".format(outpath), "{0}/prec1.tif".format(outpath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                     out, err = proc.communicate()
                     log.debug(out)
                 else:
@@ -64,7 +64,7 @@ def download(dbname, dts, bbox):
                     out, err = proc.communicate()
                     log.debug(out)
                 # multiply by 0.1 to get mm/hr and 24 to get mm/day
-                proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/prec1.tif".format(outpath), "--outfile={0}/prec2.tif".format(outpath), "--calc=\"0.1*A\""], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/prec1.tif".format(outpath), "--outfile={0}/prec2.tif".format(outpath), "--calc=\"2.4*A\""], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 out, err = proc.communicate()
                 log.debug(out)
                 dbio.ingest(dbname, "{0}/prec2.tif".format(outpath), dt, table, True)
