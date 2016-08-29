@@ -406,6 +406,7 @@ class VIC:
     def run(self, vicexec):
         """Run VIC model."""
         log = logging.getLogger(__name__)
+        log.info("Running VIC...")
         if not os.path.exists(self.model_path + '/output'):
             os.mkdir(self.model_path + '/output')
         proc = subprocess.Popen([vicexec, "-g", "{0}/global.txt".format(self.model_path)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
