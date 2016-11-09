@@ -627,7 +627,7 @@ class DSSAT:
             "select * from information_schema.tables where table_name='yield' and table_schema='{0}'".format(self.name))
         if bool(cur.rowcount):
             cur.execute("drop table {0}.yield".format(self.name))
-        sql = "create table {0}.yield as (with f as (select id, gid, geom, ensemble, max(gwad) as gwad from {0}.dssat group by id, gid, geom, ensemble) select id, gid, geom, max(gwad) as max_yield, avg(gwad) as avg_yield, stddev(gwad) as std_yield from f group by id, gid, geom)"
+        sql = "create table {0}.yield as (with f as (select id, gid, geom, ensemble, max(gwad) as gwad from {0}.dssat group by id, gid, geom, ensemble) select id, gid, geom, max(gwad) as max_yield, avg(gwad) as avg_yield, stddev(gwad) as std_yield from f group by id, gid, geom)".format(self.name)
         cur.execute(sql)
         db.commit()
         cur.execute("update {0}.yield set std_yield = 0 where std_yield is null".format(self.name))
