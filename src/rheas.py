@@ -24,8 +24,9 @@ def parseArgs():
     parser.add_argument('-d', metavar='DB', help='name of database to connect')
     parser.add_argument('-u', '--update', help='update database', action='store_true')
     parser.add_argument('-v', '--verbose', help='increase verbosity', action='store_true')
+    parser.add_argument('-l', metavar='logfile', help='name of log file')
     args = parser.parse_args()
-    return args.config, args.d, args.update, args.verbose
+    return args.config, args.d, args.update, args.verbose, args.l
 
 
 def update(dbname, configfile):
@@ -69,11 +70,15 @@ def update(dbname, configfile):
 
 def run():
     """Main RHEAS routine."""
-    config_filename, dbname, db_update, verbose = parseArgs()
+    config_filename, dbname, db_update, verbose, logfile = parseArgs()
     if verbose:
-        logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
+        log_level = logging.DEBUG
     else:
-        logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+        log_level = logging.INFO
+    if logfile is None:
+        logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
+    else:
+        logging.basicConfig(filename=logfile, level=log_level, format='%(levelname)s: %(message)s')
     log = logging.getLogger(__name__)
     if dbname is None:
         dbname = "rheas"
