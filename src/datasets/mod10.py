@@ -66,7 +66,7 @@ def download(dbname, dts, bbox):
                 out, err = proc.communicate()
                 log.debug(out)
                 if not os.path.isdir("{0}/snow/mod10".format(rpath.data)):
-                    os.mkdir("{0}/snow/mod10".format(rpath.data))
+                    os.makedirs("{0}/snow/mod10".format(rpath.data))
                 filename = "{0}/snow/mod10/mod10_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
                 proc = subprocess.Popen(["gdal_translate", "-a_srs", "epsg:4326", "{0}/snow2.tif".format(outpath), filename], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 out, err = proc.communicate()

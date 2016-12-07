@@ -66,7 +66,7 @@ def download(dbname, dts, bbox):
             out, err = proc.communicate()
             log.debug(out)
             if not os.path.isdir("{0}/soilmoist/amsre".format(rpath.data)):
-                    os.mkdir("{0}/soilmoist/amsre".format(rpath.data))
+                    os.makedirs("{0}/soilmoist/amsre".format(rpath.data))
             filename = "{0}/soilmoist/amsre/amsre_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
             proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/sm3.tif".format(tmppath), "--outfile={0}".format(filename), "--NoDataValue=-9999", "--calc=\"(abs(A)!=9999)*(A/1000.0+9999)-9999\""], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out, err = proc.communicate()

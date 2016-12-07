@@ -67,7 +67,7 @@ def download(dbname, dts, bbox):
                     log.debug(out)
                 # multiply by 0.1 to get mm/hr and 24 to get mm/day
                 if not os.path.isdir("{0}/precip/gpm".format(rpath.data)):
-                    os.mkdir("{0}/precip/gpm".format(rpath.data))
+                    os.makedirs("{0}/precip/gpm".format(rpath.data))
                 filename = "{0}/precip/gpm/gpm_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
                 proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/prec1.tif".format(outpath), "--outfile={0}".format(filename), "--calc=\"2.4*A\""], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 out, err = proc.communicate()

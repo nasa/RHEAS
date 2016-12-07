@@ -75,7 +75,7 @@ def download(dbname, dts, bbox):
                     else:
                         pstr = ["-projwin", str(bbox[0]), str(bbox[3]), str(bbox[2]), str(bbox[1])]
                     if not os.path.isdir("{0}/evap/mod16".format(rpath.data)):
-                        os.mkdir("{0}/evap/mod16".format(rpath.data))
+                        os.makedirs("{0}/evap/mod16".format(rpath.data))
                     filename = "{0}/evap/mod16/mod16_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
                     proc = subprocess.Popen(["gdal_translate"] + pstr + ["-a_srs", "epsg:4326", "{0}/et2.tif".format(outpath), filename], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                     out, err = proc.communicate()

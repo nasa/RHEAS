@@ -111,7 +111,7 @@ def download(dbname, dts, bbox=None):
     outpath = tempfile.mkdtemp()
     for varname in varnames:
         if not os.path.isdir("{0}/{1}/nmme".format(rpath.data, schema[varname])):
-            os.mkdir("{0}/{1}/nmme".format(rpath.data, schema[varname]))
+            os.makedirs("{0}/{1}/nmme".format(rpath.data, schema[varname]))
         for e in range(nens):
             configfile = _writeCservConfig(bbox, dts[0], dts[-1], varname, e+1)
             proc = subprocess.Popen(["python", "{0}/ClimateSERV_API_Access.py".format(rpath.scripts), "-config", configfile, "-outfile", "{0}/{1}_{2}.zip".format(outpath, varname, e+1)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

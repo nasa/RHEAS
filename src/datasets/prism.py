@@ -56,7 +56,7 @@ def _downloadVariable(varname, dbname, dts, bbox):
             else:
                 pstr = ["-projwin", str(bbox[0]), str(bbox[3]), str(bbox[2]), str(bbox[1])]
             if not os.path.isdir("{0}/precip/prism".format(rpath.data)):
-                    os.mkdir("{0}/precip/prism".format(rpath.data))
+                    os.makedirs("{0}/precip/prism".format(rpath.data))
             filename = "{0}/precip/prism/prism_{1}.tif".format(rpath.data, dt.strftime("%Y%m%d"))
             proc = subprocess.Popen(["gdal_translate", "-a_srs", "epsg:4326"] + pstr + ["{0}/{1}".format(outpath, lfilename), filename], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out, err = proc.communicate()

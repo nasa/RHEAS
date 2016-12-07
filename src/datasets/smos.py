@@ -58,7 +58,7 @@ def download(dbname, dt, bbox=None):
         # filename = dbio.writeGeotif(lat, lon, res, sm[tj, :, :])
         t = t0 + timedelta(ti[tj])
         if not os.path.isdir("{0}/soilmoist/smos".format(rpath.data)):
-            os.mkdir("{0}/soilmoist/smos".format(rpath.data))
+            os.makedirs("{0}/soilmoist/smos".format(rpath.data))
         filename = "{0}/soilmoist/smos/smos_{1}.tif".format(rpath.data, t.strftime("%Y%m%d"))
         dbio.writeGeotif(lat, lon, res, sm[tj, :, :], filename)
         dbio.ingest(dbname, filename, t, table, False)

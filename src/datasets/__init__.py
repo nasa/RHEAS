@@ -118,7 +118,7 @@ def ingest(dbname, table, data, lat, lon, res, t, resample=True, overwrite=True)
         # filename = dbio.writeGeotif(lat, lon, res, data)
         filename = "{0}/{1}/{2}/{2}_{3}.tif".format(rpath.data, sname, tname, t.strftime("%Y%m%d"))
         if not os.path.isdir("{0}/{1}/{2}".format(rpath.data, sname, tname)):
-            os.mkdir("{0}/{1}/{2}".format(rpath.data, sname, tname))
+            os.makedirs("{0}/{1}/{2}".format(rpath.data, sname, tname))
         dbio.writeGeotif(lat, lon, res, data, filename)
         dbio.ingest(dbname, filename, t, table, resample, overwrite)
         log.info("Imported {0} in {1}".format(t.strftime("%Y-%m-%d"), table))

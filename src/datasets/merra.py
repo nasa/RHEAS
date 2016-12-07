@@ -53,7 +53,7 @@ def _downloadVariable(varname, dbname, dt, bbox):
         lat = np.sort(lat)[::-1][i1:i2]
         lon = np.sort(lon)[j1:j2]
         if not os.path.isdir("{0}/{1}/merra".format(rpath.data, varname)):
-                os.mkdir("{0}/{1}/merra".format(rpath.data, varname))
+                os.makedirs("{0}/{1}/merra".format(rpath.data, varname))
         filename = "{0}/{1}/merra/merra_{2}.tif".format(rpath.data, varname, dt.strftime("%Y%m%d"))
         dbio.writeGeotif(lat, lon, res, data, filename)
         table = "{0}.merra".format(varname)
