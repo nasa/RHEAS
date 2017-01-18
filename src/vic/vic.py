@@ -156,8 +156,11 @@ class VIC:
         cur = db.cursor()
         sql = "select filename from {0}.state where fdate = date '{1}-{2}-{3}'".format(
             self.name, self.startyear, self.startmonth, self.startday)
-        cur.execute(sql)
-        result = cur.fetchone()
+        try:
+            cur.execute(sql)
+            result = cur.fetchone()
+        except:
+            result = False
         if bool(result):
             filename = result[0]
         else:
