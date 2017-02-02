@@ -88,7 +88,7 @@ These are all the necessary options to define our forecast simulation. Then we n
 
 .. compound::
 
-   We choose the model output, specifically net shortwave radiation and soil moisture, to the database ::
+   We choose the model output, specifically net shortwave radiation and soil moisture, to the database (Note that saving to a directory only returns raw data) ::
 
     [vic]
     precip: chirps
