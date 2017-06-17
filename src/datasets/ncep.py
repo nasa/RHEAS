@@ -55,7 +55,7 @@ def _downloadVariable(varname, dbname, dt, bbox=None):
             else:
                 data = np.sqrt(
                     data ** 2.0 + pds.variables[dsvar[ui]][ti, lati, loni] ** 2.0)
-            if "temp" in dsvar:
+            if any(tvar in dsvar for tvar in ["temp", "tmax", "tmin"]): 
                 data -= 273.15
         lat = np.sort(lat)[::-1][i1:i2]
         lon = np.sort(lon)[j1:j2]
