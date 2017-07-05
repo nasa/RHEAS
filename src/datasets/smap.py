@@ -9,13 +9,12 @@
 
 from soilmoist import Soilmoist
 import h5py
-import tempfile
-from ftplib import FTP
 import numpy as np
 import dbio
 import datasets
 from datetime import timedelta
 import logging
+import earthdata
 
 
 table = "soilmoist.smap"
@@ -32,37 +31,28 @@ def download(dbname, dts, bbox=None):
     uses a bounding box to limit the region with [minlon, minlat, maxlon, maxlat]."""
     log = logging.getLogger(__name__)
     res = 0.36
-    url = "n5eil01u.ecs.nsidc.org"
-    ftp = FTP(url)
-    ftp.login()
+    url = "https://n5eil01u.ecs.nsidc.org/DP4/SMAP/SPL3SMP.004"
     for dt in [dts[0] + timedelta(tt) for tt in range((dts[-1] - dts[0]).days + 1)]:
         try:
-            r = ftp.cwd("/pub/SAN/SMAP/SPL3SMP.003/{0}".format(dt.strftime("%Y.%m.%d")))
-            if r.find("successful") > 0:
-                outpath = tempfile.mkdtemp()
-                fname = [f for f in ftp.nlst() if f.find("h5") > 0][0]
-                with open("{0}/{1}".format(outpath, fname), 'wb') as f:
-                    ftp.retrbinary("RETR {0}".format(fname), f.write)
-                f = h5py.File("{0}/{1}".format(outpath, fname))
-                lat = f['Soil_Moisture_Retrieval_Data']['latitude'][:, 0]
-                lon = f['Soil_Moisture_Retrieval_Data']['longitude'][0, :]
-                lon[lon > 180] -= 360.0
-                # FIXME: Need to add reprojection from EASE grid
-                i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
-                lati = np.argsort(lat)[::-1][i1:i2]
-                loni = np.argsort(lon)[j1:j2]
-                sm = np.zeros((len(lati), len(loni)))
-                for i in range(len(lati)):
-                    for j in range(len(loni)):
-                        sm[i, j] = f['Soil_Moisture_Retrieval_Data']['soil_moisture'][i, j]
-                # FIXME: Use spatially variable observation error
-                # sme = f['Soil_Moisture_Retrieval_Data']['soil_moisture_error'][i1:i2, j1:j2]
-                lat = np.sort(lat)[::-1][i1:i2]
-                lon = np.sort(lon)[j1:j2]
-                filename = dbio.writeGeotif(lat, lon, res, sm)
-                dbio.ingest(dbname, filename, dt, table, False)
-            else:
-                log.warning("No SMAP data available for {0}.".format(dt.strftime("%Y-%m-%d")))
+            outpath, fname = earthdata.download("{0}/{1}".format(url, dt.strftime("%Y.%m.%d")), "SMAP_L3_SM_P_\S*.h5")
+            f = h5py.File("{0}/{1}".format(outpath, fname))
+            lat = f['Soil_Moisture_Retrieval_Data']['latitude'][:, 0]
+            lon = f['Soil_Moisture_Retrieval_Data']['longitude'][0, :]
+            lon[lon > 180] -= 360.0
+            # FIXME: Need to add reprojection from EASE grid
+            i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
+            lati = np.argsort(lat)[::-1][i1:i2]
+            loni = np.argsort(lon)[j1:j2]
+            sm = np.zeros((len(lati), len(loni)))
+            for i in range(len(lati)):
+                for j in range(len(loni)):
+                    sm[i, j] = f['Soil_Moisture_Retrieval_Data']['soil_moisture'][i, j]
+            # FIXME: Use spatially variable observation error
+            # sme = f['Soil_Moisture_Retrieval_Data']['soil_moisture_error'][i1:i2, j1:j2]
+            lat = np.sort(lat)[::-1][i1:i2]
+            lon = np.sort(lon)[j1:j2]
+            filename = dbio.writeGeotif(lat, lon, res, sm)
+            dbio.ingest(dbname, filename, dt, table, False)
         except:
             log.warning("No SMAP data available for {0}.".format(dt.strftime("%Y-%m-%d")))
 
