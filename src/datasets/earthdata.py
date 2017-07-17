@@ -20,7 +20,7 @@ def download(url, filepattern):
     """Download data files from Earthdata search."""
     session = requests.session()
     data = {'login': username, 'password': password}
-    resp_auth = session.post(url, data=data)
+    resp_auth = session.post("http://urs.earthdata.nasa.gov", data=data)
     resp_dir = session.get(url)
     p = re.compile(filepattern)
     matches = p.search(resp_dir.text)
