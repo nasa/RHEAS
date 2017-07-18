@@ -14,6 +14,7 @@ import tempfile
 import subprocess
 import datasets
 import dbio
+import earthdata
 import logging
 
 
@@ -30,18 +31,10 @@ def download(dbname, dts, bbox):
     and imports them into the PostGIS database *outpath*. Optionally
     uses a bounding box to limit the region with [minlon, minlat, maxlon, maxlat]."""
     log = logging.getLogger(__name__)
-    url = "n5eil01u.ecs.nsidc.org"
-    ftp = FTP(url)
-    ftp.login()
-    ftp.cwd("SAN/AMSA/AE_Land3.002")
+    url = "https://n5eil01u.ecs.nsidc.org/AMSA/AE_Land3.002"
     for dt in [dts[0] + timedelta(ti) for ti in range((dts[-1] - dts[0]).days+1)]:
-        datadir = dt.strftime("%Y.%m.%d")
         try:
-            tmppath = tempfile.mkdtemp()
-            ftp.cwd(datadir)
-            fname = [f for f in ftp.nlst() if f.endswith("hdf")][0]
-            with open("{0}/{1}".format(tmppath, fname), 'wb') as f:
-                ftp.retrbinary("RETR {0}".format(fname), f.write)
+            tmppath, fname = earthdata.download("{0}/{1}".format(url, dt.strftime("%Y.%m.%d")), "AMSR_E_L3_DailyLand\S*.hdf")
             proc = subprocess.Popen(["gdal_translate", "HDF4_EOS:EOS_GRID:{0}/{1}:Ascending_Land_Grid:A_Soil_Moisture".format(tmppath, fname), "{0}/sma.tif".format(tmppath)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out, err = proc.communicate()
             log.debug(out)
