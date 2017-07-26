@@ -4,4 +4,4 @@ The Regional Hydrologic Extremes Assessment System (RHEAS) is a modular hydrolog
 
 Documentation for RHEAS can be found at [Read the Docs](http://rheas.readthedocs.org/en/latest/).
 
-
+A peer-reviewed journal article on RHEAS is also [available](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0176506).

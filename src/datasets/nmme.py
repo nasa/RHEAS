@@ -46,7 +46,7 @@ def _writeCservConfig(bbox, startdate, enddate, varname, ens):
         fcfg.write("SeasonalVariable = {0}\n".format(varname))
         coords = "[{0},{1}],[{2},{1}],[{2},{3}],[{0},{3}],[{0},{1}]".format(*bbox)
         fcfg.write("GeometryCoords = [{0}]\n".format(coords))
-        fcfg.write("BaseURL = http://climateserv.nsstc.nasa.gov/chirps/scriptAccess/")
+        fcfg.write("BaseURL = https://climateserv.servirglobal.net/chirps/scriptAccess")
     return fcfg.name
 
 
