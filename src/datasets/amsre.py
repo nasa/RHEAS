@@ -8,9 +8,7 @@
 """
 
 from soilmoist import Soilmoist
-from ftplib import FTP
 from datetime import timedelta
-import tempfile
 import subprocess
 import datasets
 import dbio
@@ -57,11 +55,10 @@ def download(dbname, dts, bbox):
             out, err = proc.communicate()
             log.debug(out)
             filename = "{0}/amsre_soilm_{1}.tif".format(tmppath, dt.strftime("%Y%m%d"))
-            proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/sm3.tif".format(tmppath), "--outfile={0}".format(filename), "--NoDataValue=-9999", "--calc=\"(abs(A)!=9999)*(A/1000.0+9999)-9999\""], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/sm3.tif".format(tmppath), "--outfile={0}".format(filename), "--NoDataValue=-9999", "--calc=(abs(A)!=9999)*(A/1000.0+9999)-9999"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out, err = proc.communicate()
             log.debug(out)
             dbio.ingest(dbname, filename, dt, table, False)
-            ftp.cwd("../")
         except:
             log.warning("AMSR-E data not available for {0}. Skipping download!".format(dt.strftime("%Y%m%d")))
 
