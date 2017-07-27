@@ -25,13 +25,17 @@ def dates(dbname):
     return dts
 
 
-def download(dbname, dts, bbox=None):
+def download(dbname, dts, bbox=None, enhanced=False):
     """Downloads SMAP soil mositure data for a set of dates *dt*
     and imports them into the PostGIS database *dbname*. Optionally
     uses a bounding box to limit the region with [minlon, minlat, maxlon, maxlat]."""
     log = logging.getLogger(__name__)
-    res = 0.36
-    url = "https://n5eil01u.ecs.nsidc.org/DP4/SMAP/SPL3SMP.004"
+    if enhanced:
+        res = 0.09
+        url = "https://n5eil01u.ecs.nsidc.org/SMAP/SPL3SMP_E.001"
+    else:
+        res = 0.36
+        url = "https://n5eil01u.ecs.nsidc.org/DP4/SMAP/SPL3SMP.004"
     for dt in [dts[0] + timedelta(tt) for tt in range((dts[-1] - dts[0]).days + 1)]:
         try:
             outpath, fname = earthdata.download("{0}/{1}".format(url, dt.strftime("%Y.%m.%d")), "SMAP_L3_SM_P_\S*.h5")
