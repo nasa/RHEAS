@@ -521,8 +521,7 @@ class DSSAT:
                     percent = toks[4]
                     if fertilizers is None:
                         if planting is not None:
-                            fertilizers = {(planting + timedelta(10)).strftime("%Y-%m-%d"): [
-                                amount, percent], (planting + timedelta(40)).strftime("%Y-%m-%d"): [amount, percent]}
+                            fertilizers = {planting.strftime("%Y-%m-%d"): [amount, percent]}
                     for f in fertilizers.keys():
                         dt = date(*map(int, f.split("-")))
                         try:
