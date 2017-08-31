@@ -34,7 +34,7 @@ def addCultivar(dbname, shapefile, params, nens=40, crop="maize"):
     temptable = ''.join(random.SystemRandom().choice(
         string.ascii_letters) for _ in range(8))
     if os.path.exists(shapefile):
-        subprocess.call("{0}/shp2pgsql -a -s 4326 -g geom {1} {2} | {0}/psql -d {3}".format(
+        subprocess.call("{0}/shp2pgsql -d -s 4326 -g geom {1} {2} | {0}/psql -d {3}".format(
             rpath.bins, shapefile, temptable, dbname), shell=True)
         db = dbio.connect(dbname)
         cur = db.cursor()
