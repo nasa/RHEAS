@@ -214,7 +214,7 @@ class DSSAT:
         date_sql = "fdate>=date '{0}-{1}-{2}' and fdate<=date '{3}-{4}-{5}'".format(
             self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday)
         data = {}
-        varnames = ["shortwave", "longwave",
+        varnames = ["net_short", "net_long",
                     "soil_moist", "rainf", "tmax", "tmin"]
         if self.lai is not None:
             varnames.append("lai")
@@ -261,8 +261,8 @@ class DSSAT:
         cur.close()
         db.close()
         if "ensemble" in sqlvars:
-            weather = [np.vstack((data["shortwave"][e] + data["longwave"][e], data["tmax"][
-                                 e], data["tmin"][e], data["rainf"][e])).T for e in range(len(data["shortwave"]))]
+            weather = [np.vstack((data["net_short"][e] + data["net_long"][e], data["tmax"][
+                                 e], data["tmin"][e], data["rainf"][e])).T for e in range(len(data["net_short"]))]
             sm = [np.zeros((len(year), nlayers))] * len(data["soil_moist"])
             if self.lai is not None:
                 lai = dict(zip([date(year[i], month[i], day[i]) for i in range(
@@ -273,7 +273,7 @@ class DSSAT:
                         data["soil_moist"][e]) if layers[mi] == l + 1]
         else:
             weather = np.vstack(
-                (data["shortwave"] + data["longwave"], data["tmax"], data["tmin"], data["rainf"])).T
+                (data["net_short"] + data["net_long"], data["tmax"], data["tmin"], data["rainf"])).T
             if self.lai is not None:
                 lai = dict(zip([date(year[i], month[i], day[i])
                                 for i in range(len(year))], np.array(data["lai"]).T))
@@ -521,8 +521,7 @@ class DSSAT:
                     percent = toks[4]
                     if fertilizers is None:
                         if planting is not None:
-                            fertilizers = {(planting + timedelta(10)).strftime("%Y-%m-%d"): [
-                                amount, percent], (planting + timedelta(40)).strftime("%Y-%m-%d"): [amount, percent]}
+                            fertilizers = {planting.strftime("%Y-%m-%d"): [amount, percent]}
                     for f in fertilizers.keys():
                         dt = date(*map(int, f.split("-")))
                         try:
