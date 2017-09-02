@@ -95,6 +95,7 @@ class DSSAT:
         self.endyear = endyear
         self.endmonth = endmonth
         self.endday = endday
+        self.cultivars = {}
         self.lat = []
         self.lon = []
         self.elev = []
@@ -393,6 +394,7 @@ class DSSAT:
             sys.exit()
         profiles = self._sampleSoilProfiles(gid)
         profiles = [p[0] for p in profiles]
+        self.cultivars[gid] = []
         for ens in range(self.nens):
             sm = vsm[ens]
             fertilizers = fertildates
@@ -558,18 +560,19 @@ class DSSAT:
         """Retrieve Cultivar parameters for pixel and ensemble member."""
         db = dbio.connect(self.dbname)
         cur = db.cursor()
-        sql = "select p1,p2,p5,g2,g3,phint from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(
+        sql = "select p1,p2,p5,g2,g3,phint,name from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(
             self.name, ens + 1, gid)
         cur.execute(sql)
         if not bool(cur.rowcount):
-            sql = "select p1,p2,p5,g2,g3,phint from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(
+            sql = "select p1,p2,p5,g2,g3,phint,name from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(
                 self.name, ens + 1, gid)
             cur.execute(sql)
-        p1, p2, p5, g2, g3, phint = cur.fetchone()
+        p1, p2, p5, g2, g3, phint, cname = cur.fetchone()
         cultivar = "990002 MEDIUM SEASON    IB0001  {0:.1f} {1:.3f} {2:.1f} {3:.1f}  {4:.2f} {5:.2f}".format(
             p1, p2, p5, g2, g3, phint)
         cur.close()
         db.close()
+        self.cultivars[gid].append(cname)
         return cultivar
 
     def _interpolateSoilMoist(self, sm, depths, dz):
@@ -643,9 +646,9 @@ class DSSAT:
             "select * from information_schema.tables where table_name='dssat' and table_schema='{0}'".format(self.name))
         if bool(cur.rowcount):
             cur.execute("drop table {0}.dssat".format(self.name))
-        cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
+        cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, cultivar text, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
         db.commit()
-        sql = "insert into {0}.dssat (fdate, gid, ensemble, gwad, wsgd, lai) values (%(dt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s)".format(
+        sql = "insert into {0}.dssat (fdate, gid, ensemble, gwad, wsgd, lai, cultivar) values (%(dt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s, %(cultivar)s)".format(
             self.name)
         for gid, pi in modelpaths:
             modelpath = modelpaths[(gid, pi)]
@@ -659,9 +662,13 @@ class DSSAT:
                         dt = date(startdt.year, 1, 1) + \
                             timedelta(int(data[1]) - 1)
                         dts = "{0}-{1}-{2}".format(dt.year, dt.month, dt.day)
+                        if self.cultivars[gid][e] is None:
+                            cultivar = ""
+                        else:
+                            cultivar = self.cultivars[gid][e]
                         if float(data[9]) > 0.0:
                             cur.execute(sql, {'dt': dts, 'ens': e + 1, 'gwad': float(
-                                data[9]), 'wsgd': float(data[18]), 'lai': float(data[6]), 'gid': gid})
+                                data[9]), 'wsgd': float(data[18]), 'lai': float(data[6]), 'gid': gid, 'cultivar': cultivar})
         cur.execute(
             "update {0}.dssat as d set geom = a.geom from {0}.agareas as a where a.gid=d.gid".format(self.name))
         db.commit()
