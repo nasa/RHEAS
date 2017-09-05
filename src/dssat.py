@@ -607,7 +607,7 @@ class DSSAT:
 
     def writeConfigFile(self, modelpath, nlayers, startdate, enddate):
         """Write DSSAT-ENKF config file."""
-        configfilename="ENKF_CONFIG.TXT"
+        configfilename = "ENKF_CONFIG.TXT"
         fout = open("{0}/{1}".format(modelpath, configfilename), 'w')
         fout.write("!Start_DOY_of_Simulation:\n{0}\n".format(
             int(startdate.strftime("%j"))))
@@ -623,17 +623,23 @@ class DSSAT:
 
     def _yieldTable(self):
         """Create table for crop yield statistics."""
+        fsql = "with f (as select gid,geom,gwad,ensemble,fdate from (select gid,geom,gwad,ensemble,fdate,row_number() over (partition by gid,ensemble order by gwad desc) as rn from {0}.dssat) where rn=1)".format(self.name)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute(
             "select * from information_schema.tables where table_name='yield' and table_schema='{0}'".format(self.name))
-        if bool(cur.rowcount):
-            cur.execute("drop table {0}.yield".format(self.name))
-        sql = "create table {0}.yield as (with f as (select id, gid, geom, ensemble, max(gwad) as gwad from {0}.dssat group by id, gid, geom, ensemble) select id, gid, geom, max(gwad) as max_yield, avg(gwad) as avg_yield, stddev(gwad) as std_yield from f group by id, gid, geom)".format(self.name)
-        cur.execute(sql)
+        if not bool(cur.rowcount):
+            sql = "create table {0}.yield as ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
+            cur.execute(sql)
+        else:
+            cur.execute("delete * from {0}.yield where fdate>='{1}-{2}-{3}' and fdate<='{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
+            sql = "insert into {0}.yield ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
+            cur.execute(sql)
         db.commit()
         cur.execute("update {0}.yield set std_yield = 0 where std_yield is null".format(self.name))
-        cur.execute("alter table {0}.yield add primary key (id)".format(self.name))
+        cur.execute("alter table {0}.yield add primary key (gid)".format(self.name))
+        cur.execute("drop index {0}.yield_s".format(self.name))
+        db.commit()
         cur.execute("create index yield_s on {0}.yield using gist(geom)".format(self.name))
         cur.close()
         db.close()
@@ -644,12 +650,12 @@ class DSSAT:
         cur = db.cursor()
         cur.execute(
             "select * from information_schema.tables where table_name='dssat' and table_schema='{0}'".format(self.name))
-        if bool(cur.rowcount):
-            cur.execute("drop table {0}.dssat".format(self.name))
-        cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, cultivar text, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
-        db.commit()
-        sql = "insert into {0}.dssat (fdate, gid, ensemble, gwad, wsgd, lai, cultivar) values (%(dt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s, %(cultivar)s)".format(
-            self.name)
+        if not bool(cur.rowcount):
+            cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
+            db.commit()
+        # overwrite overlapping dates
+        cur.execute("delete * from {0}.dssat where fdate>=date'{1}-{2}-{3}' and fdate<=date'{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
+        sql = "insert into {0}.dssat (fdate, gid, ensemble, gwad, wsgd, lai) values (%(dt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s)".format(self.name)
         for gid, pi in modelpaths:
             modelpath = modelpaths[(gid, pi)]
             for e in range(self.nens):
