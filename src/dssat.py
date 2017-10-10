@@ -623,7 +623,7 @@ class DSSAT:
 
     def _yieldTable(self):
         """Create table for crop yield statistics."""
-        fsql = "with f (as select gid,geom,gwad,ensemble,fdate from (select gid,geom,gwad,ensemble,fdate,row_number() over (partition by gid,ensemble order by gwad desc) as rn from {0}.dssat) where rn=1)".format(self.name)
+        fsql = "with f as (select gid,geom,gwad,ensemble,fdate from (select gid,geom,gwad,ensemble,fdate,row_number() over (partition by gid,ensemble order by gwad desc) as rn from {0}.dssat) where rn=1)".format(self.name)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute(
