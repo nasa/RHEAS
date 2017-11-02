@@ -21,6 +21,8 @@ def parseSolFile(filename):
     """Parses SOL file and extract soil profiles."""
     data = {}
     profile = None
+    lat = None
+    lon = None
     with open(filename) as fin:
         for line in fin:
             if line.startswith("*"):
@@ -43,14 +45,21 @@ def ingestSoils(dbname="rheas"):
     filenames = glob.glob("SoilGrids-for-DSSAT-10km v1.0 (by country)/*.SOL")
     db = dbio.connect(dbname)
     cur = db.cursor()
+    if dbio.tableExists(dbname, "dssat", "soils"):
+        print("Overwriting existing DSSAT soils table in database!")
+        cur.execute("drop dssat.soils")
+        db.commit()
     cur.execute("create table dssat.soils (rid serial primary key, geom geometry(Point, 4326), props text)")
     db.commit()
     for filename in filenames:
-        profiles = parseSolFile(filename)
-        for latlon in profiles:
-            lat, lon = latlon
-            sql = "insert into dssat.soils (geom, props) values (st_geomfromtext('POINT({0} {1})', 4326), '{2}')".format(lon, lat, profiles[latlon])
-            cur.execute(sql)
+        try:
+            profiles = parseSolFile(filename)
+            for latlon in profiles:
+                lat, lon = latlon
+                sql = "insert into dssat.soils (geom, props) values (st_geomfromtext('POINT({0} {1})', 4326), '{2}')".format(lon, lat, profiles[latlon])
+                cur.execute(sql)
+        except:
+            print("Cannot process file {0}".format(filename))
     db.commit()
     cur.close()
     db.close()
