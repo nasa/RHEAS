@@ -36,7 +36,12 @@ def parseSolFile(filename):
                     lon = float(toks[3])
                     profile += "\r\n{0}".format(line.strip())
                 else:
-                    profile += "\r\n{0}".format(line.strip())
+                    try:
+                        float(toks[0])
+                        line = line.replace(toks[1], "".join([" "]*len(toks[1])))
+                        profile += "\r\n{0}".format(line.rstrip())
+                    except:
+                        profile += "\r\n {0}".format(line.rstrip())
     return data
 
 
