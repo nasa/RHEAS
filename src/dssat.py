@@ -623,7 +623,7 @@ class DSSAT:
 
     def _yieldTable(self):
         """Create table for crop yield statistics."""
-        fsql = "with f as (select gid,geom,gwad,ensemble,fdate from (select gid,geom,gwad,ensemble,fdate,row_number() over (partition by gid,ensemble order by gwad desc) as rn from {0}.dssat) where rn=1)".format(self.name)
+        fsql = "with f as (select gid,geom,gwad,ensemble,fdate from (select gid,geom,gwad,ensemble,fdate,row_number() over (partition by gid,ensemble order by gwad desc) as rn from {0}.dssat) gwadtable where rn=1)".format(self.name)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute(
@@ -638,7 +638,7 @@ class DSSAT:
         db.commit()
         cur.execute("update {0}.yield set std_yield = 0 where std_yield is null".format(self.name))
         cur.execute("alter table {0}.yield add primary key (gid)".format(self.name))
-        cur.execute("drop index {0}.yield_s".format(self.name))
+        cur.execute("drop index if exists {0}.yield_s".format(self.name))
         db.commit()
         cur.execute("create index yield_s on {0}.yield using gist(geom)".format(self.name))
         cur.close()
