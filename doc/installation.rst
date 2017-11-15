@@ -84,7 +84,14 @@ After that we can install everything by running
 
  ./bin/buildout
 
-The ``buildout`` script will install the ``PostgresQL`` database along with the ``PostGIS`` extension, and create a database for the user. The script will also install some additional Python modules, and build the ``VIC`` hydrology model.
+The ``buildout`` script will install the ``PostgresQL`` database along with the ``PostGIS`` extension, and create a database for the user. The script will also install some additional Python modules, and build the ``VIC`` hydrology model. Before running this script you need to set two environment variables in order to access some NASA data, with your credentials from the `Earthdata data portal <https://earthdata.nasa.gov/>`_:
+
+.. highlight:: bash
+
+   ::
+
+   export EARTHDATA_USERNAME=yourusername
+   export EARTHDATA_PASSWORD=yourpassword
 
 After the script finishes you should have a ``rheas`` executable in your ``bin`` directory!
 

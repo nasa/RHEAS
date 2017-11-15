@@ -22,7 +22,7 @@ OUTVAR          OUT_DELTAH              %.4f    *       *
 OUTVAR          OUT_DELTACC             %.4f    *       *
 """
 
-wbTemplate = """OUTFILE         wb      8
+wbTemplate = """OUTFILE         wb      9
 OUTVAR          OUT_SNOWF               %.6f    *       *
 OUTVAR          OUT_RAINF               %.6f    *       *
 OUTVAR          OUT_EVAP                %.6f    *       *
@@ -31,6 +31,7 @@ OUTVAR          OUT_BASEFLOW            %.6f    *       *
 OUTVAR          OUT_SNOW_MELT           %.6f    *       *
 OUTVAR          OUT_REFREEZE            %.4f    *       *
 OUTVAR          OUT_PREC                %.6f    *       *
+OUTVAR          OUT_REL_HUMID           %.4f    *       *
 """
 
 surTemplate = """OUTFILE         sur     10

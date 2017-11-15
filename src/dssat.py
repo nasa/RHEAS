@@ -95,6 +95,7 @@ class DSSAT:
         self.endyear = endyear
         self.endmonth = endmonth
         self.endday = endday
+        self.cultivars = {}
         self.lat = []
         self.lon = []
         self.elev = []
@@ -214,7 +215,7 @@ class DSSAT:
         date_sql = "fdate>=date '{0}-{1}-{2}' and fdate<=date '{3}-{4}-{5}'".format(
             self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday)
         data = {}
-        varnames = ["shortwave", "longwave",
+        varnames = ["net_short", "net_long",
                     "soil_moist", "rainf", "tmax", "tmin"]
         if self.lai is not None:
             varnames.append("lai")
@@ -261,8 +262,8 @@ class DSSAT:
         cur.close()
         db.close()
         if "ensemble" in sqlvars:
-            weather = [np.vstack((data["shortwave"][e] + data["longwave"][e], data["tmax"][
-                                 e], data["tmin"][e], data["rainf"][e])).T for e in range(len(data["shortwave"]))]
+            weather = [np.vstack((data["net_short"][e] + data["net_long"][e], data["tmax"][
+                                 e], data["tmin"][e], data["rainf"][e])).T for e in range(len(data["net_short"]))]
             sm = [np.zeros((len(year), nlayers))] * len(data["soil_moist"])
             if self.lai is not None:
                 lai = dict(zip([date(year[i], month[i], day[i]) for i in range(
@@ -273,7 +274,7 @@ class DSSAT:
                         data["soil_moist"][e]) if layers[mi] == l + 1]
         else:
             weather = np.vstack(
-                (data["shortwave"] + data["longwave"], data["tmax"], data["tmin"], data["rainf"])).T
+                (data["net_short"] + data["net_long"], data["tmax"], data["tmin"], data["rainf"])).T
             if self.lai is not None:
                 lai = dict(zip([date(year[i], month[i], day[i])
                                 for i in range(len(year))], np.array(data["lai"]).T))
@@ -393,6 +394,7 @@ class DSSAT:
             sys.exit()
         profiles = self._sampleSoilProfiles(gid)
         profiles = [p[0] for p in profiles]
+        self.cultivars[gid] = []
         for ens in range(self.nens):
             sm = vsm[ens]
             fertilizers = fertildates
@@ -521,8 +523,7 @@ class DSSAT:
                     percent = toks[4]
                     if fertilizers is None:
                         if planting is not None:
-                            fertilizers = {(planting + timedelta(10)).strftime("%Y-%m-%d"): [
-                                amount, percent], (planting + timedelta(40)).strftime("%Y-%m-%d"): [amount, percent]}
+                            fertilizers = {planting.strftime("%Y-%m-%d"): [amount, percent]}
                     for f in fertilizers.keys():
                         dt = date(*map(int, f.split("-")))
                         try:
@@ -559,18 +560,19 @@ class DSSAT:
         """Retrieve Cultivar parameters for pixel and ensemble member."""
         db = dbio.connect(self.dbname)
         cur = db.cursor()
-        sql = "select p1,p2,p5,g2,g3,phint from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(
+        sql = "select p1,p2,p5,g2,g3,phint,name from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(
             self.name, ens + 1, gid)
         cur.execute(sql)
         if not bool(cur.rowcount):
-            sql = "select p1,p2,p5,g2,g3,phint from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(
+            sql = "select p1,p2,p5,g2,g3,phint,name from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(
                 self.name, ens + 1, gid)
             cur.execute(sql)
-        p1, p2, p5, g2, g3, phint = cur.fetchone()
+        p1, p2, p5, g2, g3, phint, cname = cur.fetchone()
         cultivar = "990002 MEDIUM SEASON    IB0001  {0:.1f} {1:.3f} {2:.1f} {3:.1f}  {4:.2f} {5:.2f}".format(
             p1, p2, p5, g2, g3, phint)
         cur.close()
         db.close()
+        self.cultivars[gid].append(cname)
         return cultivar
 
     def _interpolateSoilMoist(self, sm, depths, dz):
@@ -605,7 +607,7 @@ class DSSAT:
 
     def writeConfigFile(self, modelpath, nlayers, startdate, enddate):
         """Write DSSAT-ENKF config file."""
-        configfilename="ENKF_CONFIG.TXT"
+        configfilename = "ENKF_CONFIG.TXT"
         fout = open("{0}/{1}".format(modelpath, configfilename), 'w')
         fout.write("!Start_DOY_of_Simulation:\n{0}\n".format(
             int(startdate.strftime("%j"))))
@@ -621,17 +623,23 @@ class DSSAT:
 
     def _yieldTable(self):
         """Create table for crop yield statistics."""
+        fsql = "with f as (select gid,geom,gwad,ensemble,fdate from (select gid,geom,gwad,ensemble,fdate,row_number() over (partition by gid,ensemble order by gwad desc) as rn from {0}.dssat) gwadtable where rn=1)".format(self.name)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute(
             "select * from information_schema.tables where table_name='yield' and table_schema='{0}'".format(self.name))
-        if bool(cur.rowcount):
-            cur.execute("drop table {0}.yield".format(self.name))
-        sql = "create table {0}.yield as (with f as (select id, gid, geom, ensemble, max(gwad) as gwad from {0}.dssat group by id, gid, geom, ensemble) select id, gid, geom, max(gwad) as max_yield, avg(gwad) as avg_yield, stddev(gwad) as std_yield from f group by id, gid, geom)".format(self.name)
-        cur.execute(sql)
+        if not bool(cur.rowcount):
+            sql = "create table {0}.yield as ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
+            cur.execute(sql)
+        else:
+            cur.execute("delete from {0}.yield where fdate>='{1}-{2}-{3}' and fdate<='{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
+            sql = "insert into {0}.yield ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
+            cur.execute(sql)
         db.commit()
         cur.execute("update {0}.yield set std_yield = 0 where std_yield is null".format(self.name))
-        cur.execute("alter table {0}.yield add primary key (id)".format(self.name))
+        cur.execute("alter table {0}.yield add primary key (gid)".format(self.name))
+        cur.execute("drop index if exists {0}.yield_s".format(self.name))
+        db.commit()
         cur.execute("create index yield_s on {0}.yield using gist(geom)".format(self.name))
         cur.close()
         db.close()
@@ -642,12 +650,12 @@ class DSSAT:
         cur = db.cursor()
         cur.execute(
             "select * from information_schema.tables where table_name='dssat' and table_schema='{0}'".format(self.name))
-        if bool(cur.rowcount):
-            cur.execute("drop table {0}.dssat".format(self.name))
-        cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
-        db.commit()
-        sql = "insert into {0}.dssat (fdate, gid, ensemble, gwad, wsgd, lai) values (%(dt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s)".format(
-            self.name)
+        if not bool(cur.rowcount):
+            cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
+            db.commit()
+        # overwrite overlapping dates
+        cur.execute("delete from {0}.dssat where fdate>=date'{1}-{2}-{3}' and fdate<=date'{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
+        sql = "insert into {0}.dssat (fdate, gid, ensemble, gwad, wsgd, lai) values (%(dt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s)".format(self.name)
         for gid, pi in modelpaths:
             modelpath = modelpaths[(gid, pi)]
             for e in range(self.nens):
@@ -660,9 +668,13 @@ class DSSAT:
                         dt = date(startdt.year, 1, 1) + \
                             timedelta(int(data[1]) - 1)
                         dts = "{0}-{1}-{2}".format(dt.year, dt.month, dt.day)
+                        if self.cultivars[gid][e] is None:
+                            cultivar = ""
+                        else:
+                            cultivar = self.cultivars[gid][e]
                         if float(data[9]) > 0.0:
                             cur.execute(sql, {'dt': dts, 'ens': e + 1, 'gwad': float(
-                                data[9]), 'wsgd': float(data[18]), 'lai': float(data[6]), 'gid': gid})
+                                data[9]), 'wsgd': float(data[18]), 'lai': float(data[6]), 'gid': gid, 'cultivar': cultivar})
         cur.execute(
             "update {0}.dssat as d set geom = a.geom from {0}.agareas as a where a.gid=d.gid".format(self.name))
         db.commit()
