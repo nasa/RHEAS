@@ -25,7 +25,7 @@ class Mock(MagicMock):
 
 MOCK_MODULES = ['argparse', 'numpy', 'pandas', 'psycopg2', 'scipy', 'scipy.linalg', 'netCDF4',
                 'scipy.stats', 'scipy.spatial', 'scipy.spatial.distance', 'GDAL', 'lxml', 'lxml.html',
-                'requests', 'h5py', 'osgeo', 'python-dateutil', 'dateutil', 'dateutil.relativedelta', 'requests.auth']
+                'requests', 'h5py', 'osgeo', 'python-dateutil', 'dateutil', 'dateutil.relativedelta', 'requests.auth', 'requests.exceptions']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,
