@@ -19,6 +19,7 @@ Contents:
    nowcast
    forecast
    api
+   tutorial
 
 
 
