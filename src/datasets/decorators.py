@@ -50,6 +50,7 @@ def http(fetch):
         filename = url.format(dt.year, dt.month, dt.day)
         try:
             lfilename = filename.split("/")[-1]
+            urllib.urlcleanup()
             urllib.urlretrieve(filename, "{0}/{1}".format(outpath, lfilename))
         except:
             lfilename = None
