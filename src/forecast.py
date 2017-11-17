@@ -61,6 +61,8 @@ def runVIC(dbname, options):
     for varname in savevars:
         raster.stddev(models.dbname, "{0}.{1}".format(
             models.name, varname))
+        raster.mean(models.dbname, "{0}.{1}".format(
+            models.name, varname))
     for e in range(nens):
         shutil.rmtree(models[e].model_path)
 

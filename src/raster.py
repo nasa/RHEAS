@@ -79,14 +79,13 @@ def mean(dbname, name):
     if _columnExists(cur, name, "ensemble"):
         cur.execute("select max(ensemble) from {0}".format(name))
         nens = cur.fetchone()[0]
-        ssql = "select fdate,st_mapalgebra(st_addband(null,array_agg(rast)),ARRAY{0},'st_mean4ma(float[][],text,text[])'::regprocedure) as rast from {1} group by fdate".format(
-            str(range(1, nens + 1)), name)
+        ssql = "select fdate,st_union(rast,'MEAN') as rast from {0} group by fdate".format(name)
         sql = "select * from information_schema.columns where table_schema='{0}' and table_name='{1}_mean'".format(
             schemaname, tablename)
         cur.execute(sql)
         if bool(cur.rowcount):
             cur.execute("drop table {0}_mean".format(name))
-        sql = "create table {0}_mean as ({1})".format(tablename, ssql)
+        sql = "create table {0}.{1}_mean as ({2})".format(schemaname, tablename, ssql)
         cur.execute(sql)
     else:
         log.warning("Cannot calculate ensemble average maps, no ensemble exists.")
