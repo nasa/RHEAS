@@ -11,6 +11,8 @@ import dbio
 import logging
 from osgeo import ogr
 from datetime import datetime
+import string
+import random
 
 
 def cropYield(shapefile, name, startdate="", enddate="", crop="maize", dbname="rheas"):
@@ -63,9 +65,64 @@ def saveVariable(filepath, name, varname, startdate="", enddate="", dbname="rhea
     directory, or as a CSV file with each column associated to a polygon of the
     *filepath* shapefile."""
     if filepath.endswith(".shp"):
-        pass
+        _saveTimeSeriesFromShapefile(filepath, name, varname, startdate, enddate, dbname)
     else:
         _saveRasters(filepath, name, varname, startdate, enddate, dbname)
+
+
+def _importShapefile(shapefile, dbname):
+    """Import shapefile into database *dbname*."""
+    db = dbio.connect(dbname)
+    cur = db.cursor()
+    tablename = ''.join(random.choice(string.ascii_lowercase) for _ in range(6))
+    sql = "create table {0} (gid serial)".format(tablename)
+    cur.execute(sql)
+    cur.execute("select addgeometrycolumn('{0}', 'geom', 4326, 'POLYGON', 2)".format(tablename))
+    ds = ogr.Open(shapefile)
+    lyr = ds.GetLayer()
+    for feat in lyr:
+        geom = feat.GetGeometryRef()
+        sql = "insert into {0} (geom) values (st_geometryfromtext('{1}', 4326))".format(tablename, geom.ExportToWkt())
+        cur.execute(sql)
+    ds.Destroy()
+    db.commit()
+    cur.close()
+    db.close()
+    return tablename
+
+
+def _saveTimeSeriesFromShapefile(filepath, name, varname, startdate, enddate, dbname):
+    """Extract geophysical variable *varname* from *dbname*, averaging for each date
+    between *startdate* and *enddate* over polygons derived from *filepath*
+    shapefile."""
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    log = logging.getLogger(__name__)
+    tablename = _importShapefile(filepath, dbname)
+    db = dbio.connect(dbname)
+    cur = db.cursor()
+    cur.execute("select distinct(gid) from {0}".format(tablename))
+    results = cur.fetchall()
+    npolygons = len(results)
+    sql = "select gid,fdate,(st_summarystats(rast)).mean as mean from {0}.{1},{2} where st_intersects(rast,geom)".format(name, varname, tablename)
+    try:
+        sdt = datetime.strptime(startdate, "%Y-%m-%d")
+        edt = datetime.strptime(enddate, "%Y-%m-%d")
+        sql += " and fdate>=date'{0}' and fdate<=date'{1} group by gid,fdate,rast order by gid,fdate".format(sdt.strftime("%Y-%m-%d"), edt.strftime("%Y-%m-%d"))
+    except ValueError:
+        sql += " group by gid,fdate,rast order by fdate,gid"
+        log.warning("Start and/or end dates were invalid. Ignoring...")
+    cur.execute(sql)
+    results = cur.fetchall()
+    csvfile = filepath.replace(".shp", ".csv")
+    with open(csvfile, 'w') as fout:
+        fout.write("date,{0}".format(",".join(["p{0}".format(i+1) for i in range(npolygons)])))
+        for res in results:
+            if res[0] == 1:
+                fout.write("\n{0},{1:f}".format(res[1].strftime("%Y-%m-%d"), res[2]))
+            else:
+                fout.write(",{0:f}".format(res[2]))
+    cur.close()
+    db.close()
 
 
 def _saveRasters(filepath, name, varname, startdate, enddate, dbname):
