@@ -5,6 +5,7 @@
 
 from scipy.interpolate import griddata
 from collections import OrderedDict
+from osgeo import gdal
 import numpy as np
 
 
@@ -47,8 +48,8 @@ def create_mask(lats, lons, nres):
     for c in range(len(lats)):
         i1 = int((yn[0] - lats[c] - res/2) / nres)
         i2 = int((yn[0] - lats[c] + res/2) / nres)
-        j1 = int((lons[c] - res/2 - xn[0]) / nres)
-        j2 = int((lons[c] + res/2 - xn[0]) / nres)
+        j1 = int((lons[c] - res/2 - xn[0]) / nres) + 1
+        j2 = int((lons[c] + res/2 - xn[0]) / nres) + 1
         mask[i1:i2, j1:j2] = 1
     return mask, yn, xn
 
@@ -91,3 +92,40 @@ def resample_soil(minlat, maxlat, minlon, maxlon, nres, soilfile="../data/vic/gl
                             line += " {0}".format(rdata[k][l][i, j])
                     fout.write(line+"\n")
                     cellnum += 1
+
+
+def resample_snowbands(elevfile, soilfile, snowbandfile, nres, nbands=1):
+    """Resample elevation raster and generate VIC snowbands file."""
+    f = gdal.Open(elevfile)
+    xul, xres, _, yul, _, yres = f.GetGeoTransform()
+    dem = f.ReadAsArray()
+    f = None
+    with open(soilfile) as fin, open(snowbandfile, 'w') as fout:
+        for line in fin:
+            toks = line.split()
+            lat = float(toks[2])
+            lon = float(toks[3])
+            i1 = int((lat+nres/2 - yul) / yres)
+            i2 = int((lat-nres/2 - yul) / yres)
+            j1 = int((lon-nres/2 - xul) / xres)
+            j2 = int((lon+nres/2 - xul) / xres)
+            area = np.zeros(nbands)
+            elev = np.zeros(nbands)
+            dp = 100.0 / nbands
+            z = dem[i1:i2+1, j1:j2+1].ravel()
+            z = z[~np.isnan(z)]
+            for pi, p in enumerate(np.arange(0, 100, dp)):
+                k = np.where(np.logical_and(z >= np.percentile(z, p), z < np.percentile(z, p+dp)))[0]
+                if len(k) == 0:
+                    k = np.where(z < np.percentile(z, p+dp) + 0.1)  # add elevation tolerance to catch cases of entirely flat terrain
+                area[pi] = len(k) / float(len(z))
+                elev[pi] = np.mean(z[k])
+            area /= np.sum(area)
+            fout.write("{0}".format(int(toks[1])))
+            for b in range(nbands):
+                fout.write(" {0:f}".format(area[b]))
+            for b in range(nbands):
+                fout.write(" {0:f}".format(elev[b]))
+            for b in range(nbands):
+                fout.write(" {0:f}".format(area[b]))
+            fout.write("\n")
