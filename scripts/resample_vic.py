@@ -94,6 +94,44 @@ def resample_soil(minlat, maxlat, minlon, maxlon, nres, soilfile="../data/vic/gl
                     cellnum += 1
 
 
+def resample_vegetation(vegraster, soilfile, vegfile, nres):
+    """Resamples land cover raster and generates VIC vegetation file."""
+    f = gdal.Open(vegraster)
+    xul, xres, _, yul, _, yres = f.GetGeoTransform()
+    cls = f.ReadAsArray()
+    f = None
+    root_depths = {1: "0.300000 0.300000 0.700000 0.700000",
+                   2: "0.300000 0.300000 0.700000 0.700000",
+                   3: "0.300000 0.300000 0.700000 0.700000",
+                   4: "0.300000 0.300000 0.700000 0.700000",
+                   5: "0.300000 0.300000 0.700000 0.700000",
+                   6: "0.300000 0.600000 0.700000 0.400000",
+                   7: "0.300000 0.600000 0.700000 0.400000",
+                   8: "0.300000 0.700000 0.700000 0.300000",
+                   9: "0.300000 0.700000 0.700000 0.300000",
+                   10: "0.300000 0.800000 0.700000 0.200000",
+                   11: "0.300000 0.500000 0.700000 0.500000"}
+    with open(soilfile) as fin, open(vegfile, 'w') as fout:
+        for line in fin:
+            toks = line.split()
+            lat = float(toks[2])
+            lon = float(toks[3])
+            i1 = int((lat+nres/2 - yul) / yres)
+            i2 = int((lat-nres/2 - yul) / yres)
+            j1 = int((lon-nres/2 - xul) / xres)
+            j2 = int((lon+nres/2 - xul) / xres)
+            vegs = cls[i1:i2+1, j1:j2+1].ravel()
+            k = np.where(np.logical_and(vegs > 0, vegs < 12))[0]
+            if len(k) > 0:
+                vegc = vegs[k]
+                fout.write("{0} {1}\n".format(toks[1], len(np.unique(vegc))))
+                for c in np.unique(vegc):
+                    area = len(np.where(vegc == c)[0]) / float(len(vegc))
+                    fout.write("{0} {1:f} {2}\n".format(c, area, root_depths[c]))
+            else:
+                fout.write("{0} 0\n".format(toks[1]))
+
+
 def resample_snowbands(elevfile, soilfile, snowbandfile, nres, nbands=1):
     """Resample elevation raster and generate VIC snowbands file."""
     f = gdal.Open(elevfile)
