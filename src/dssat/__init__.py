@@ -101,20 +101,20 @@ class DSSAT:
         for ens in range(self.nens):
             filename = "{0}/WEATH{1:03d}.WTH".format(modelpath, ens + 1)
             fout = open(filename, 'w')
-            fout.write("*WEATHER DATA : {0}\n".format(name[:5].upper()))
-            fout.write("\n")
-            fout.write("@ INSI LAT LONG ELEV TAV AMP REFHT WNDHT\n")
+            fout.write("*WEATHER DATA : {0}\r\n".format(name[:5].upper()))
+            fout.write("\r\n")
+            fout.write("@ INSI LAT LONG ELEV TAV AMP REFHT WNDHT\r\n")
             tavg = np.mean(data[ens][:, 1:3])
-            fout.write("{0:6s} {1} {2} {3:.0f} {4:.1f} {5:.1f} {6:.1f} {7:.1f} \n".format(
+            fout.write("{0:6s} {1} {2} {3:.0f} {4:.1f} {5:.1f} {6:.1f} {7:.1f} \r\n".format(
                 name[:5].upper(), lat, lon, elev, tavg, -99.0, -99.0, -99.0))
-            fout.write("@DATE SRAD TMAX TMIN RAIN DEWP WIND PAR\n")
+            fout.write("@DATE SRAD TMAX TMIN RAIN DEWP WIND PAR\r\n")
             if ts is None or te is None:
                 ts = 0
                 te = len(data[ens])
             for p in range(ts, te):
                 datestr = str(int(year[p]))[-2:] + date(int(year[p]),
                                                         int(month[p]), int(day[p])).strftime("%j")
-                fout.write("{0}  {1:4.1f}  {2:4.1f}  {3:4.1f}  {4:4.1f}\n".format(
+                fout.write("{0}  {1:4.1f}  {2:4.1f}  {3:4.1f}  {4:4.1f}\r\n".format(
                     datestr, data[ens][p, 0] * 0.086400, data[ens][p, 1], data[ens][p, 2], data[ens][p, 3]))
             fout.close()
 
