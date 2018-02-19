@@ -8,7 +8,6 @@
 """
 
 from dssat import DSSAT
-# import logging
 
 
 class Model(DSSAT):
