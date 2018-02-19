@@ -15,7 +15,7 @@ import rpath
 import sys
 import os
 import shutil
-import distutils
+import distutils.core
 import numpy as np
 import subprocess
 from datetime import date, timedelta
@@ -445,7 +445,7 @@ class DSSAT:
                 else:
                     simstartdt = pdt
                 assert simstartdt >= vicstartdt
-                modelpath = self.modelspaths[(gid, pi)]
+                modelpath = self.modelpaths[(gid, pi)]
                 self.modelstart[(gid, pi)] = simstartdt
                 dz, smi = self.writeControlFile(modelpath, sm, depths, simstartdt, gid, self.lat[c], self.lon[c], pdt, None, None)
                 ti0 = [i for i in range(len(year)) if simstartdt == date(year[i], month[i], day[i])][0]
@@ -453,7 +453,7 @@ class DSSAT:
                     ti1 = [i for i in range(len(year)) if (planting[pi + 1] - timedelta(10)) == date(year[i], month[i], day[i])][0]
                 else:
                     ti1 = [i for i in range(len(year)) if (planting[pi] + timedelta(min(180, len(year) - (planting[pi] - date(self.startyear - 1, 12, 31)).days))) == date(year[i], month[i], day[i])][0]
-                self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c], ti0, ti1)
+                self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c])  #, ti0, ti1)
                 self.writeSoilMoist(modelpath, year, month, day, smi, dz)
                 self.writeLAI(modelpath, gid, viclai=vlai)
                 self.writeConfigFile(modelpath, smi.shape[1], simstartdt, date(year[ti1], month[ti1], day[ti1]))

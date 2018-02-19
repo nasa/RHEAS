@@ -80,18 +80,19 @@ class Model(DSSAT):
         fout.write("*PLANTING DETAILS\n")
         fout.write("   {0}     -99   4.4   4.4     S     R   61.    0.   7.0  -99.  -99. -99.0 -99.0   0.0\n".format(pdt.strftime("%Y%j")))
 
-    def _writeIrrigation(self, fout, irrigdates):
+    def _writeIrrigation(self, fout, irrigation):
         """Write irrigation details section in DSSAT control file."""
         fout.write("*IRRIGATION\n")
         fout.write("   1.000   30.   75.  -99. GS000 IR001   0.0\n")
-        for dt in irrigdates:
-            fout.write("   {0} IR001  00.0\n".format(dt.strftime("%y%j")))
+        for i, irrig in enumerate(irrigation):
+            fout.write("   {0} IR{1:03d} {2:4.1f}\n".format(irrig[0], i+1, irrig[1]))
 
-    def _writeFertilizer(self, fout, fertildates):
+    def _writeFertilizer(self, fout, fertilizers):
         """Write fertilizer section in DSSAT control file."""
         fout.write("*FERTILIZERS\n")
-        for dt in fertildates:
-            fout.write("   {0} FE001 AP001   30.   20.    0.    0.    0.    0.   -99\n".format(dt.strftime("%Y%j")))
+        for f, fert in enumerate(fertilizers):
+            dt, amount, percent = fert
+            fout.write("   {0} FE{1:03d} AP{1:03d}   {2:02d}.   {3:02d}.    0.    0.    0.    0.   -99\n".format(dt.strftime("%Y%j"), f+1, amount, percent))
 
     def _writeResidues(self, fout):
         """Write residues section in DSSAT control file."""
@@ -116,20 +117,18 @@ class Model(DSSAT):
     def _writeSoil(self, fout, prof, dz):
         """Write soil section in DSSAT control file."""
         fout.write("*SOIL\n")
-        fout.write(" AFPN930001  SCS         CL      180 Africa\n")
-        fout.write(" AF_LOC Africa          42.035 -92.630 Clayey, Clay-Loam\n")
-        for ln in range(len(prof) - 1):
-            fout.write(prof[ln] + "\n")
-            fout.write("\n")
-            for z in dz:
-                fout.write("{0:6.0f}   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0\n".format(z))
+        for ln in prof[:-1]:
+            fout.write(ln+"\n")
+        fout.write("\n")
+        for z in dz:
+            fout.write("{0:6.0f}   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0\n".format(z))
 
     def _writeCultivar(self, fout, cultivar):
         """Write cultivar information in DSSAT control file."""
         fout.write("*CULTIVAR\n")
         fout.write(cultivar)
 
-    def writeControlFile(self, modelpath, vsm, depths, startdate, gid, lat, lon, planting, fertildates, irrigdates):
+    def writeControlFile(self, modelpath, vsm, depths, startdate, gid, lat, lon, planting, fertilizers, irrigation):
         """Writes DSSAT control file for specific pixel."""
         if isinstance(vsm, list):
             vsm = (vsm * (int(self.nens / len(vsm)) + 1))[:self.nens]
@@ -140,9 +139,9 @@ class Model(DSSAT):
         self.cultivars[gid] = []
         for ens in range(self.nens):
             sm = vsm[ens]
-            fertilizers = fertildates
-            irrigation = irrigdates
-            prof = profiles[ens].split("\n")
+            fertilizers = [(startdate, 30, 20)] if fertilizers is None else fertilizers
+            irrigation = [(startdate, 0.0)] if irrigation is None else irrigation
+            prof = profiles[ens].split("\r\n")
             dz = map(lambda ln: float(ln.split()[0]), profiles[ens].split("\n")[3:-1])
             smi = self.interpolateSoilMoist(sm, depths, dz)
             cultivar = self.cultivar(ens, gid)
@@ -154,7 +153,7 @@ class Model(DSSAT):
                 self._writeExpDetails(fout)
                 self._writeTreatments(fout)
                 self._writeCultivars(fout)
-                self._writeFields(fout)
+                self._writeFields(fout, lat, lon)
                 self._writeInitialConditions(fout, startdate, dz, smi)
                 self._writePlanting(fout, planting)
                 self._writeIrrigation(fout, irrigation)
