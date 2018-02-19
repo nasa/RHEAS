@@ -13,7 +13,11 @@ import decimal
 import dbio
 import rpath
 import sys
+import os
+import shutil
+import distutils
 import numpy as np
+import subprocess
 from datetime import date, timedelta
 import string
 
@@ -30,6 +34,7 @@ class DSSAT:
         self.endyear = endyear
         self.endmonth = endmonth
         self.endday = endday
+        self.crop = None
         self.cultivars = {}
         self.lat = []
         self.lon = []
@@ -41,6 +46,8 @@ class DSSAT:
         self.nens = nens
         self.shapefile = shapefile
         self.assimilate = assimilate
+        self.modelpaths = {}
+        self.modelstart = {}
         try:
             self.grid_decimal = - \
                 (decimal.Decimal(self.res).as_tuple().exponent - 1)
@@ -111,7 +118,7 @@ class DSSAT:
                     datestr, data[ens][p, 0] * 0.086400, data[ens][p, 1], data[ens][p, 2], data[ens][p, 3]))
             fout.close()
 
-    def _readVICOutputFromFile(self, lat, lon, depths, filespath):
+    def readVICOutputFromFile(self, lat, lon, depths, filespath):
         """Read DSSAT inputs from VIC output files for a specific pixel."""
         startdate = date(self.startyear, self.startmonth, self.startday)
         enddate = date(self.endyear, self.endmonth, self.endday)
@@ -139,7 +146,7 @@ class DSSAT:
                         for i in range(len(year)) if i in tidx], vicsr[:, 12]))
         return year[tidx], month[tidx], day[tidx], weather[tidx, :], sm[tidx, :], lai
 
-    def _readVICOutputFromDB(self, gid, depths):
+    def readVICOutputFromDB(self, gid, depths):
         """Read DSSAT inputs from database."""
         startdate = date(self.startyear, self.startmonth, self.startday)
         enddate = date(self.endyear, self.endmonth, self.endday)
@@ -228,7 +235,7 @@ class DSSAT:
             inputs = inputs[:self.nens]
             lat, lon = self.gid[gid]
         if self.datafrom == 'db':
-            year, month, day, weather, sm, lai = self._readVICOutputFromDB(
+            year, month, day, weather, sm, lai = self.readVICOutputFromDB(
                 gid, depths)
         else:
             log.error("VIC output was not saved in the database. Cannot proceed with the DSSAT simulation.")
@@ -291,7 +298,7 @@ class DSSAT:
             fout.write("{0}\n".format(doy))
         fout.close()
 
-    def _sampleSoilProfiles(self, gid):
+    def sampleSoilProfiles(self, gid):
         """Samples soil profiles from database to be used in DSSAT control file."""
         db = dbio.connect(self.dbname)
         cur = db.cursor()
@@ -326,7 +333,7 @@ class DSSAT:
         fout.close()
         return configfilename
 
-    def _calcCroplandFract(self):
+    def calcCroplandFract(self):
         """Calculate fraction of cropland for specific pixel."""
         db = dbio.connect(self.dbname)
         cur = db.cursor()
@@ -338,4 +345,225 @@ class DSSAT:
         db.close()
         return fract
 
+    def cultivar(self, ens, gid):  # lat, lon):
+        """Retrieve Cultivar parameters for pixel and ensemble member."""
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        sql = "select p1,p2,p5,g2,g3,phint,name from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(self.name, ens + 1, gid)
+        cur.execute(sql)
+        if not bool(cur.rowcount):
+            sql = "select p1,p2,p5,g2,g3,phint,name from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(self.name, ens + 1, gid)
+            cur.execute(sql)
+        p1, p2, p5, g2, g3, phint, cname = cur.fetchone()
+        cultivar = "990002 MEDIUM SEASON    IB0001  {0:.1f} {1:.3f} {2:.1f} {3:.1f}  {4:.2f} {5:.2f}".format(p1, p2, p5, g2, g3, phint)
+        cur.close()
+        db.close()
+        self.cultivars[gid].append(cname)
+        return cultivar
 
+    def readShapefile(self):
+        """Read areas from shapefile where DSSAT will be run."""
+        log = logging.getLogger(__name__)
+        try:
+            cmd = "{0}/shp2pgsql -s 4326 -d -I -g geom {1} {2}.agareas | {0}/psql -d {3}".format(rpath.bins, self.shapefile, self.name, self.dbname)
+            subprocess.call(cmd, shell=True)
+            db = dbio.connect(self.dbname)
+            cur = db.cursor()
+            sql = "select gid, st_x(st_centroid(geom)), st_y(st_centroid(geom)) from {0}.agareas".format(self.name)
+            cur.execute(sql)
+            geoms = cur.fetchall()
+            return geoms
+        except IOError:
+            log.error("Shapefile {0} for DSSAT simulation does not exist. Exiting...".format(
+                self.shapefile))
+            sys.exit()
+
+    def planting(self, lat, lon, fromShapefile=False):
+        """Retrieve planting dates for pixel."""
+        if self.crop is None:
+            crop = "maize"
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        sql = "select st_value(rast,st_geomfromtext('POINT({0} {1})',4326)) as doy from crops.plantstart where type like '{2}' and st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)) order by doy".format(
+            lon, lat, crop)
+        cur.execute(sql)
+        results = cur.fetchall()
+        plantdates = [date(self.startyear, 1, 1) + timedelta(r[0] - 1) for r in results if r[0] is not None]
+        cur.close()
+        db.close()
+        startdt = date(self.startyear, self.startmonth, self.startday)
+        planting = [p for p in plantdates if p >= startdt and p <= date(self.endyear, self.endmonth, self.endday)]
+        if planting is []:
+            planting = [plantdates[np.argmax([(t - startdt).days for t in plantdates if (t - startdt).days < 0])]]
+        return planting
+
+    def interpolateSoilMoist(self, sm, depths, dz):
+        """Estimate soil moisture at DSSAT depths."""
+        sm_i = []
+        if len(sm.shape) < 2:
+            sm = np.reshape(sm, (1, len(sm)))
+        for t in range(sm.shape[0]):
+            u = sm[t, :] / np.array(depths * 1000.0)
+            z = [100.0 * depths[0] / 2.0]
+            for lyr in range(1, len(u)):
+                # midpoint of each layer in cm
+                z.append(100.0 * (depths[lyr - 1] + depths[lyr] / 2.0))
+            dz1 = [0.0] + list(dz)
+            znew = np.array([dz1[i] + (dz1[i + 1] - dz1[i]) /
+                             2.0 for i in range(len(dz1) - 1)])
+            unew = np.interp(znew, z, u)
+            sm_i.append(unew)
+        return np.array(sm_i)
+
+    def copyModelFiles(self, geom, pi, dssatexe):
+        """Copy DSSAT model files to instance's directory."""
+        gid, lat, lon = geom
+        modelpath = os.path.abspath("{0}/{1}_{2}_{3}".format(self.path, lat, lon, pi))
+        self.modelpaths[(gid, pi)] = modelpath
+        os.mkdir(modelpath)
+        os.mkdir(modelpath + "/ENKF_Results")
+        shutil.copyfile(dssatexe, "{0}/DSSAT_Ex.exe".format(modelpath))
+        distutils.dir_util.copy_tree("{0}/dssat".format(rpath.data), modelpath)
+
+    def setupModelInstance(self, geom, dssatexe):
+        """Setup parameters and write input files for a DSSAT model instance
+        over a specific geometry."""
+        log = logging.getLogger(__name__)
+        gid, lon, lat = geom
+        c = np.argmin(np.sqrt((lat - self.lat) **
+                              2 + (lon - self.lon) ** 2))
+        # use the soil depths from the nearest VIC pixel to the centroid
+        depths = np.array(self.depths[c])
+        year, month, day, weather, sm, vlai = self.readVICOutput(gid, depths)
+        vicstartdt = date(year[0], month[0], day[0])
+        planting = self.planting(lat, lon)
+        for pi, pdt in enumerate(planting[:1]):
+            self.copyModelFiles(geom, pi, dssatexe)
+            try:
+                if pdt > date(pdt.year, 1, 8):
+                    simstartdt = pdt - timedelta(7)
+                else:
+                    simstartdt = pdt
+                assert simstartdt >= vicstartdt
+                modelpath = self.modelspaths[(gid, pi)]
+                self.modelstart[(gid, pi)] = simstartdt
+                dz, smi = self.writeControlFile(modelpath, sm, depths, simstartdt, gid, self.lat[c], self.lon[c], pdt, None, None)
+                ti0 = [i for i in range(len(year)) if simstartdt == date(year[i], month[i], day[i])][0]
+                if pi + 1 < len(planting):
+                    ti1 = [i for i in range(len(year)) if (planting[pi + 1] - timedelta(10)) == date(year[i], month[i], day[i])][0]
+                else:
+                    ti1 = [i for i in range(len(year)) if (planting[pi] + timedelta(min(180, len(year) - (planting[pi] - date(self.startyear - 1, 12, 31)).days))) == date(year[i], month[i], day[i])][0]
+                self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c], ti0, ti1)
+                self.writeSoilMoist(modelpath, year, month, day, smi, dz)
+                self.writeLAI(modelpath, gid, viclai=vlai)
+                self.writeConfigFile(modelpath, smi.shape[1], simstartdt, date(year[ti1], month[ti1], day[ti1]))
+                log.info("Wrote DSSAT for planting date {0}".format(pdt.strftime("%Y-%m-%d")))
+            except AssertionError:
+                log.error("No input data for DSSAT corresponding to starting date {0}. Need to run VIC for these dates. Exiting...".format(simstartdt.strftime('%Y-%m-%d')))
+
+    def runModelInstance(self, modelpath):
+        """Runs DSSAT model instance."""
+        log = logging.getLogger(__name__)
+        os.chdir(modelpath)
+        if bool(self.assimilate):
+            if str(self.assimilate).lower() is "sm":
+                sm_assim = "Y"
+                lai_assim = "N"
+            elif str(self.assimilate).lower() is "lai":
+                sm_assim = "N"
+                lai_assim = "Y"
+            else:
+                sm_assim = lai_assim = "Y"
+            proc = subprocess.Popen(["wine", "DSSAT_Ex.exe", "SOIL_MOISTURE.ASC", "LAI.txt", "SM{0}".format(sm_assim), "LAI{0}".format(lai_assim)])
+            out, err = proc.communicate()
+            log.debug(out)
+        else:
+            for ens in range(self.nens):
+                proc = subprocess.Popen(["wine", "DSSAT_Ex.exe", "D", "DSSAT{0}_{1:3d}.INP".format(self.nens, ens+1)])
+                out, err = proc.communicate()
+                log.debug(out)
+                os.rename("PlantGro.OUT", "PLANTGRO{0:03d}.OUT".format(ens+1))
+
+    def save(self):
+        """Saves DSSAT output to database."""
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        cur.execute(
+            "select * from information_schema.tables where table_name='dssat' and table_schema='{0}'".format(self.name))
+        if not bool(cur.rowcount):
+            cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
+            db.commit()
+        # overwrite overlapping dates
+        cur.execute("delete from {0}.dssat where fdate>=date'{1}-{2}-{3}' and fdate<=date'{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
+        sql = "insert into {0}.dssat (fdate, gid, ensemble, gwad, wsgd, lai) values (%(dt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s)".format(self.name)
+        for gid, pi in self.modelpaths:
+            modelpath = self.modelpaths[(gid, pi)]
+            startdt = self.modelstart[(gid, pi)]
+            for e in range(self.nens):
+                with open("{0}/PLANTGRO{1:03d}.OUT".format(modelpath, e + 1)) as fin:
+                    line = fin.readline()
+                    while line.find("YEAR") < 0:
+                        line = fin.readline()
+                    for line in fin:
+                        data = line.split()
+                        dt = date(startdt.year, 1, 1) + \
+                            timedelta(int(data[1]) - 1)
+                        dts = "{0}-{1}-{2}".format(dt.year, dt.month, dt.day)
+                        if self.cultivars[gid][e] is None:
+                            cultivar = ""
+                        else:
+                            cultivar = self.cultivars[gid][e]
+                        if float(data[9]) > 0.0:
+                            cur.execute(sql, {'dt': dts, 'ens': e + 1, 'gwad': float(
+                                data[9]), 'wsgd': float(data[18]), 'lai': float(data[6]), 'gid': gid, 'cultivar': cultivar})
+        cur.execute(
+            "update {0}.dssat as d set geom = a.geom from {0}.agareas as a where a.gid=d.gid".format(self.name))
+        db.commit()
+        cur.execute("drop index if exists {0}.d_t".format(self.name))
+        cur.execute("drop index if exists {0}.d_s".format(self.name))
+        cur.execute(
+            "create index d_t on {0}.dssat(fdate)".format(self.name))
+        cur.execute(
+            "create index d_s on {0}.dssat using gist(geom)".format(self.name))
+        db.commit()
+        cur.close()
+        db.close()
+        self.yieldTable()
+
+    def yieldTable(self):
+        """Create table for crop yield statistics."""
+        fsql = "with f as (select gid,geom,gwad,ensemble,fdate from (select gid,geom,gwad,ensemble,fdate,row_number() over (partition by gid,ensemble order by gwad desc) as rn from {0}.dssat) gwadtable where rn=1)".format(self.name)
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        cur.execute(
+            "select * from information_schema.tables where table_name='yield' and table_schema='{0}'".format(self.name))
+        if not bool(cur.rowcount):
+            sql = "create table {0}.yield as ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
+            cur.execute(sql)
+        else:
+            cur.execute("delete from {0}.yield where fdate>='{1}-{2}-{3}' and fdate<='{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
+            sql = "insert into {0}.yield ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
+            cur.execute(sql)
+        db.commit()
+        cur.execute("update {0}.yield set std_yield = 0 where std_yield is null".format(self.name))
+        cur.execute("alter table {0}.yield add primary key (gid)".format(self.name))
+        cur.execute("drop index if exists {0}.yield_s".format(self.name))
+        db.commit()
+        cur.execute("create index yield_s on {0}.yield using gist(geom)".format(self.name))
+        cur.close()
+        db.close()
+
+    def run(self, dssatexe, crop_threshold=0.1):
+        """Runs DSSAT simulation."""
+        dssatexe = "{0}/DSSAT_EnKF.exe".format(rpath.bins) if bool(self.assimilate) else "{0}/DSSAT_Ex.exe".format(rpath.bins) 
+        self.readVICSoil()
+        geoms = self.readShapefile()
+        cropfract = self.calcCroplandFract()
+        for geom in geoms:
+            gid = geom[0]
+            if cropfract[gid] >= crop_threshold:
+                self.setupModelInstance(geom, dssatexe)
+        for k in self.modelpaths:
+            modelpath = self.modelpaths[k]
+            self.runModelInstance(modelpath)
+        self.save()
