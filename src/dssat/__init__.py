@@ -461,7 +461,7 @@ class DSSAT:
             except AssertionError:
                 log.error("No input data for DSSAT corresponding to starting date {0}. Need to run VIC for these dates. Exiting...".format(simstartdt.strftime('%Y-%m-%d')))
 
-    def runModelInstance(self, modelpath):
+    def runModelInstance(self, modelpath, exe):
         """Runs DSSAT model instance."""
         log = logging.getLogger(__name__)
         os.chdir(modelpath)
@@ -472,17 +472,11 @@ class DSSAT:
             elif str(self.assimilate).lower() is "lai":
                 sm_assim = "N"
                 lai_assim = "Y"
-            else:
-                sm_assim = lai_assim = "Y"
-            proc = subprocess.Popen(["wine", "DSSAT_Ex.exe", "SOIL_MOISTURE.ASC", "LAI.txt", "SM{0}".format(sm_assim), "LAI{0}".format(lai_assim)])
-            out, err = proc.communicate()
-            log.debug(out)
         else:
-            for ens in range(self.nens):
-                proc = subprocess.Popen(["wine", "DSSAT_Ex.exe", "D", "DSSAT{0}_{1:3d}.INP".format(self.nens, ens+1)])
-                out, err = proc.communicate()
-                log.debug(out)
-                os.rename("PlantGro.OUT", "PLANTGRO{0:03d}.OUT".format(ens+1))
+            sm_assim = lai_assim = "Y"
+        proc = subprocess.Popen(["wine", exe, "SOIL_MOISTURE.ASC", "LAI.txt", "SM{0}".format(sm_assim), "LAI{0}".format(lai_assim)])
+        out, err = proc.communicate()
+        log.debug(out)
 
     def save(self):
         """Saves DSSAT output to database."""
@@ -553,9 +547,9 @@ class DSSAT:
         cur.close()
         db.close()
 
-    def run(self, dssatexe, crop_threshold=0.1):
+    def run(self, exe="DSSAT_EnKF.exe", crop_threshold=0.1):
         """Runs DSSAT simulation."""
-        dssatexe = "{0}/DSSAT_EnKF.exe".format(rpath.bins) if bool(self.assimilate) else "{0}/DSSAT_Ex.exe".format(rpath.bins) 
+        dssatexe = "{0}/{1}".format(rpath.bins, exe)
         self.readVICSoil()
         geoms = self.readShapefile()
         cropfract = self.calcCroplandFract()
@@ -565,5 +559,5 @@ class DSSAT:
                 self.setupModelInstance(geom, dssatexe)
         for k in self.modelpaths:
             modelpath = self.modelpaths[k]
-            self.runModelInstance(modelpath)
+            self.runModelInstance(modelpath, exe)
         self.save()

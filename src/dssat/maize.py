@@ -8,6 +8,7 @@
 """
 
 from dssat import DSSAT
+from datetime import timedelta
 
 
 class Model(DSSAT):
@@ -37,10 +38,12 @@ class Model(DSSAT):
         fout.write("                   R     R     R     N     M\r\n")
         fout.write("                   Y     Y     Y     1     Y     N     Y     Y     N     N     D     N     N\r\n")
 
-    def _writeAutomaticMgmt(self, fout):
+    def _writeAutomaticMgmt(self, fout, startdate):
         """Write automatic management section in DSSAT control file."""
+        t0 = startdate - timedelta(3)
+        t1 = t0 + timedelta(14)
         fout.write("!AUTOMATIC MANAGEM\r\n")
-        fout.write("               2009050 2009064   40.  100.   30.   40.   10\r\n")
+        fout.write("               {0} {1}   40.  100.   30.   40.   10\r\n".format(t0.strftime("%Y%j"), t1.strftime("%Y%j")))
         fout.write("                 30.   50.  100. GS000 IR001  10.0 1.000\r\n")
         fout.write("                 30.   50.   25. FE001 GS000\r\n")
         fout.write("                100.     1   20.\r\n")
@@ -70,7 +73,7 @@ class Model(DSSAT):
     def _writeInitialConditions(self, fout, startdate, dz, smi):
         """Write initial condition section in DSSAT control file."""
         fout.write("*INITIAL CONDITIONS\r\n")
-        fout.write("   MZ    2009032  100.    0.  1.00  1.00   0.0  1000  0.80  0.00  100.   15.\r\n".format(startdate.strftime("%y%j")))
+        fout.write("   MZ    {0}  100.    0.  1.00  1.00   0.0  1000  0.80  0.00  100.   15.\r\n".format(startdate.strftime("%Y%j")))
         for lyr in range(len(dz)):
             fout.write("{0:8.0f}{1:8.3f}{2:8.1f}{3:8.1f}\r\n".format(dz[lyr], smi[0, lyr], 0.5, 0.1))
 
@@ -84,7 +87,7 @@ class Model(DSSAT):
         fout.write("*IRRIGATION\r\n")
         fout.write("   1.000   30.   75.  -99. GS000 IR001   0.0\r\n")
         for i, irrig in enumerate(irrigation):
-            fout.write("   {0} IR{1:03d} {2:4.1f}\r\n".format(irrig[0], i+1, irrig[1]))
+            fout.write("   {0} IR{1:03d} {2:4.1f}\r\n".format(irrig[0].strftime("%Y%j"), i+1, irrig[1]))
 
     def _writeFertilizer(self, fout, fertilizers):
         """Write fertilizer section in DSSAT control file."""
@@ -148,7 +151,7 @@ class Model(DSSAT):
             with open(filename, 'w') as fout:
                 self._writeFileNames(fout, ens)
                 self._writeSimulationControl(fout, startdate)
-                self._writeAutomaticMgmt(fout)
+                self._writeAutomaticMgmt(fout, startdate)
                 self._writeExpDetails(fout)
                 self._writeTreatments(fout)
                 self._writeCultivars(fout)
