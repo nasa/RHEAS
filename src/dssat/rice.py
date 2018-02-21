@@ -13,11 +13,12 @@ import rpath
 import logging
 import subprocess
 import os
+import dbio
 
 
 class Model(DSSAT):
 
-    def _writeFileNames(fout, ens):
+    def _writeFileNames(self, fout, ens):
         """Write file name section in DSSAT control file."""
         fout.write("*MODEL INPUT FILE            B     1     1     5   999     0\r\n")
         fout.write("*FILES\r\n")
@@ -134,9 +135,26 @@ class Model(DSSAT):
         fout.write("*CULTIVAR\r\n")
         fout.write(cultivar)
 
+    def cultivar(self, ens, gid):
+        """Retrieve Cultivar parameters for pixel and ensemble member."""
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        sql = "select p1,p2r,p5,p2o,g1,g2,g3,g4,name from dssat.cultivars as c,{0}.agareas as a where crop='rice' and ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(self.name, ens + 1, gid)
+        cur.execute(sql)
+        if not bool(cur.rowcount):
+            sql = "select p1,p2r,p5,p2o,g1,g2,g3,g4,name from dssat.cultivars as c,{0}.agareas as a where crop='rice' and ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(self.name, ens + 1, gid)
+            cur.execute(sql)
+        p1, p2r, p5, p2o, g1, g2, g3, g4, cname = cur.fetchone()
+        # FIXME: Should the name of the cultivar be reflected in the line below?
+        cultivar = "IB0012 IR 58            IB0001 {0:.1f}   {1:.1f} {2:.1f}  {3:.1f}  {4:.1f} {5:.4f} {6:.2f} {7:.2f}".format(p1, p2r, p5, p2o, g1, g2, g3, g4)
+        cur.close()
+        db.close()
+        self.cultivars[gid].append(cname)
+        return cultivar
+
     def writeControlFile(self, modelpath, vsm, depths, startdate, gid, lat, lon, planting, fertilizers, irrigation):
         """Writes DSSAT control file for specific pixel."""
-        startdate.replace(2009)  # Temporary fix for weird DSSAT bug that crashes when year is after 2010
+        startdate = startdate.replace(2009)  # Temporary fix for weird DSSAT bug that crashes when year is after 2010
         if isinstance(vsm, list):
             vsm = (vsm * (int(self.nens / len(vsm)) + 1))[:self.nens]
         else:
@@ -179,6 +197,11 @@ class Model(DSSAT):
         dssatexe = "{0}/DSSAT_Ex.exe".format(rpath.bins)
         return super(Model, self).run(exe=dssatexe)
 
+    def setupModelInstance(self, geom, dssatexe):
+        """Overrides setting up parameters and writing input files for a DSSAT model instance
+        over a specific geometry."""
+        return super(Model, self).setupModelInstance(geom, "DSSAT_Ex.exe")
+
     def runModelInstance(self, modelpath):
         """Override run function of DSSAT model instance."""
         log = logging.getLogger(__name__)
@@ -191,4 +214,4 @@ class Model(DSSAT):
 
     def writeWeatherFiles(self, modelpath, name, year, month, day, weather, elev, lat, lon, ts=None, te=None):
         """Overrides writing ensemble weather files for specific pixel."""
-        return super(Model, self).writeWeatherFiles(modelpath, name, 2009, month, day, weather, elev, lat, lon)
+        return super(Model, self).writeWeatherFiles(modelpath, name, [2009]*len(month), month, day, weather, elev, lat, lon)

@@ -40,6 +40,15 @@ def addCultivar(dbname, shapefile, params, nens=40, crop="maize"):
                             e + 1, ",".join(["{0}={1}".format(k, params[c][k]) for k in params[c]]))
                         cur.execute(sql)
                         e += 1
+                elif crop == "rice" and all(p in params[c] for p in ['p1', 'p2r', 'p5', 'p2o', 'g1', 'g2', 'g3', 'g4']):
+                    if e < nens:
+                        sql = "insert into dssat.cultivars (geom) (select geom from {0})".format(
+                            temptable)
+                        cur.execute(sql)
+                        sql = "update dssat.cultivars set ensemble={0},{1} where ensemble is null".format(
+                            e + 1, ",".join(["{0}={1}".format(k, params[c][k]) for k in params[c]]))
+                        cur.execute(sql)
+                        e += 1
                 else:
                     print("Missing parameters for {0} crop".format(crop))
                     params.pop(c)  # remove element with missing parameters

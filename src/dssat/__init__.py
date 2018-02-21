@@ -22,7 +22,7 @@ from datetime import date, timedelta
 import string
 
 
-class DSSAT:
+class DSSAT(object):
 
     def __init__(self, dbname, name, resolution, startyear, startmonth, startday,
                  endyear, endmonth, endday, nens, vicopts, shapefile=None, assimilate=True):
@@ -344,22 +344,6 @@ class DSSAT:
         cur.close()
         db.close()
         return fract
-
-    def cultivar(self, ens, gid):  # lat, lon):
-        """Retrieve Cultivar parameters for pixel and ensemble member."""
-        db = dbio.connect(self.dbname)
-        cur = db.cursor()
-        sql = "select p1,p2,p5,g2,g3,phint,name from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(self.name, ens + 1, gid)
-        cur.execute(sql)
-        if not bool(cur.rowcount):
-            sql = "select p1,p2,p5,g2,g3,phint,name from dssat.cultivars as c,{0}.agareas as a where ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(self.name, ens + 1, gid)
-            cur.execute(sql)
-        p1, p2, p5, g2, g3, phint, cname = cur.fetchone()
-        cultivar = "990002 MEDIUM SEASON    IB0001  {0:.1f} {1:.3f} {2:.1f} {3:.1f}  {4:.2f} {5:.2f}".format(p1, p2, p5, g2, g3, phint)
-        cur.close()
-        db.close()
-        self.cultivars[gid].append(cname)
-        return cultivar
 
     def readShapefile(self):
         """Read areas from shapefile where DSSAT will be run."""

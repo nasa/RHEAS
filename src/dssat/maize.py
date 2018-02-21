@@ -9,6 +9,7 @@
 
 from dssat import DSSAT
 from datetime import timedelta
+import dbio
 
 
 class Model(DSSAT):
@@ -129,6 +130,23 @@ class Model(DSSAT):
         """Write cultivar information in DSSAT control file."""
         fout.write("*CULTIVAR\r\n")
         fout.write(cultivar)
+
+    def cultivar(self, ens, gid):
+        """Retrieve Cultivar parameters for pixel and ensemble member."""
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        sql = "select p1,p2,p5,g2,g3,phint,name from dssat.cultivars as c,{0}.agareas as a where crop='maize' and ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(self.name, ens + 1, gid)
+        cur.execute(sql)
+        if not bool(cur.rowcount):
+            sql = "select p1,p2,p5,g2,g3,phint,name from dssat.cultivars as c,{0}.agareas as a where crop='maize' and ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(self.name, ens + 1, gid)
+            cur.execute(sql)
+        p1, p2, p5, g2, g3, phint, cname = cur.fetchone()
+        # FIXME: Should the name of the cultivar be reflected in the line below?
+        cultivar = "990002 MEDIUM SEASON    IB0001  {0:.1f} {1:.3f} {2:.1f} {3:.1f}  {4:.2f} {5:.2f}".format(p1, p2, p5, g2, g3, phint)
+        cur.close()
+        db.close()
+        self.cultivars[gid].append(cname)
+        return cultivar
 
     def writeControlFile(self, modelpath, vsm, depths, startdate, gid, lat, lon, planting, fertilizers, irrigation):
         """Writes DSSAT control file for specific pixel."""
