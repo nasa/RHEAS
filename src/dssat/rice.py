@@ -136,6 +136,7 @@ class Model(DSSAT):
 
     def writeControlFile(self, modelpath, vsm, depths, startdate, gid, lat, lon, planting, fertilizers, irrigation):
         """Writes DSSAT control file for specific pixel."""
+        startdate.replace(2009)  # Temporary fix for weird DSSAT bug that crashes when year is after 2010
         if isinstance(vsm, list):
             vsm = (vsm * (int(self.nens / len(vsm)) + 1))[:self.nens]
         else:
@@ -187,3 +188,7 @@ class Model(DSSAT):
             out, err = proc.communicate()
             log.debug(out)
             os.rename("PlantGro.OUT", "PLANTGRO{0:03d}.OUT".format(ens+1))
+
+    def writeWeatherFiles(self, modelpath, name, year, month, day, weather, elev, lat, lon, ts=None, te=None):
+        """Overrides writing ensemble weather files for specific pixel."""
+        return super(Model, self).writeWeatherFiles(modelpath, name, 2009, month, day, weather, elev, lat, lon)

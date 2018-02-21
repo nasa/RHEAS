@@ -422,7 +422,7 @@ class DSSAT:
         self.modelpaths[(gid, pi)] = modelpath
         os.mkdir(modelpath)
         os.mkdir(modelpath + "/ENKF_Results")
-        shutil.copyfile(dssatexe, "{0}/DSSAT_Ex.exe".format(modelpath))
+        shutil.copyfile("{0}/{1}".format(rpath.bins, dssatexe), "{0}/{1}".format(modelpath, dssatexe))
         distutils.dir_util.copy_tree("{0}/dssat".format(rpath.data), modelpath)
 
     def setupModelInstance(self, geom, dssatexe):
@@ -461,7 +461,7 @@ class DSSAT:
             except AssertionError:
                 log.error("No input data for DSSAT corresponding to starting date {0}. Need to run VIC for these dates. Exiting...".format(simstartdt.strftime('%Y-%m-%d')))
 
-    def runModelInstance(self, modelpath, exe):
+    def runModelInstance(self, modelpath, dssatexe):
         """Runs DSSAT model instance."""
         log = logging.getLogger(__name__)
         os.chdir(modelpath)
@@ -474,7 +474,7 @@ class DSSAT:
                 lai_assim = "Y"
         else:
             sm_assim = lai_assim = "Y"
-        proc = subprocess.Popen(["wine", exe, "SOIL_MOISTURE.ASC", "LAI.txt", "SM{0}".format(sm_assim), "LAI{0}".format(lai_assim)])
+        proc = subprocess.Popen(["wine", dssatexe, "SOIL_MOISTURE.ASC", "LAI.txt", "SM{0}".format(sm_assim), "LAI{0}".format(lai_assim)])
         out, err = proc.communicate()
         log.debug(out)
 
@@ -547,9 +547,8 @@ class DSSAT:
         cur.close()
         db.close()
 
-    def run(self, exe="DSSAT_EnKF.exe", crop_threshold=0.1):
+    def run(self, dssatexe="DSSAT_EnKF.exe", crop_threshold=0.1):
         """Runs DSSAT simulation."""
-        dssatexe = "{0}/{1}".format(rpath.bins, exe)
         self.readVICSoil()
         geoms = self.readShapefile()
         cropfract = self.calcCroplandFract()
@@ -559,5 +558,5 @@ class DSSAT:
                 self.setupModelInstance(geom, dssatexe)
         for k in self.modelpaths:
             modelpath = self.modelpaths[k]
-            self.runModelInstance(modelpath, exe)
+            self.runModelInstance(modelpath, dssatexe)
         self.save()
