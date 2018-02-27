@@ -36,7 +36,7 @@ def addCultivar(dbname, shapefile, params, nens=40, crop="maize"):
                         sql = "insert into dssat.cultivars (geom) (select geom from {0})".format(
                             temptable)
                         cur.execute(sql)
-                        sql = "update dssat.cultivars set ensemble={0},{1} where ensemble is null".format(
+                        sql = "update dssat.cultivars set crop='maize',ensemble={0},{1} where ensemble is null".format(
                             e + 1, ",".join(["{0}={1}".format(k, params[c][k]) for k in params[c]]))
                         cur.execute(sql)
                         e += 1
@@ -45,7 +45,7 @@ def addCultivar(dbname, shapefile, params, nens=40, crop="maize"):
                         sql = "insert into dssat.cultivars (geom) (select geom from {0})".format(
                             temptable)
                         cur.execute(sql)
-                        sql = "update dssat.cultivars set ensemble={0},{1} where ensemble is null".format(
+                        sql = "update dssat.cultivars set crop='rice',ensemble={0},{1} where ensemble is null".format(
                             e + 1, ",".join(["{0}={1}".format(k, params[c][k]) for k in params[c]]))
                         cur.execute(sql)
                         e += 1
