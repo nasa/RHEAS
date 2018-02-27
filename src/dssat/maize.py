@@ -186,3 +186,14 @@ class Model(DSSAT):
                 self._writeSoil(fout, prof, dz)
                 self._writeCultivar(fout, cultivar)
         return dz, smi
+
+    def yieldTable(self):
+        """Create table for crop yield statistics and crop type."""
+        super(Model, self).yieldTable()
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        sql = "update {0}.yield set crop='maize' where crop is null".format(self.name)
+        cur.execute(sql)
+        db.commit()
+        cur.close()
+        db.close()

@@ -518,13 +518,14 @@ class DSSAT(object):
         if not bool(cur.rowcount):
             sql = "create table {0}.yield as ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
             cur.execute(sql)
+            cur.execute("alter table {0}.yield add column crop text".format(self.name))
+            cur.execute("alter table {0}.yield add primary key (gid)".format(self.name))
         else:
             cur.execute("delete from {0}.yield where fdate>='{1}-{2}-{3}' and fdate<='{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
             sql = "insert into {0}.yield ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
             cur.execute(sql)
         db.commit()
         cur.execute("update {0}.yield set std_yield = 0 where std_yield is null".format(self.name))
-        cur.execute("alter table {0}.yield add primary key (gid)".format(self.name))
         cur.execute("drop index if exists {0}.yield_s".format(self.name))
         db.commit()
         cur.execute("create index yield_s on {0}.yield using gist(geom)".format(self.name))

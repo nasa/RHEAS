@@ -146,7 +146,7 @@ class Model(DSSAT):
             cur.execute(sql)
         p1, p2r, p5, p2o, g1, g2, g3, g4, cname = cur.fetchone()
         # FIXME: Should the name of the cultivar be reflected in the line below?
-        cultivar = "IB0012 IR 58            IB0001 {0:.1f}   {1:.1f} {2:.1f}  {3:.1f}  {4:.1f} {5:.4f} {6:.2f} {7:.2f}".format(p1, p2r, p5, p2o, g1, g2, g3, g4)
+        cultivar = "IB0012 IR 58            IB0001{0:6.1f}{1:6.1f}{2:6.1f}{3:6.1f}{4:6.1f}{5:6.4f}{6:6.2f}{7:6.2f}".format(p1, p2r, p5, p2o, g1, g2, g3, g4)
         cur.close()
         db.close()
         self.cultivars[gid].append(cname)
@@ -155,6 +155,7 @@ class Model(DSSAT):
     def writeControlFile(self, modelpath, vsm, depths, startdate, gid, lat, lon, planting, fertilizers, irrigation):
         """Writes DSSAT control file for specific pixel."""
         startdate = startdate.replace(2009)  # Temporary fix for weird DSSAT bug that crashes when year is after 2010
+        planting = planting.replace(2009)
         if isinstance(vsm, list):
             vsm = (vsm * (int(self.nens / len(vsm)) + 1))[:self.nens]
         else:
@@ -202,12 +203,13 @@ class Model(DSSAT):
         over a specific geometry."""
         return super(Model, self).setupModelInstance(geom, "DSSAT_Ex.exe")
 
-    def runModelInstance(self, modelpath):
+    def runModelInstance(self, modelpath, dssatexe):
         """Override run function of DSSAT model instance."""
         log = logging.getLogger(__name__)
+        dssatexe = "DSSAT_Ex.exe"
         os.chdir(modelpath)
         for ens in range(self.nens):
-            proc = subprocess.Popen(["wine", "DSSAT_Ex.exe", "D", "DSSAT{0}_{1:3d}.INP".format(self.nens, ens+1)])
+            proc = subprocess.Popen(["wine", dssatexe, "D", "DSSAT{0}_{1:03d}.INP".format(self.nens, ens+1)])
             out, err = proc.communicate()
             log.debug(out)
             os.rename("PlantGro.OUT", "PLANTGRO{0:03d}.OUT".format(ens+1))
@@ -215,3 +217,14 @@ class Model(DSSAT):
     def writeWeatherFiles(self, modelpath, name, year, month, day, weather, elev, lat, lon, ts=None, te=None):
         """Overrides writing ensemble weather files for specific pixel."""
         return super(Model, self).writeWeatherFiles(modelpath, name, [2009]*len(month), month, day, weather, elev, lat, lon)
+
+    def yieldTable(self):
+        """Create table for crop yield statistics and crop type."""
+        super(Model, self).yieldTable()
+        db = dbio.connect(self.dbname)
+        cur = db.cursor()
+        sql = "update {0}.yield set crop='rice' where crop is null".format(self.name)
+        cur.execute(sql)
+        db.commit()
+        cur.close()
+        db.close()
