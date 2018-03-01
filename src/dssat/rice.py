@@ -196,7 +196,7 @@ class Model(DSSAT):
     def run(self):
         "Override executable for DSSAT rice model."
         dssatexe = "{0}/DSSAT_Ex.exe".format(rpath.bins)
-        return super(Model, self).run(exe=dssatexe)
+        return super(Model, self).run(dssatexe=dssatexe)
 
     def setupModelInstance(self, geom, dssatexe):
         """Overrides setting up parameters and writing input files for a DSSAT model instance
