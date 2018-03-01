@@ -162,6 +162,7 @@ def runEnsembleVIC(dbname, options):
 
 def runDSSAT(dbname, options):
     """Driver function for performing a DSSAT nowcast simulation"""
+    log = logging.getLogger(__name__)
     startyear, startmonth, startday = map(
         int, options['nowcast']['startdate'].split('-'))
     endyear, endmonth, endday = map(
@@ -169,7 +170,6 @@ def runDSSAT(dbname, options):
     res = float(options['nowcast']['resolution'])
     nens = int(options['dssat']['ensemble size'])
     name = options['nowcast']['name'].lower()
-    dssatexe = "{0}/DSSAT_Ex.exe".format(rpath.bins)
     if 'shapefile' in options['dssat']:
         shapefile = options['dssat']['shapefile']
     else:
@@ -178,9 +178,17 @@ def runDSSAT(dbname, options):
         assimilate = options['dssat']['assimilate']
     else:
         assimilate = "Y"
-    model = dssat.DSSAT(dbname, name, res, startyear, startmonth, startday,
-                        endyear, endmonth, endday, nens, options['vic'], shapefile, assimilate)
-    model.run(dssatexe)
+    try:
+        crops = options['dssat']['crop'].split(",")
+        for crop in crops:
+            crop = crop.strip()
+            mod = __import__("dssat.{0}".format(crop), fromlist=[crop])
+            model = mod.Model(dbname, name, res, startyear, startmonth, startday,
+                              endyear, endmonth, endday, nens, options['vic'], shapefile, assimilate)
+            model.run()
+    except:
+        log.error("Error in crop selected.")
+        sys.exit()
 
 
 def execute(dbname, options):
