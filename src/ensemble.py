@@ -275,7 +275,8 @@ class Ensemble:
             forcings['precip'])
         cur.execute(sql)
         years = map(lambda y: int(y[0]), cur.fetchall())
-        years.remove(max(years))
+        if len(years) > 1:
+            years.remove(max(years))
         cur.close()
         db.close()
         statefiles = []

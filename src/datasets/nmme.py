@@ -119,6 +119,12 @@ def download(dbname, dts, bbox=None):
             f.extractall(outpath, filenames)
             for filename in filenames:
                 dt = datetime.strptime(filename.split("_")[-1][1:-4], "%Y%m%d")
+                if varname == "Temperature":
+                    # convert from Kelvin to Celsius
+                    proc = subprocess.Popen(["gdal_calc.py", "-A", "{0}/{1}".format(outpath, filename), "--calc=A-273.15", "--outfile={0}/C{1}".format(outpath, filename)])
+                    out, err = proc.communicate()
+                    log.debug(out)
+                    filename = "C" + filename
                 ingest(dbname, varname, "{0}/{1}".format(outpath, filename), dt, e+1)
             os.remove(configfile)
     shutil.rmtree(outpath)
@@ -166,8 +172,9 @@ def _getForcings(options, models, res):
     sql = "select distinct(date_part('year',fdate)) from tmax.{0}".format(rtables['tmax'])
     cur.execute(sql)
     years = [r[0] for r in cur.fetchall()]
-    years.remove(min(years))
-    years.remove(max(years))
+    if len(years) > 2:
+        years.remove(min(years))
+        years.remove(max(years))
     if len(years) > 0:
         ndays = (datetime(models.endyear, models.endmonth, models.endday) - datetime(models.startyear, models.startmonth, models.startday)).days
         yr = int(np.random.choice(years))

@@ -10,7 +10,6 @@
 import vic
 import config
 import ensemble
-import dssat
 import sys
 import tempfile
 import shutil
@@ -186,7 +185,7 @@ def runDSSAT(dbname, options):
             model = mod.Model(dbname, name, res, startyear, startmonth, startday,
                               endyear, endmonth, endday, nens, options['vic'], shapefile, assimilate)
             model.run()
-    except:
+    except Exception:
         log.error("Error in crop selected.")
         sys.exit()
 
