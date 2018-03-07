@@ -456,8 +456,10 @@ class DSSAT(object):
             elif str(self.assimilate).lower() is "lai":
                 sm_assim = "N"
                 lai_assim = "Y"
+            else:
+                sm_assim = lai_assim = "Y"
         else:
-            sm_assim = lai_assim = "Y"
+            sm_assim = lai_assim = "N"
         proc = subprocess.Popen(["wine", dssatexe, "SOIL_MOISTURE.ASC", "LAI.txt", "SM{0}".format(sm_assim), "LAI{0}".format(lai_assim)])
         out, err = proc.communicate()
         log.debug(out)
