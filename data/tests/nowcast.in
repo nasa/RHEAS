@@ -17,4 +17,5 @@ initialize: off
 [dssat]
 ensemble size: 40
 shapefile: ${buildout:directory}/data/tests/basin.shp
+crop: maize
 

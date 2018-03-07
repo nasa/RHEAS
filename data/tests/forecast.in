@@ -1,7 +1,7 @@
 [forecast]
 model: vic
-startdate: 2012-3-1
-enddate: 2012-3-31
+startdate: 2011-4-1
+enddate: 2011-4-30
 name: basin
 basin:  ${buildout:directory}/data/tests/basin.shp
 resolution: 0.25
@@ -20,4 +20,4 @@ initialize: random
 [dssat]
 ensemble size: 40
 shapefile: ${buildout:directory}/data/tests/basin.shp
-
+crop: maize

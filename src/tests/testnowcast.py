@@ -22,7 +22,6 @@ class testNowcast(unittest.TestCase):
         """Create dummy database for testing."""
         dbname = "testdb"
         tests.database.createDatabase(dbname)
-        tests.database.ingestTables(dbname)
 
     @classmethod
     def tearDownClass(cls):
@@ -64,7 +63,7 @@ class testNowcast(unittest.TestCase):
     def testDeterministicDSSAT(self):
         """Test deterministic nowcast DSSAT simulation."""
         self.options['nowcast']['model'] = 'vic, dssat'
-        self.options['nowcast']['startdate'] = "2011-2-21"
+        self.options['nowcast']['startdate'] = "2011-1-21"
         self.options['nowcast']['enddate'] = "2011-4-30"
         nowcast.execute(self.dbname, self.options)
 
