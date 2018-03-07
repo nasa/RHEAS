@@ -7,6 +7,5 @@
 
 """
 
-from testdatasets import testDatasets
 from testnowcast import testNowcast
 from testforecast import testForecast
