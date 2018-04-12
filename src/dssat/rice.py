@@ -154,8 +154,9 @@ class Model(DSSAT):
 
     def writeControlFile(self, modelpath, vsm, depths, startdate, gid, lat, lon, planting, fertilizers, irrigation):
         """Writes DSSAT control file for specific pixel."""
-        startdate = startdate.replace(2009)  # Temporary fix for weird DSSAT bug that crashes when year is after 2010
-        planting = planting.replace(2009)
+        fix_year = 2008 if startdate.year % 4 == 0 else 2009
+        startdate = startdate.replace(fix_year)  # Temporary fix for weird DSSAT bug that crashes when year is after 2010
+        planting = planting.replace(fix_year)
         if isinstance(vsm, list):
             vsm = (vsm * (int(self.nens / len(vsm)) + 1))[:self.nens]
         else:
@@ -216,7 +217,8 @@ class Model(DSSAT):
 
     def writeWeatherFiles(self, modelpath, name, year, month, day, weather, elev, lat, lon, ts=None, te=None):
         """Overrides writing ensemble weather files for specific pixel."""
-        return super(Model, self).writeWeatherFiles(modelpath, name, [2009]*len(month), month, day, weather, elev, lat, lon)
+        fix_year = [2008 if y % 4 == 0 else 2009 for y in year]
+        return super(Model, self).writeWeatherFiles(modelpath, name, fix_year, month, day, weather, elev, lat, lon)
 
     def yieldTable(self):
         """Create table for crop yield statistics and crop type."""

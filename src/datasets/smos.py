@@ -57,7 +57,6 @@ def download(dbname, dt, bbox=None):
         filename = dbio.writeGeotif(lat, lon, res, sm[tj, :, :])
         t = t0 + timedelta(ti[tj])
         dbio.ingest(dbname, filename, t, table, False)
-        log.info("Imported SMOS {0}".format(tj))
         os.remove(filename)
 
 

@@ -89,7 +89,7 @@ class VIC:
     def _getSnowbands(self, snowbands):
         """Find number of snow bands from file."""
         filename = "{0}/{1}".format(rpath.data, snowbands)
-        with file(filename) as f:
+        with open(filename) as f:
             line = f.readline()
         return int((len(line.split()) - 1) / 3)
 
