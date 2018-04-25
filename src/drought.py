@@ -16,6 +16,13 @@ import dbio
 import logging
 
 
+def _clipToValidRange(data):
+    """Clip data series to valid intervals for drought index values."""
+    valid_min = -3.09
+    valid_max = 3.09
+    return np.clip(data, valid_min, valid_max)
+
+
 def _movingAverage(data, n):
     """Calculate the moving average from a time series."""
     out = np.cumsum(data)
@@ -44,6 +51,7 @@ def calcSRI(duration, model, cid):
         sri = stats.norm.ppf(cdf)
         sri[np.isnan(sri)] = 0.0
         sri[np.isinf(sri)] = 0.0
+        sri = _clipToValidRange(sri)
     return sri
 
 
@@ -69,6 +77,7 @@ def calcSPI(duration, model, cid):
         spi = stats.norm.ppf(cdf)
         spi[np.isnan(spi)] = 0.0
         spi[np.isinf(spi)] = 0.0
+        spi = _clipToValidRange(spi)
     return spi
 
 
