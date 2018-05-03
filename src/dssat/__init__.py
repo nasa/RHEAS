@@ -426,7 +426,7 @@ class DSSAT(object):
         year, month, day, weather, sm, vlai = self.readVICOutput(gid, depths)
         vicstartdt = date(year[0], month[0], day[0])
         planting = self.planting(lat, lon)
-        for pi, pdt in enumerate(planting[:1]):
+        for pi, pdt in enumerate(planting):
             self.copyModelFiles(geom, pi, dssatexe)
             try:
                 if pdt > date(pdt.year, 1, 8):
@@ -438,11 +438,13 @@ class DSSAT(object):
                 self.modelstart[(gid, pi)] = simstartdt
                 dz, smi = self.writeControlFile(modelpath, sm, depths, simstartdt, gid, self.lat[c], self.lon[c], pdt, None, None)
                 ti0 = [i for i in range(len(year)) if simstartdt == date(year[i], month[i], day[i])][0]
-                if pi + 1 < len(planting):
-                    ti1 = [i for i in range(len(year)) if (planting[pi + 1] - timedelta(10)) == date(year[i], month[i], day[i])][0]
-                else:
-                    ti1 = [i for i in range(len(year)) if (planting[pi] + timedelta(min(180, len(year) - (planting[pi] - date(self.startyear - 1, 12, 31)).days))) == date(year[i], month[i], day[i])][0]
-                self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c])  #, ti0, ti1)
+                # FIXME: instead of 180 days perhaps use information from harvest dates to define the simulation end date?
+                harvest_days = 180
+                ti1 = ti0 + harvest_days
+                if ti1 > len(year):
+                    log.warning("Inadequate record legnth in VIC data to ensure harvest for {0} planting date! Plant will not reach maturity and yield values will be invalid. Please extent VIC simulation to at least {1}!".format(pdt.strftime("%y-%m-%d"), (pdt+timedelta(harvest_days)).strftime("%y-%m-%d")))
+                    ti1 = len(year)-1
+                self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c], ti0, ti1)
                 self.writeSoilMoist(modelpath, year, month, day, smi, dz)
                 self.writeLAI(modelpath, gid, viclai=vlai)
                 self.writeConfigFile(modelpath, smi.shape[1], simstartdt, date(year[ti1], month[ti1], day[ti1]))
