@@ -372,7 +372,12 @@ class DSSAT(object):
             lon, lat, crop)
         cur.execute(sql)
         results = cur.fetchall()
-        plantdates = [date(self.startyear, 1, 1) + timedelta(r[0] - 1) for r in results if r[0] is not None]
+        # if this is a multi-year simulation append planting dates for each successive year
+        plantdates = []
+        for yr in range(self.startyear, self.endyear+1):
+            for r in results:
+                if r[0] is not None:
+                    plantdates.append(date(yr, 1, 1) + timedelta(r[0] - 1))
         cur.close()
         db.close()
         startdt = date(self.startyear, self.startmonth, self.startday)
