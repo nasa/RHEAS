@@ -493,8 +493,11 @@ class DSSAT(object):
                         line = fin.readline()
                     for line in fin:
                         data = line.split()
-                        dt = date(startdt.year, 1, 1) + \
-                            timedelta(int(data[1]) - 1)
+                        doy = int(data[1])
+                        if startdt.timetuple().tm_yday > doy:
+                            dt = date(startdt.year + 1, 1, 1) + timedelta(doy-1)
+                        else:
+                            dt = date(startdt.year, 1, 1) + timedelta(doy-1)
                         dts = "{0}-{1}-{2}".format(dt.year, dt.month, dt.day)
                         if self.cultivars[gid][e] is None:
                             cultivar = ""
