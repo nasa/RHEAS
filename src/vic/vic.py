@@ -289,7 +289,7 @@ class VIC:
         fout.write("MOISTFRACT\tFALSE\n")
         fout.write(
             "COMPRESS\tFALSE\nALMA_OUTPUT\tFALSE\nPTR_HEADER\tFALSE\nPRT_SNOW_BAND\tFALSE\n")
-        fout.write(vicoutput.template(["eb", "wb", "sub", "sur", "csp"]))
+        fout.write(vicoutput.template(["eb", "wb", "sub", "sur", "csp", "eva"]))
         fout.close()
 
     def createIndexTable(self, dataset):

@@ -56,7 +56,7 @@ OUTVAR          OUT_SMFROZFRAC  %.4f    *       *
 OUTVAR          OUT_SOIL_WET    %.4f    *       *
 """
 
-evaTemplate = """OUTFILE         eva     8
+evaTemplate = """OUTFILE         eva     9
 OUTVAR          OUT_EVAP_CANOP  %.6f    *       *
 OUTVAR          OUT_TRANSP_VEG  %.6f    *       *
 OUTVAR          OUT_EVAP_BARE   %.6f    *       *
@@ -65,6 +65,7 @@ OUTVAR          OUT_WDEW        %.4f    *       *
 OUTVAR          OUT_SUB_SNOW    %.6f    *       *
 OUTVAR          OUT_SUB_CANOP   %.6f    *       *
 OUTVAR          OUT_AERO_COND   %.4f    *       *
+OUTVAR          OUT_PAR         %.4f    *       *
 """
 
 cspTemplate = """OUTFILE         csp     5
