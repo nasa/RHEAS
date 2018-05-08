@@ -191,6 +191,7 @@ def calcSeverity(model, cid, varname="soil_moist"):
     cur.execute(sql)
     results = cur.fetchall()
     p = pandas.Series([r[1] for r in results], np.array([r[0] for r in results], dtype='datetime64'))
+    p = p.rolling('10D').mean()  # calculate percentiles with dekad rolling mean
     st = "{0}-{1}-{2}".format(model.startyear, model.startmonth, model.startday)
     et = "{0}-{1}-{2}".format(model.endyear, model.endmonth, model.endday)
     s = 100.0 - np.array([stats.percentileofscore(p.values, v) for v in p[st:et]])
