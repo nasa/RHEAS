@@ -450,7 +450,7 @@ class VIC:
     def readOutput(self, args):
         """Reads VIC output for selected variables."""
         log = logging.getLogger(__name__)
-        droughtvars = ["spi1", "spi3", "spi6", "spi12", "sri1", "sri3", "sri6", "sri12", "severity", "dryspells", "smdi"]
+        droughtvars = ["spi1", "spi3", "spi6", "spi12", "sri1", "sri3", "sri6", "sri12", "severity", "dryspells", "smdi", "cdi"]
         layervars = ["soil_moist", "soil_temp", "smliqfrac", "smfrozfrac"]
         outvars = self.getOutputStruct(self.model_path + "/global.txt")
         outdata = {}
