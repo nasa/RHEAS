@@ -127,7 +127,7 @@ def calcSRI(duration, model, cid):
     else:
         db = dbio.connect(model.dbname)
         cur = db.cursor()
-        sql = "select fdate,st_value(rast,geom) from {0}.runoff, {0}.basin where st_intersects(rast,geom) and gid={1} and fdate>=date'{2}-{3}-{4} and fdate<=date'{5}-{6}-{7} order by fdate"
+        sql = "select fdate,st_value(rast,geom) from {0}.runoff, {0}.basin where st_intersects(rast,geom) and gid={1} and fdate>=date'{2}-{3}-{4}' and fdate<=date'{5}-{6}-{7}' order by fdate".format(model.name, cid, model.startyear, model.startmonth, model.startday, model.endyear, model.endmonth, model.endday)
         cur.execute(sql)
         results = cur.fetchall()
         p = pandas.Series([r[1] for r in results], np.array([r[0] for r in results], dtype='datetime64'))
@@ -160,7 +160,7 @@ def calcSPI(duration, model, cid):
     else:
         db = dbio.connect(model.dbname)
         cur = db.cursor()
-        sql = "select fdate,st_value(rast,geom) from {0}.rainf, {0}.basin where st_intersects(rast,geom) and gid={1} and fdate>=date'{2}-{3}-{4} and fdate<=date'{5}-{6}-{7} order by fdate".format(model.name, cid, model.startyear, model.startmonth, model.startday, model.endyear, model.endmonth, model.endday)
+        sql = "select fdate,st_value(rast,geom) from {0}.rainf, {0}.basin where st_intersects(rast,geom) and gid={1} and fdate>=date'{2}-{3}-{4}' and fdate<=date'{5}-{6}-{7}' order by fdate".format(model.name, cid, model.startyear, model.startmonth, model.startday, model.endyear, model.endmonth, model.endday)
         cur.execute(sql)
         results = cur.fetchall()
         p = pandas.Series([r[1] for r in results], np.array([r[0] for r in results], dtype='datetime64'))
@@ -235,7 +235,7 @@ def calcDrySpells(model, cid, droughtfun=np.mean, duration=14, recovduration=2):
     # FIXME: Currently only uses precipitation to identify dry spells. Need to change it to also use soil moisture and runoff
     db = dbio.connect(model.dbname)
     cur = db.cursor()
-    sql = "select fdate,st_value(rast,geom) from {0}.rainf, {0}.basin where st_intersects(rast,geom) and gid={1} and fdate>=date'{2}-{3}-{4} and fdate<=date'{5}-{6}-{7} order by fdate".format(model.name, cid, model.startyear, model.startmonth, model.startday, model.endyear, model.endmonth, model.endday)
+    sql = "select fdate,st_value(rast,geom) from {0}.rainf, {0}.basin where st_intersects(rast,geom) and gid={1} and fdate>=date'{2}-{3}-{4}' and fdate<=date'{5}-{6}-{7}' order by fdate".format(model.name, cid, model.startyear, model.startmonth, model.startday, model.endyear, model.endmonth, model.endday)
     cur.execute(sql)
     results = cur.fetchall()
     p = pandas.Series([r[1] for r in results], np.array([r[0] for r in results], dtype='datetime64'))
