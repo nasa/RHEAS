@@ -387,7 +387,7 @@ class VIC:
                  date(self.startyear, self.startmonth, self.startday)).days + 1
         try:
             assert len(prec) == len(self.lat) * ndays and len(tmax) == len(self.lat) * ndays and len(tmin) == len(self.lat) * ndays and len(wind) == len(self.lat) * ndays
-        except:
+        except AssertionError:
             log.error("Missing meteorological data in database for VIC simulation. Exiting...")
             sys.exit()
         cgid = None
@@ -416,9 +416,8 @@ class VIC:
         if not os.path.exists(self.model_path + '/output'):
             os.mkdir(self.model_path + '/output')
         proc = subprocess.Popen([vicexec, "-g", "{0}/global.txt".format(self.model_path)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        out, err = proc.communicate()
-        log.debug(out)
-        # subprocess.call("{0} -g {1}/global.txt".format(vicexec, self.model_path), shell=True)
+        for line in iter(proc.stdout.readline, ''):
+            log.debug(line.strip())
 
     def getOutputStruct(self, globalfile):
         """Creates a dictionary with output variable-file pairs."""
