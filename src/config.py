@@ -169,7 +169,7 @@ def getVICvariables(options):
             savevars.append('par')
         if any(v in savevars for v in ['drought', 'spi']) and 'rainf' not in savevars:
             savevars.append('rainf')
-        if any(v in savevars for v in ['drought', 'sri']) and 'runoff' not in savevars:
+        if any(v in savevars for v in ['drought', 'severity', 'sri']) and 'runoff' not in savevars:
             savevars.append('runoff')
         if 'observations' in options['vic']:
             obsnames = options['vic']['observations'].split(",")
