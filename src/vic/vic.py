@@ -447,7 +447,7 @@ class VIC:
         self.skipyear = skipyear
         return out
 
-    def readOutput(self, args):
+    def saveToDB(self, args, initialize=True, skipsave=0):
         """Reads VIC output for selected variables."""
         log = logging.getLogger(__name__)
         droughtvars = ["spi1", "spi3", "spi6", "spi12", "sri1", "sri3", "sri6", "sri12", "severity", "dryspells", "smdi", "cdi"]
@@ -464,45 +464,34 @@ class VIC:
                 for var in args:
                     if var in outvars or var in droughtvars:
                         if var in layervars:
-                            outdata[var] = np.zeros(
-                                (nt, self.nlayers, nrows, ncols)) + self.nodata
+                            outdata[var] = np.zeros((nt, self.nlayers, nrows, ncols)) + self.nodata
                         else:
-                            outdata[var] = np.zeros(
-                                (nt, 1, nrows, ncols)) + self.nodata
+                            outdata[var] = np.zeros((nt, 1, nrows, ncols)) + self.nodata
                     else:
                         log.warning("Variable {0} not found in output files. Skipping import.".format(var))
-                prefix = set([outvars[v][0]
-                              for v in outdata.keys() if v not in droughtvars])
+                prefix = set([outvars[v][0] for v in outdata.keys() if v not in droughtvars])
+                startdate = "{0}-{1}-{2}".format(self.startyear, self.startmonth, self.startday)
+                enddate = "{0}-{1}-{2}".format(self.endyear, self.endmonth, self.endday)
+                dates = pandas.date_range(startdate, enddate).values
                 for c in range(len(self.lat)):
                     pdata = {}
                     for p in prefix:
-                        filename = "{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(
-                            self.model_path, p, self.lat[c], self.lon[c], self.grid_decimal)
-                        # pdata[p] = np.loadtxt(filename)
-                        pdata[p] = pandas.read_csv(
-                            filename, delim_whitespace=True, header=None).values
-                    i = int((max(self.lat) + self.res /
-                             2.0 - self.lat[c]) / self.res)
-                    j = int((self.lon[c] - min(self.lon) +
-                             self.res / 2.0) / self.res)
-                    for v in outdata:
+                        filename = "{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(self.model_path, p, self.lat[c], self.lon[c], self.grid_decimal)
+                        pdata[p] = pandas.read_csv(filename, delim_whitespace=True, header=None).values
+                    i = int((max(self.lat) + self.res / 2.0 - self.lat[c]) / self.res)
+                    j = int((self.lon[c] - min(self.lon) + self.res / 2.0) / self.res)
+                    for v in [v for v in outdata if v not in droughtvars]:
                         if v in layervars:
                             for lyr in range(self.nlayers):
-                                outdata[v][:, lyr, i, j] = pdata[
-                                    outvars[v][0]][:, outvars[v][1] + lyr]
-                        elif v in droughtvars:
-                            outdata[v][:, 0, i, j] = drought.calc(
-                                v, self, int(self.gid.keys()[c]))
+                                outdata[v][:, lyr, i, j] = pdata[outvars[v][0]][:, outvars[v][1] + lyr]
                         else:
-                            outdata[v][:, 0, i, j] = pdata[
-                                outvars[v][0]][:, outvars[v][1]]
+                            outdata[v][:, 0, i, j] = pdata[outvars[v][0]][:, outvars[v][1]]
                     log.info("Read output for {0}|{1}".format(self.lat[c], self.lon[c]))
-                dts = [date(self.startyear + self.skipyear, self.startmonth, self.startday) + timedelta(t) for t in range(nt)]
-                year = [t.year for t in dts]
-                month = [t.month for t in dts]
-                day = [t.day for t in dts]
-                outdata["date"] = np.array(
-                    [datetime(int(year[t]), int(month[t]), int(day[t])) for t in range(len(year))])
+                for var in args:
+                    if var in droughtvars:
+                        for c in range(len(self.lat)):
+                            outdata[var][:, 0, i, j] = drought.calc(var, self, int(self.gid.keys()[c]))
+                    self.writeToDB(outdata[var], dates, "{0}".format(var), initialize, skipsave=skipsave)
         else:
             log.info("No pixels simulated, not saving any output!")
         return outdata
@@ -596,11 +585,7 @@ class VIC:
     def save(self, saveto, args, initialize=True, skipsave=0):
         """Reads and saves selected output data variables into the database or a user-defined directory."""
         if saveto == "db":
-            output = self.readOutput(args)
-            for var in output:
-                if var != "date":
-                    self.writeToDB(output[var], output[
-                                   "date"], "{0}".format(var), initialize, skipsave=skipsave)
+            self.saveToDB(args, initialize=initialize, skipsave=skipsave)
         else:
             if initialize:
                 if os.path.isdir(saveto):

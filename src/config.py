@@ -159,10 +159,6 @@ def getVICvariables(options):
                     savevars.append(v)
             # if 'lai' in options['vic'] and not 'lai' in savevars:
             #     savevars.append('lai')
-        for dvar in ['sri', 'spi']:
-            if dvar in savevars:
-                savevars.remove(dvar)
-                savevars.extend(["{0}{1}".format(dvar, dur) for dur in (1, 3, 6, 12)])
         if any(v in savevars for v in ['drought', 'cdi', 'severity', 'smdi']) and 'soil_moist' not in savevars:
             savevars.insert(0, 'soil_moist')
         if any(v in savevars for v in ['drought', 'cdi']) and 'par' not in savevars:
@@ -171,6 +167,10 @@ def getVICvariables(options):
             savevars.insert(0, 'rainf')
         if any(v in savevars for v in ['drought', 'severity', 'sri']) and 'runoff' not in savevars:
             savevars.insert(0, 'runoff')
+        for dvar in ['sri', 'spi']:
+            if dvar in savevars:
+                savevars.remove(dvar)
+                savevars.extend(["{0}{1}".format(dvar, dur) for dur in (1, 3, 6, 12)])
         if 'observations' in options['vic']:
             obsnames = options['vic']['observations'].split(",")
             # FIXME: make this more dynamic by having the observation module
