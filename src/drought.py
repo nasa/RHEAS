@@ -55,14 +55,14 @@ def _calcSuctionHead(model, cid, nlayers=3):
         # convert into dekad averages
         d = sm.index.day - np.clip((sm.index.day-1) // 10, 0, 2)*10 - 1
         date = sm.index.values - np.array(d, dtype='timedelta64[D]')
-        sm = sm.groupby(date).mean()
+        sm_dekad = sm.groupby(date).mean()
         # calculate soil suction
-        pf = np.log(psi_a[ki] * ((sm / z) / n[ki])**(-b[ki]))
+        pf = np.log(psi_a[ki] * ((sm_dekad / z) / n[ki])**(-b[ki]))
         # calculate z-score of soil suction
         st = "{0}-{1}-{2}".format(model.startyear, model.startmonth, model.startday)
         et = "{0}-{1}-{2}".format(model.endyear, model.endmonth, model.endday)
         pfz = (pf[st:et] - pf.mean()) / pf.std()
-        pfz = pfz.resample('D').ffill().values
+        pfz = pfz.reindex(sm[st:et].index).ffill().values
     else:
         pfz = None
     cur.close()
@@ -81,11 +81,11 @@ def _calcFpar(model, cid):
         fpar = pandas.Series([r[1] for r in results], np.array([r[0] for r in results], dtype='datetime64'))
         d = fpar.index.day - np.clip((fpar.index.day-1) // 10, 0, 2)*10 - 1
         date = fpar.index.values - np.array(d, dtype='timedelta64[D]')
-        fpar = fpar.groupby(date).mean()
+        fpar_dekad = fpar.groupby(date).mean()
         st = "{0}-{1}-{2}".format(model.startyear, model.startmonth, model.startday)
         et = "{0}-{1}-{2}".format(model.endyear, model.endmonth, model.endday)
-        fparz = (fpar[st:et] - fpar.mean()) / fpar.std()
-        fparz = fparz.resample('D').ffill().values
+        fparz = (fpar_dekad[st:et] - fpar_dekad.mean()) / fpar_dekad.std()
+        fparz = fparz.reindex(fpar[st:et].index).ffill().values
     else:
         fparz = None
     cur.close()
@@ -106,9 +106,9 @@ def calcCDI(model, cid):
     fapar = _calcFpar(model, cid)
     cdi = np.zeros(len(spi), dtype='int')
     cdi[spi < -1] = 1
-    cdi[fapar > 1 & spi < -1] = 2
-    cdi[fapar < -1 & spi < -1] = 3
-    cdi[fapar < -1 & sma > 1 & spi < -1] = 4
+    cdi[(fapar > 1) & (spi < -1)] = 2
+    cdi[(fapar < -1) & (spi < -1)] = 3
+    cdi[(fapar < -1) & (sma > 1) & (spi < -1)] = 4
     return cdi
 
 
