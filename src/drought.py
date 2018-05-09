@@ -267,7 +267,7 @@ def calcSMDI(model):
     return smdi
 
 
-def calc(varname, model, cid):
+def calc(varname, model):
     """Calculate drought-related variable."""
     if varname.find("spi") == 0:
         duration = int(varname[3])

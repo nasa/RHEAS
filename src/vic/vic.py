@@ -457,6 +457,7 @@ class VIC:
         if len(self.lat) > 0 and len(self.lon) > 0:
             nrows = int(np.round((max(self.lat) - min(self.lat)) / self.res) + 1)
             ncols = int(np.round((max(self.lon) - min(self.lon)) / self.res) + 1)
+            mask = np.zeros((nrows, ncols), dtype='bool')
             nt = (date(self.endyear, self.endmonth, self.endday) -
                   date(self.startyear + self.skipyear, self.startmonth, self.startday)).days + 1
             args = vicoutput.variableGroup(args)
@@ -480,6 +481,7 @@ class VIC:
                         pdata[p] = pandas.read_csv(filename, delim_whitespace=True, header=None).values
                     i = int((max(self.lat) + self.res / 2.0 - self.lat[c]) / self.res)
                     j = int((self.lon[c] - min(self.lon) + self.res / 2.0) / self.res)
+                    mask[i, j] = True
                     for v in [v for v in outdata if v not in droughtvars]:
                         if v in layervars:
                             for lyr in range(self.nlayers):
@@ -489,8 +491,8 @@ class VIC:
                     log.info("Read output for {0}|{1}".format(self.lat[c], self.lon[c]))
                 for var in args:
                     if var in droughtvars:
-                        for c in range(len(self.lat)):
-                            outdata[var][:, 0, i, j] = drought.calc(var, self, int(self.gid.keys()[c]))
+                        mi, mj = np.where(mask)
+                        outdata[var][:, 0, mi, mj] = drought.calc(var, self)
                     self.writeToDB(outdata[var], dates, "{0}".format(var), initialize, skipsave=skipsave)
         else:
             log.info("No pixels simulated, not saving any output!")
