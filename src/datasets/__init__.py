@@ -62,9 +62,12 @@ def dates(dbname, tablename):
         sql = "select max(fdate) from {0}".format(tablename)
         cur.execute(sql)
         te = cur.fetchone()[0]
-        te = datetime(te.year, te.month, te.day)
-        if te < datetime.today():
-            dts = (te + timedelta(1), datetime.today())
+        try:
+            te = datetime(te.year, te.month, te.day)
+            if te < datetime.today():
+                dts = (te + timedelta(1), datetime.today())
+        except AssertionError:
+            dts = None
     else:
         dts = None
     return dts
