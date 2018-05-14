@@ -118,7 +118,6 @@ def ingest(dbname, table, data, lat, lon, res, t, resample=True, overwrite=True)
             data = data[0, :, :]
         filename = dbio.writeGeotif(lat, lon, res, data)
         dbio.ingest(dbname, filename, t, table, resample, overwrite)
-        log.info("Imported {0} in {1}".format(t.strftime("%Y-%m-%d"), table))
         os.remove(filename)
     else:
         log.warning("No data were available to import into {0} for {1}.".format(table, t.strftime("%Y-%m-%d")))
