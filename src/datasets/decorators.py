@@ -108,7 +108,10 @@ def netcdf(fetch):
         if len(ti) > 0:
             lati = np.argsort(lat)[::-1][i1:i2]
             loni = np.argsort(lon)[j1:j2]
-            data = ds.variables[varname][ti, lati, loni]
+            if len(ds.variables[varname]) > 3:
+                data = ds.variables[varname][ti, 0, lati, loni]
+            else:
+                data = ds.variables[varname][ti, lati, loni]
             dt = tt[ti]
         else:
             data = None

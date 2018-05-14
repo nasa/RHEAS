@@ -8,14 +8,10 @@ temperature from the NCEP Reanalysis stored at the IRI Data Library.
 
 """
 
-import netCDF4 as netcdf
 import numpy as np
-import os
-import dbio
 import datasets
-from decorators import resetDatetime
-import logging
-from datetime import timedelta, datetime
+from decorators import netcdf
+from datetime import timedelta
 
 
 def dates(dbname):
@@ -23,60 +19,47 @@ def dates(dbname):
     return dts
 
 
-def _downloadVariable(varname, dbname, dt, bbox=None):
-    """Download specific variable from the NCEP Reanalysis dataset."""
-    log = logging.getLogger(__name__)
-    res = 1.875
-    baseurl = "http://www.esrl.noaa.gov/psd/thredds/dodsC/Datasets/ncep.reanalysis.dailyavgs/surface_gauss"
-    if varname == "tmax":
-        urls = ["{0}/tmax.2m.gauss.{1}.nc".format(baseurl, dt[0].year)]
-        dsvar = ["tmax"]
-    elif varname == "tmin":
-        urls = ["{0}/tmin.2m.gauss.{1}.nc".format(baseurl, dt[0].year)]
-        dsvar = ["tmin"]
-    else:
-        urls = ["{0}/uwnd.10m.gauss.{1}.nc".format(baseurl, dt[0].year), "{0}/vwnd.10m.gauss.{1}.nc".format(baseurl, dt[0].year)]
-        dsvar = ["uwnd", "vwnd"]
-    data = None
-    for ui, url in enumerate(urls):
-        pds = netcdf.Dataset(url)
-        lat = pds.variables["lat"][:]
-        lon = pds.variables["lon"][:]
-        lon[lon > 180] -= 360.0
-        i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
-        t = pds.variables["time"]
-        tt = netcdf.num2date(t[:], units=t.units)
-        ti = [tj for tj in range(len(tt)) if resetDatetime(tt[tj]) >= dt[0] and resetDatetime(tt[tj]) <= dt[1]]
-        if len(ti) > 0:
-            lati = np.argsort(lat)[::-1][i1:i2]
-            loni = np.argsort(lon)[j1:j2]
-            if data is None:
-                data = pds.variables[dsvar[ui]][ti, lati, loni]
-            else:
-                data = np.sqrt(
-                    data ** 2.0 + pds.variables[dsvar[ui]][ti, lati, loni] ** 2.0)
-            if any(tvar in dsvar for tvar in ["temp", "tmax", "tmin"]): 
-                data -= 273.15
-        lat = np.sort(lat)[::-1][i1:i2]
-        lon = np.sort(lon)[j1:j2]
-    table = "{0}.ncep".format(varname)
-    for t in range(len(ti)):
-        filename = dbio.writeGeotif(lat, lon, res, data[t, :, :])
-        dbio.ingest(dbname, filename, tt[ti[t]], table)
-        os.remove(filename)
-    for dtt in [dt[0] + timedelta(days=tj) for tj in range((dt[-1]-dt[0]).days + 1)]:
-        if dtt not in tt:
-            log.warning("NCEP data not available for {0}. Skipping download!".format(
-                dtt.strftime("%Y-%m-%d")))
+@netcdf
+def fetch_tmax(dbname, dt, bbox):
+    """Downloads maximum temperature from NCEP Reanalysis."""
+    url = "http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.maximum/dods"
+    varname = "temp"
+    return url, varname, bbox, dt
+
+
+@netcdf
+def fetch_tmin(dbname, dt, bbox):
+    """Downloads minimum temperature from NCEP Reanalysis."""
+    url = "http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.minimum/dods"
+    varname = "temp"
+    return url, varname, bbox, dt
+
+
+@netcdf
+def fetch_uwnd(dbname, dt, bbox):
+    """Downloads U-component wind speed from NCEP Reanalysis."""
+    url = "http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.u/dods"
+    varname = "u"
+    return url, varname, bbox, dt
+
+
+@netcdf
+def fetch_vwnd(dbname, dt, bbox):
+    """Downloads U-component wind speed from NCEP Reanalysis."""
+    url = "http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.v/dods"
+    varname = "v"
+    return url, varname, bbox, dt
 
 
 def download(dbname, dts, bbox=None):
-    """Downloads NCEP Reanalysis data from the IRI data server,
-    and imports them into the database *db*. Optionally uses a bounding box to
-    limit the region with [minlon, minlat, maxlon, maxlat]."""
-    # for dt in [dts[0] + timedelta(tt) for tt in range((dts[1] - dts[0]).days + 1)]:
-    years = range(dts[0].year, dts[-1].year + 1)
-    for yr in years:
-        dt = [max(datetime(yr, 1, 1), dts[0]), min(datetime(yr, 12, 31), dts[-1])]
-        for varname in ["tmax", "tmin", "wind"]:
-            _downloadVariable(varname, dbname, dt, bbox)
+    """Downloads NCEP Reanalysis data from IRI data library."""
+    res = 1.875
+    tmax, lat, lon, _ = fetch_tmax(dbname, dts, bbox)
+    tmin, _, _, _ = fetch_tmin(dbname, dts, bbox)
+    uwnd, _, _, _ = fetch_uwnd(dbname, dts, bbox)
+    vwnd, _, _, dts = fetch_vwnd(dbname, dts, bbox)
+    wnd = np.sqrt(uwnd**2 + vwnd**2)
+    for t, dt in enumerate([dts[0] + timedelta(tt) for tt in range((dts[-1] - dts[0]).days + 1)]):
+        datasets.ingest(dbname, "tmax.ncep", tmax[t, :, :], lat, lon, res, dt)
+        datasets.ingest(dbname, "tmin.ncep", tmin[t, :, :], lat, lon, res, dt)
+        datasets.ingest(dbname, "wind.ncep", wnd[t, :, :], lat, lon, res, dt)
