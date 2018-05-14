@@ -204,10 +204,10 @@ def resampleRaster(dbname, sname, tname, dt, res, method, tilesize, overwrite, s
         # check if date already exists and delete it before ingesting
         if overwrite:
             deleteRasters(dbname, "{0}.{1}_{2}".format(sname, tname, int(1.0 / res)), dt, squery)
-        sql = "insert into {0}.{1}_{2} (with dt as (select max(fdate) as maxdate from {0}.{1}_{2}), f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1} where fdate=date'{7}' {8}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1], dt.strftime("%Y-%m-%d"), squery)
+        sql = "insert into {0}.{1}_{2} (with dt as (select max(fdate) as maxdate from {0}.{1}_{2}), f as (select fdate,st_rescale(st_tile(rast,{5},{6}),{3},'{4}') as rast from {0}.{1} where fdate=date'{7}' {8}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1], dt.strftime("%Y-%m-%d"), squery)
         cur.execute(sql)
     else:
-        sql = "create table {0}.{1}_{2} as (with f as (select fdate,st_tile(st_rescale(rast,{3},'{4}'),{5},{6}) as rast from {0}.{1} where fdate=date'{7}' {8}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
+        sql = "create table {0}.{1}_{2} as (with f as (select fdate,st_rescale(st_tile(rast,{5},{6}),{3},'{4}') as rast from {0}.{1} where fdate=date'{7}' {8}) select fdate,rast,dense_rank() over (order by st_upperleftx(rast),st_upperlefty(rast)) as rid from f)".format(
             sname, tname, int(1.0 / res), res, method, tilesize[0], tilesize[1], dt.strftime("%Y-%m-%d"), squery)
         cur.execute(sql)
         cur.execute("create index {1}_{2}_t on {0}.{1}_{2}(fdate)".format(
