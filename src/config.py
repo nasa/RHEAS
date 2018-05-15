@@ -163,7 +163,7 @@ def getVICvariables(options):
             savevars.insert(0, 'soil_moist')
         if any(v in savevars for v in ['drought', 'cdi']) and 'par' not in savevars:
             savevars.insert(0, 'par')
-        if any(v in savevars for v in ['drought', 'spi']) and 'rainf' not in savevars:
+        if any(v in savevars for v in ['drought', 'spi', 'cdi']) and 'rainf' not in savevars:
             savevars.insert(0, 'rainf')
         if any(v in savevars for v in ['drought', 'severity', 'sri']) and 'runoff' not in savevars:
             savevars.insert(0, 'runoff')
