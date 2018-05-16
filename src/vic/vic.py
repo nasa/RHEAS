@@ -518,7 +518,7 @@ class VIC:
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         if dbio.tableExists(self.dbname, self.name, tablename) and ensemble and not dbio.columnExists(self.dbname, self.name, tablename, "ensemble"):
-            log.warning("Table {0} exists but does not contain ensemble information. Overwriting entire table!")
+            log.warning("Table {0} exists but does not contain ensemble information. Overwriting entire table!".format(tablename))
             cur.execute("drop table {0}.{1}".format(self.name, tablename))
             db.commit()
         if dbio.tableExists(self.dbname, self.name, tablename):
