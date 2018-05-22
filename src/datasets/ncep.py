@@ -59,6 +59,8 @@ def download(dbname, dts, bbox=None):
     uwnd, _, _, _ = fetch_uwnd(dbname, dts, bbox)
     vwnd, _, _, dts = fetch_vwnd(dbname, dts, bbox)
     wnd = np.sqrt(uwnd**2 + vwnd**2)
+    tmax -= 273.15
+    tmin -= 273.15
     for t, dt in enumerate([dts[0] + timedelta(tt) for tt in range((dts[-1] - dts[0]).days + 1)]):
         datasets.ingest(dbname, "tmax.ncep", tmax[t, :, :], lat, lon, res, dt)
         datasets.ingest(dbname, "tmin.ncep", tmin[t, :, :], lat, lon, res, dt)
