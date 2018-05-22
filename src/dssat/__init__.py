@@ -48,12 +48,7 @@ class DSSAT(object):
         self.assimilate = assimilate
         self.modelpaths = {}
         self.modelstart = {}
-        try:
-            self.grid_decimal = - \
-                (decimal.Decimal(self.res).as_tuple().exponent - 1)
-        except TypeError:
-            self.grid_decimal = - \
-                (decimal.Decimal(str(self.res)).as_tuple().exponent - 1)
+        self.grid_decimal = - (decimal.Decimal(str(self.res)).as_tuple().exponent - 1)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         if 'lai' in vicopts or ('save' in vicopts and vicopts['save'].find("lai") >= 0):

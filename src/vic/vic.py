@@ -59,12 +59,7 @@ class VIC:
             sys.exit()
         self.res = cur.fetchone()[0]
         cur.close()
-        try:
-            self.grid_decimal = - \
-                (decimal.Decimal(self.res).as_tuple().exponent - 1)
-        except:
-            self.grid_decimal = - \
-                (decimal.Decimal(str(self.res)).as_tuple().exponent - 1)
+        self.grid_decimal = -(decimal.Decimal(str(self.res)).as_tuple().exponent - 1)
         self.lat = []
         self.lon = []
         self.gid = OrderedDict()
