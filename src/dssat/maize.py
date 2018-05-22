@@ -94,8 +94,8 @@ class Model(DSSAT):
         """Write fertilizer section in DSSAT control file."""
         fout.write("*FERTILIZERS\r\n")
         for f, fert in enumerate(fertilizers):
-            dt, amount, percent = fert
-            fout.write("   {0} FE{1:03d} AP{1:03d}   {2:02d}.   {3:02d}.    0.    0.    0.    0.   -99\r\n".format(dt.strftime("%Y%j"), f+1, amount, percent))
+            dt, fe, ap, depth, amount = fert
+            fout.write("   {0} FE{1} AP{2}   {2:.0f}.   {3:.0f}.    0.    0.    0.    0.   -99\r\n".format(dt.strftime("%Y%j"), fe, ap, depth, amount))
 
     def _writeResidues(self, fout):
         """Write residues section in DSSAT control file."""
@@ -159,7 +159,7 @@ class Model(DSSAT):
         self.cultivars[gid] = []
         for ens in range(self.nens):
             sm = vsm[ens]
-            fertilizers = [(startdate, 30, 20)] if fertilizers is None else fertilizers
+            fertilizers = [(planting, "005", "001", 1.0, 60.0), (planting+timedelta(30), "005", "001", 1.0, 70.0), (planting+timedelta(45), "005", "001", 1.0, 80.0)] if fertilizers is None else fertilizers
             irrigation = [(startdate, 0.0)] if irrigation is None else irrigation
             prof = profiles[ens].split("\r\n")
             dz = map(lambda ln: float(ln.split()[0]), profiles[ens].split("\n")[3:-1])
