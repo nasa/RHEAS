@@ -156,7 +156,7 @@ def getVICvariables(options):
         if 'dssat' in models:
             for v in ['rainf', 'net_short', 'net_long', 'soil_moist', 'tmax', 'tmin']:
                 if v not in savevars:
-                    savevars.append(v)
+                    savevars.insert(0, v)
             # if 'lai' in options['vic'] and not 'lai' in savevars:
             #     savevars.append('lai')
         if any(v in savevars for v in ['drought', 'cdi', 'severity', 'smdi']) and 'soil_moist' not in savevars:
