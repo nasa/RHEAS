@@ -91,8 +91,8 @@ class Model(DSSAT):
         """Write irrigation details section in DSSAT control file."""
         fout.write("*IRRIGATION\r\n")
         fout.write("   1.000   30.   75.  -99. GS000 IR001   1.0\r\n")
-        for i, irrig in enumerate(irrigation):
-            fout.write("   {0} IR{1:03d} {2:4.1f}\r\n".format(irrig[0].strftime("%Y%j"), i+1, irrig[1]))
+        for irrig in irrigation:
+            fout.write("   {0} IR{1:03d} {2:4.1f}\r\n".format(irrig[0].strftime("%Y%j"), irrig[1], irrig[2]))
 
     def _writeFertilizer(self, fout, fertilizers):
         """Write fertilizer section in DSSAT control file."""
@@ -167,7 +167,8 @@ class Model(DSSAT):
         for ens in range(self.nens):
             sm = vsm[ens]
             fertilizers = [(startdate, 30, 20)] if fertilizers is None else fertilizers
-            irrigation = [(startdate, 0.0)] if irrigation is None else irrigation
+            # irrigation = [(startdate, 0.0)] if irrigation is None else irrigation
+            irrigation = [(startdate, "IR010", 0.0), (startdate, "IR008", 2.0), (startdate, "IR009", 20.0), (startdate, "IR011", 5.0), (startdate+timedelta(6), "IR009", 100.0), (startdate+timedelta(6), "IR011", 30.0), (startdate+timedelta(10), "IR009", 150.0), (startdate+timedelta(10), "IR011", 50.0)] if irrigation is None else irrigation
             prof = profiles[ens].split("\r\n")
             dz = map(lambda ln: float(ln.split()[0]), profiles[ens].split("\n")[3:-1])
             smi = self.interpolateSoilMoist(sm, depths, dz)
