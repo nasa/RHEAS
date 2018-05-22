@@ -491,9 +491,14 @@ class VIC:
                     log.info("Read output for {0}|{1}".format(self.lat[c], self.lon[c]))
                 for var in args:
                     if var in droughtvars:
-                        mi, mj = np.where(mask)
-                        outdata[var][:, 0, mi, mj] = drought.calc(var, self)
-                    self.writeToDB(outdata[var], dates, "{0}".format(var), initialize, skipsave=skipsave)
+                        dout = drought.calc(var, self)
+                        if dout is not None:
+                            mi, mj = np.where(mask)
+                            outdata[var][:, 0, mi, mj] = dout
+                        else:
+                            outdata[var] = None
+                    if outdata[var] is not None:
+                        self.writeToDB(outdata[var], dates, "{0}".format(var), initialize, skipsave=skipsave)
         else:
             log.info("No pixels simulated, not saving any output!")
         return outdata

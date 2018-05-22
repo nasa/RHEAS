@@ -115,11 +115,14 @@ def calcCDI(model):
     spi = calcSPI(3, model)
     sma = _calcSuctionHead(model)
     fapar = _calcFpar(model)
-    cdi = np.zeros(spi.shape, dtype='int')
-    cdi[spi < -1] = 1
-    cdi[(fapar > 1) & (spi < -1)] = 2
-    cdi[(fapar < -1) & (spi < -1)] = 3
-    cdi[(fapar < -1) & (sma > 1) & (spi < -1)] = 4
+    if all(v is not None for v in [spi, sma, fapar]):
+        cdi = np.zeros(spi.shape, dtype='int')
+        cdi[spi < -1] = 1
+        cdi[(fapar > 1) & (spi < -1)] = 2
+        cdi[(fapar < -1) & (spi < -1)] = 3
+        cdi[(fapar < -1) & (sma > 1) & (spi < -1)] = 4
+    else:
+        cdi = None
     return cdi
 
 
@@ -133,7 +136,7 @@ def calcSRI(duration, model):
     ndays = ((startdate + relativedelta(months=duration)) - startdate).days + 1
     if duration < 1 or ndays > nt:
         log.warning("Cannot calculate SRI with {0} months duration.".format(duration))
-        sri = np.zeros(nt)
+        sri = None
     else:
         db = dbio.connect(model.dbname)
         cur = db.cursor()
@@ -165,7 +168,7 @@ def calcSPI(duration, model):
     # tablename = "precip."+model.precip
     if duration < 1 or ndays > nt:
         log.warning("Cannot calculate SPI with {0} months duration.".format(duration))
-        spi = np.zeros(nt)
+        spi = None
     else:
         db = dbio.connect(model.dbname)
         cur = db.cursor()
