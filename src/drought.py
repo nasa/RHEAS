@@ -230,9 +230,9 @@ def calcDrySpells(model, droughtfun=np.mean, duration=14, recovduration=2):
         drought_thresh = droughtfun(p[pi])
         days = 0
         for i in range(recovduration-1, len(p[pi])):
-            if p[i, pi] <= drought_thresh:
+            if p.values[i, pi] <= drought_thresh:
                 days += 1
-            elif all(p[i-j, pi] > drought_thresh for j in range(recovduration)):
+            elif all(p.values[i-j, pi] > drought_thresh for j in range(recovduration)):
                 days = 0
             else:
                 days += 1
