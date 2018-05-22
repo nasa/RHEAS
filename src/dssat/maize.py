@@ -95,7 +95,7 @@ class Model(DSSAT):
         fout.write("*FERTILIZERS\r\n")
         for f, fert in enumerate(fertilizers):
             dt, fe, ap, depth, amount = fert
-            fout.write("   {0} FE{1} AP{2}   {2:.0f}.   {3:.0f}.    0.    0.    0.    0.   -99\r\n".format(dt.strftime("%Y%j"), fe, ap, depth, amount))
+            fout.write("   {0} FE{1} AP{2}   {3:.0f}.   {4:.0f}.    0.    0.    0.    0.   -99\r\n".format(dt.strftime("%Y%j"), fe, ap, depth, amount))
 
     def _writeResidues(self, fout):
         """Write residues section in DSSAT control file."""
