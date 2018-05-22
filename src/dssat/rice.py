@@ -92,7 +92,7 @@ class Model(DSSAT):
         fout.write("*IRRIGATION\r\n")
         fout.write("   1.000   30.   75.  -99. GS000 IR001   1.0\r\n")
         for irrig in irrigation:
-            fout.write("   {0} IR{1:03d} {2:4.1f}\r\n".format(irrig[0].strftime("%Y%j"), irrig[1], irrig[2]))
+            fout.write("   {0} {1} {2:4.1f}\r\n".format(irrig[0].strftime("%Y%j"), irrig[1], irrig[2]))
 
     def _writeFertilizer(self, fout, fertilizers):
         """Write fertilizer section in DSSAT control file."""
