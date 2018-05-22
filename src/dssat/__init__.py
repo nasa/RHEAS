@@ -198,7 +198,7 @@ class DSSAT(object):
         cur.close()
         db.close()
         if "ensemble" in sqlvars:
-            weather = [np.vstack((data["net_short"][e] + data["net_long"][e], data["tmax"][
+            weather = [np.vstack((data["net_short"][e] - data["net_long"][e], data["tmax"][
                                  e], data["tmin"][e], data["rainf"][e])).T for e in range(len(data["net_short"]))]
             sm = [np.zeros((len(year), nlayers))] * len(data["soil_moist"])
             if self.lai is not None:
@@ -210,7 +210,7 @@ class DSSAT(object):
                         data["soil_moist"][e]) if layers[mi] == l + 1]
         else:
             weather = np.vstack(
-                (data["net_short"] + data["net_long"], data["tmax"], data["tmin"], data["rainf"])).T
+                (data["net_short"] - data["net_long"], data["tmax"], data["tmin"], data["rainf"])).T
             if self.lai is not None:
                 lai = dict(zip([date(year[i], month[i], day[i])
                                 for i in range(len(year))], np.array(data["lai"]).T))
