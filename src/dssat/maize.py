@@ -14,6 +14,10 @@ import dbio
 
 class Model(DSSAT):
 
+    def __init__(self, *args, **kwargs):
+        super(Model, self).__init__(*args, **kwargs)
+        self.crop = "maize"
+
     def _writeFileNames(self, fout, ens):
         """Write file name section in DSSAT control file."""
         fout.write("*MODEL INPUT FILE            A     1     1     1     6     0\r\n")
