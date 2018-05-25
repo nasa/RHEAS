@@ -360,11 +360,11 @@ class DSSAT(object):
     def planting(self, lat, lon, fromShapefile=False):
         """Retrieve planting dates for pixel."""
         if self.crop is None:
-            crop = "maize"
+            self.crop = "maize"
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select st_value(rast,st_geomfromtext('POINT({0} {1})',4326)) as doy from crops.plantstart where type like '{2}' and st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)) order by doy".format(
-            lon, lat, crop)
+            lon, lat, self.crop)
         cur.execute(sql)
         results = cur.fetchall()
         plantdates = [date(self.startyear, 1, 1) + timedelta(r[0] - 1) for r in results if r[0] is not None]
