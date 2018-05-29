@@ -98,21 +98,21 @@ def opendap(fetch):
                 latvar = var
             if var.lower().startswith("time") or var.lower() == "t":
                 timevar = var
-        lat = ds.variables[latvar][:]
-        lon = ds.variables[lonvar][:]
+        lat = ds[latvar][:].data
+        lon = ds[lonvar][:].data
         lon[lon > 180] -= 360
         res = abs(lat[0]-lat[1])  # assume rectangular grid
         i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
-        t = ds.variables[timevar]
-        tt = netcdf4.num2date(t[:], units=t.units)
+        t = ds[timevar]
+        tt = netcdf4.num2date(t[:].data, units=t.units)
         ti = [tj for tj in range(len(tt)) if resetDatetime(tt[tj]) >= dt[0] and resetDatetime(tt[tj]) <= dt[1]]
         if len(ti) > 0:
             lati = np.argsort(lat)[::-1][i1:i2]
             loni = np.argsort(lon)[j1:j2]
             if len(ds[varname].data[0].shape) > 3:
-                data = ds[varname].data[0][ti, 0, lati, loni]
+                data = ds[varname].data[0][ti[0]:ti[-1]+1, 0, lati[0]:lati[-1]+1, loni[0]:loni[-1]+1]
             else:
-                data = ds[varname].data[0][ti, lati, loni]
+                data = ds[varname].data[0][ti[0]:ti[-1]+1, 0, lati[0]:lati[-1]+1, loni[0]:loni[-1]+1]
             dt = tt[ti]
         else:
             data = None
