@@ -8,15 +8,16 @@
 """
 
 from functools import wraps
-import netCDF4 as netcdf4
-import numpy as np
 import tempfile
 import shutil
 import urllib
-from osgeo import gdal
 from datetime import datetime
 from ftplib import FTP
 import re
+from pydap.client import open_url
+import netCDF4 as netcdf4
+import numpy as np
+from osgeo import gdal
 import datasets
 
 
@@ -84,6 +85,45 @@ def ftp(fetch):
     return wrapper
 
 
+def opendap(fetch):
+    """Decorator for fetching data from Opendap servers."""
+    @wraps(fetch)
+    def wrapper(*args, **kwargs):
+        url, varname, bbox, dt = fetch(*args, **kwargs)
+        ds = open_url(url)
+        for var in ds.keys():
+            if var.lower().startswith("lon") or var.lower() == "x":
+                lonvar = var
+            if var.lower().startswith("lat") or var.lower() == "y":
+                latvar = var
+            if var.lower().startswith("time") or var.lower() == "t":
+                timevar = var
+        lat = ds.variables[latvar][:]
+        lon = ds.variables[lonvar][:]
+        lon[lon > 180] -= 360
+        res = abs(lat[0]-lat[1])  # assume rectangular grid
+        i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
+        t = ds.variables[timevar]
+        tt = netcdf4.num2date(t[:], units=t.units)
+        ti = [tj for tj in range(len(tt)) if resetDatetime(tt[tj]) >= dt[0] and resetDatetime(tt[tj]) <= dt[1]]
+        if len(ti) > 0:
+            lati = np.argsort(lat)[::-1][i1:i2]
+            loni = np.argsort(lon)[j1:j2]
+            if len(ds[varname].data[0].shape) > 3:
+                data = ds[varname].data[0][ti, 0, lati, loni]
+            else:
+                data = ds[varname].data[0][ti, lati, loni]
+            dt = tt[ti]
+        else:
+            data = None
+            dt = None
+        lat = np.sort(lat)[::-1][i1:i2]
+        lon = np.sort(lon)[j1:j2]
+        return data, lat, lon, dt
+    return wrapper
+     
+        
+        
 def netcdf(fetch):
     """Decorator for fetching NetCDF files (local or from Opendap servers)."""
     @wraps(fetch)
@@ -108,7 +148,7 @@ def netcdf(fetch):
         if len(ti) > 0:
             lati = np.argsort(lat)[::-1][i1:i2]
             loni = np.argsort(lon)[j1:j2]
-            if len(ds.variables[varname]) > 3:
+            if len(ds.variables[varname].shape) > 3:
                 data = ds.variables[varname][ti, 0, lati, loni]
             else:
                 data = ds.variables[varname][ti, lati, loni]
