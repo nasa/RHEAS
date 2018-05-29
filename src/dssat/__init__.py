@@ -146,15 +146,17 @@ class DSSAT(object):
                         for i in range(len(year)) if i in tidx], vicsr[:, 12]))
         return year[tidx], month[tidx], day[tidx], weather[tidx, :], sm[tidx, :], lai
 
-    def readVICOutputFromDB(self, gid, depths):
+    def readVICOutputFromDB(self, gid, depths, harvest):
         """Read DSSAT inputs from database."""
         startdate = date(self.startyear, self.startmonth, self.startday)
-        enddate = date(self.endyear, self.endmonth, self.endday)
+	if harvest is None:
+            enddate = date(self.endyear, self.endmonth, self.endday)
+        else:
+            enddate = harvest
         ndays = (enddate - startdate).days + 1
         db = dbio.connect(self.dbname)
         cur = db.cursor()
-        date_sql = "fdate>=date '{0}-{1}-{2}' and fdate<=date '{3}-{4}-{5}'".format(
-            self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday)
+        date_sql = "fdate>=date '{0}' and fdate<=date '{1}'".format(startdate.strftime("%Y-%m-%d"), enddate.strftime("%Y-%m-%d"))
         data = {}
         varnames = ["net_short", "net_long",
                     "soil_moist", "rainf", "tmax", "tmin"]
@@ -225,7 +227,7 @@ class DSSAT(object):
                     data["soil_moist"]) if layers[mi] == l + 1]
         return year, month, day, weather, sm, lai
 
-    def readVICOutput(self, gid, depths):
+    def readVICOutput(self, gid, depths, harvest=None):
         """Reads DSSAT time-varying inputs by reading either from files or a database."""
         log = logging.getLogger(__name__)
         if isinstance(self.datafrom, list):
@@ -236,7 +238,7 @@ class DSSAT(object):
             lat, lon = self.gid[gid]
         if self.datafrom == 'db':
             year, month, day, weather, sm, lai = self.readVICOutputFromDB(
-                gid, depths)
+                gid, depths, harvest)
         else:
             log.error("VIC output was not saved in the database. Cannot proceed with the DSSAT simulation.")
             sys.exit()
@@ -423,9 +425,11 @@ class DSSAT(object):
                               2 + (lon - self.lon) ** 2))
         # use the soil depths from the nearest VIC pixel to the centroid
         depths = np.array(self.depths[c])
-        year, month, day, weather, sm, vlai = self.readVICOutput(gid, depths)
-        vicstartdt = date(year[0], month[0], day[0])
         planting = self.planting(lat, lon)
+        # FIXME: instead of 180 days perhaps use information from harvest dates to define the simulation end date?
+        harvest_days = 180
+        year, month, day, weather, sm, vlai = self.readVICOutput(gid, depths, planting[-1]+timedelta(harvest_days))
+        vicstartdt = date(year[0], month[0], day[0])
         for pi, pdt in enumerate(planting):
             self.copyModelFiles(geom, pi, dssatexe)
             try:
@@ -438,17 +442,16 @@ class DSSAT(object):
                 self.modelstart[(gid, pi)] = simstartdt
                 dz, smi = self.writeControlFile(modelpath, sm, depths, simstartdt, gid, self.lat[c], self.lon[c], pdt, None, None)
                 ti0 = [i for i in range(len(year)) if simstartdt == date(year[i], month[i], day[i])][0]
-                # FIXME: instead of 180 days perhaps use information from harvest dates to define the simulation end date?
-                harvest_days = 180
                 ti1 = ti0 + harvest_days
                 if ti1 > len(year):
-                    log.warning("Inadequate record legnth in VIC data to ensure harvest for {0} planting date! Plant will not reach maturity and yield values will be invalid. Please extent VIC simulation to at least {1}!".format(pdt.strftime("%y-%m-%d"), (pdt+timedelta(harvest_days)).strftime("%y-%m-%d")))
+                    log.warning("Inadequate record legnth in VIC data to ensure harvest for {0} planting date! Plant will not reach maturity and yield values will be invalid. Please extent VIC simulation to at least {1}!".format(pdt.strftime("%Y-%m-%d"), (pdt+timedelta(harvest_days)).strftime("%Y-%m-%d")))
                     ti1 = len(year)-1
-                self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c], ti0, ti1)
-                self.writeSoilMoist(modelpath, year, month, day, smi, dz)
-                self.writeLAI(modelpath, gid, viclai=vlai)
-                self.writeConfigFile(modelpath, smi.shape[1], simstartdt, date(year[ti1], month[ti1], day[ti1]))
-                log.info("Wrote DSSAT for planting date {0}".format(pdt.strftime("%Y-%m-%d")))
+                else:
+                    self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c], ti0, ti1)
+                    self.writeSoilMoist(modelpath, year, month, day, smi, dz)
+                    self.writeLAI(modelpath, gid, viclai=vlai)
+                    self.writeConfigFile(modelpath, smi.shape[1], simstartdt, date(year[ti1], month[ti1], day[ti1]))
+                    log.info("Wrote DSSAT for planting date {0}".format(pdt.strftime("%Y-%m-%d")))
             except AssertionError:
                 log.error("No input data for DSSAT corresponding to starting date {0}. Need to run VIC for these dates. Exiting...".format(simstartdt.strftime('%Y-%m-%d')))
 
