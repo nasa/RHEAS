@@ -370,7 +370,7 @@ class DSSAT(object):
             crop = "maize"
         db = dbio.connect(self.dbname)
         cur = db.cursor()
-        sql = "select st_value(rast,st_geomfromtext('POINT({0} {1})',4326)) as doy from crops.plantstart where type like '{2}' and st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)) order by doy".format(
+        sql = "select st_nearestvalue(rast,st_geomfromtext('POINT({0} {1})',4326)) as doy from crops.plantstart where type like '{2}' and st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)) order by doy".format(
             lon, lat, crop)
         cur.execute(sql)
         results = cur.fetchall()
