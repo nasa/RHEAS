@@ -143,12 +143,20 @@ class Model(DSSAT):
         """Retrieve Cultivar parameters for pixel and ensemble member."""
         db = dbio.connect(self.dbname)
         cur = db.cursor()
-        sql = "select p1,p2r,p5,p2o,g1,g2,g3,g4,name from dssat.cultivars as c,{0}.agareas as a where crop='rice' and ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(self.name, ens + 1, gid)
+        if dbio.columnExists(self.dbname, "dssat", "cultivars", "name"):
+            name_query = ",name"
+        else:
+            name_query = ""
+        sql = "select p1,p2r,p5,p2o,g1,g2,g3,g4{3} from dssat.cultivars as c,{0}.agareas as a where crop='rice' and ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(self.name, ens + 1, gid, name_query)
         cur.execute(sql)
         if not bool(cur.rowcount):
-            sql = "select p1,p2r,p5,p2o,g1,g2,g3,g4,name from dssat.cultivars as c,{0}.agareas as a where crop='rice' and ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(self.name, ens + 1, gid)
+            sql = "select p1,p2r,p5,p2o,g1,g2,g3,g4{3} from dssat.cultivars as c,{0}.agareas as a where crop='rice' and ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(self.name, ens + 1, gid, name_query)
             cur.execute(sql)
-        p1, p2r, p5, p2o, g1, g2, g3, g4, cname = cur.fetchone()
+        if name_query:
+            p1, p2r, p5, p2o, g1, g2, g3, g4, cname = cur.fetchone()
+        else:
+            p1, p2r, p5, p2o, g1, g2, g3, g4 = cur.fetchone()
+            cname = ""
         # FIXME: Should the name of the cultivar be reflected in the line below?
         cultivar = "IB0012 IR 58            IB0001{0:6.1f}{1:6.1f}{2:6.1f}{3:6.1f}{4:6.1f}{5:6.4f}{6:6.2f}{7:6.2f}".format(p1, p2r, p5, p2o, g1, g2, g3, g4)
         cur.close()
