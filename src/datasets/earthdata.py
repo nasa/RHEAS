@@ -10,6 +10,7 @@
 import requests
 import tempfile
 import re
+from lxml import html
 
 
 username = "nasarheas"
@@ -22,12 +23,14 @@ def download(url, filepattern):
     data = {'login': username, 'password': password}
     resp_auth = session.post("http://urs.earthdata.nasa.gov", data=data)
     resp_dir = session.get(url)
-    p = re.compile(filepattern)
-    matches = p.search(resp_dir.text)
+    links = html.fromstring(resp_dir.content).xpath('//a/@href')
+    matches = [re.match(filepattern, link) for link in links]
+    filenames = [m.group(0) for m in matches if m]
+    # make sure list has unique filenames
+    filenames = list(set(filenames))
     tmppath = tempfile.mkdtemp()
     filename = None
-    if matches:
-        filename = str(matches.group(0))
+    for filename in filenames:
         resp_file = session.get("{0}/{1}".format(url, filename))
         with open("{0}/{1}".format(tmppath, filename), 'wb') as fout:
             for chunk in resp_file:
