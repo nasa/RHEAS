@@ -140,7 +140,7 @@ class Model(DSSAT):
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         if dbio.columnExists(self.dbname, "dssat", "cultivars", "name"):
-            name_query = ",name"
+            name_query = ",c.name"
         else:
             name_query = ""
         sql = "select p1,p2,p5,g2,g3,phint{3} from dssat.cultivars as c,{0}.agareas as a where crop='maize' and ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(self.name, ens + 1, gid, name_query)
