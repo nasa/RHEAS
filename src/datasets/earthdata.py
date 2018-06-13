@@ -13,15 +13,9 @@ import re
 from lxml import html
 
 
-username = "nasarheas"
-password = "rheas@Earthdata1"
-
-
 def download(url, filepattern):
     """Download data files from Earthdata search."""
     session = requests.session()
-    data = {'login': username, 'password': password}
-    resp_auth = session.post("http://urs.earthdata.nasa.gov", data=data)
     resp_dir = session.get(url)
     links = html.fromstring(resp_dir.content).xpath('//a/@href')
     matches = [re.match(filepattern, link) for link in links]
