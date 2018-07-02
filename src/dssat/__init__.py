@@ -48,12 +48,7 @@ class DSSAT(object):
         self.assimilate = assimilate
         self.modelpaths = {}
         self.modelstart = {}
-        try:
-            self.grid_decimal = - \
-                (decimal.Decimal(self.res).as_tuple().exponent - 1)
-        except TypeError:
-            self.grid_decimal = - \
-                (decimal.Decimal(str(self.res)).as_tuple().exponent - 1)
+        self.grid_decimal = - (decimal.Decimal(str(self.res)).as_tuple().exponent - 1)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         if 'lai' in vicopts or ('save' in vicopts and vicopts['save'].find("lai") >= 0):
@@ -205,7 +200,7 @@ class DSSAT(object):
         cur.close()
         db.close()
         if "ensemble" in sqlvars:
-            weather = [np.vstack((data["net_short"][e] + data["net_long"][e], data["tmax"][
+            weather = [np.vstack((data["net_short"][e] - data["net_long"][e], data["tmax"][
                                  e], data["tmin"][e], data["rainf"][e])).T for e in range(len(data["net_short"]))]
             sm = [np.zeros((len(year), nlayers))] * len(data["soil_moist"])
             if self.lai is not None:
@@ -217,7 +212,7 @@ class DSSAT(object):
                         data["soil_moist"][e]) if layers[mi] == l + 1]
         else:
             weather = np.vstack(
-                (data["net_short"] + data["net_long"], data["tmax"], data["tmin"], data["rainf"])).T
+                (data["net_short"] - data["net_long"], data["tmax"], data["tmin"], data["rainf"])).T
             if self.lai is not None:
                 lai = dict(zip([date(year[i], month[i], day[i])
                                 for i in range(len(year))], np.array(data["lai"]).T))
@@ -367,7 +362,7 @@ class DSSAT(object):
     def planting(self, lat, lon, fromShapefile=False):
         """Retrieve planting dates for pixel."""
         if self.crop is None:
-            crop = "maize"
+            self.crop = "maize"
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select st_nearestvalue(rast,st_geomfromtext('POINT({0} {1})',4326)) as doy from crops.plantstart where type like '{2}' and st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)) order by doy".format(

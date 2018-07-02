@@ -18,6 +18,10 @@ import dbio
 
 class Model(DSSAT):
 
+    def __init__(self, *args, **kwargs):
+        super(Model, self).__init__(*args, **kwargs)
+        self.crop = "rice"
+
     def _writeFileNames(self, fout, ens):
         """Write file name section in DSSAT control file."""
         fout.write("*MODEL INPUT FILE            B     1     1     5   999     0\r\n")
@@ -91,15 +95,15 @@ class Model(DSSAT):
         """Write irrigation details section in DSSAT control file."""
         fout.write("*IRRIGATION\r\n")
         fout.write("   1.000   30.   75.  -99. GS000 IR001   1.0\r\n")
-        for i, irrig in enumerate(irrigation):
-            fout.write("   {0} IR{1:03d} {2:4.1f}\r\n".format(irrig[0].strftime("%Y%j"), i+1, irrig[1]))
+        for irrig in irrigation:
+            fout.write("   {0} {1} {2:4.1f}\r\n".format(irrig[0].strftime("%Y%j"), irrig[1], irrig[2]))
 
     def _writeFertilizer(self, fout, fertilizers):
         """Write fertilizer section in DSSAT control file."""
         fout.write("*FERTILIZERS\r\n")
         for f, fert in enumerate(fertilizers):
-            dt, amount, percent = fert
-            fout.write("   {0} FE{1:03d} AP{1:03d}   {2:02d}.   {3:02d}.    0.    0.    0.    0.   -99\r\n".format(dt.strftime("%Y%j"), f+1, amount, percent))
+            dt, fe, ap, depth, amount = fert
+            fout.write("   {0} FE{1} AP{2}   {3:.0f}.   {4:.0f}.    0.    0.    0.    0.   -99\r\n".format(dt.strftime("%Y%j"), fe, ap, depth, amount))
 
     def _writeResidues(self, fout):
         """Write residues section in DSSAT control file."""
@@ -139,12 +143,20 @@ class Model(DSSAT):
         """Retrieve Cultivar parameters for pixel and ensemble member."""
         db = dbio.connect(self.dbname)
         cur = db.cursor()
-        sql = "select p1,p2r,p5,p2o,g1,g2,g3,g4,name from dssat.cultivars as c,{0}.agareas as a where crop='rice' and ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(self.name, ens + 1, gid)
+        if dbio.columnExists(self.dbname, "dssat", "cultivars", "name"):
+            name_query = ",c.name"
+        else:
+            name_query = ""
+        sql = "select p1,p2r,p5,p2o,g1,g2,g3,g4{3} from dssat.cultivars as c,{0}.agareas as a where crop='rice' and ensemble={1} and st_intersects(c.geom,a.geom) and a.gid={2}".format(self.name, ens + 1, gid, name_query)
         cur.execute(sql)
         if not bool(cur.rowcount):
-            sql = "select p1,p2r,p5,p2o,g1,g2,g3,g4,name from dssat.cultivars as c,{0}.agareas as a where crop='rice' and ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(self.name, ens + 1, gid)
+            sql = "select p1,p2r,p5,p2o,g1,g2,g3,g4{3} from dssat.cultivars as c,{0}.agareas as a where crop='rice' and ensemble={1} and a.gid={2} order by st_centroid(c.geom) <-> st_centroid(a.geom)".format(self.name, ens + 1, gid, name_query)
             cur.execute(sql)
-        p1, p2r, p5, p2o, g1, g2, g3, g4, cname = cur.fetchone()
+        if name_query:
+            p1, p2r, p5, p2o, g1, g2, g3, g4, cname = cur.fetchone()
+        else:
+            p1, p2r, p5, p2o, g1, g2, g3, g4 = cur.fetchone()
+            cname = ""
         # FIXME: Should the name of the cultivar be reflected in the line below?
         cultivar = "IB0012 IR 58            IB0001{0:6.1f}{1:6.1f}{2:6.1f}{3:6.1f}{4:6.1f}{5:6.4f}{6:6.2f}{7:6.2f}".format(p1, p2r, p5, p2o, g1, g2, g3, g4)
         cur.close()
@@ -166,8 +178,8 @@ class Model(DSSAT):
         self.cultivars[gid] = []
         for ens in range(self.nens):
             sm = vsm[ens]
-            fertilizers = [(startdate, 30, 20)] if fertilizers is None else fertilizers
-            irrigation = [(startdate, 0.0)] if irrigation is None else irrigation
+            fertilizers = [(planting, "005", "014", 1.0, 60.0), (planting+timedelta(30), "005", "014", 1.0, 70.0), (planting+timedelta(45), "005", "014", 1.0, 80.0)] if fertilizers is None else fertilizers
+            irrigation = [(startdate, "IR010", 0.0), (startdate, "IR008", 2.0), (startdate, "IR009", 20.0), (startdate, "IR011", 5.0), (startdate+timedelta(6), "IR009", 100.0), (startdate+timedelta(6), "IR011", 30.0), (startdate+timedelta(10), "IR009", 150.0), (startdate+timedelta(10), "IR011", 50.0)] if irrigation is None else irrigation
             prof = profiles[ens].split("\r\n")
             dz = map(lambda ln: float(ln.split()[0]), profiles[ens].split("\n")[3:-1])
             smi = self.interpolateSoilMoist(sm, depths, dz)

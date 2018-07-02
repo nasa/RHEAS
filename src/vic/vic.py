@@ -59,12 +59,7 @@ class VIC:
             sys.exit()
         self.res = cur.fetchone()[0]
         cur.close()
-        try:
-            self.grid_decimal = - \
-                (decimal.Decimal(self.res).as_tuple().exponent - 1)
-        except:
-            self.grid_decimal = - \
-                (decimal.Decimal(str(self.res)).as_tuple().exponent - 1)
+        self.grid_decimal = -(decimal.Decimal(str(self.res)).as_tuple().exponent - 1)
         self.lat = []
         self.lon = []
         self.gid = OrderedDict()
@@ -289,7 +284,7 @@ class VIC:
         fout.write("MOISTFRACT\tFALSE\n")
         fout.write(
             "COMPRESS\tFALSE\nALMA_OUTPUT\tFALSE\nPTR_HEADER\tFALSE\nPRT_SNOW_BAND\tFALSE\n")
-        fout.write(vicoutput.template(["eb", "wb", "sub", "sur", "csp"]))
+        fout.write(vicoutput.template(["eb", "wb", "sub", "sur", "csp", "eva"]))
         fout.close()
 
     def createIndexTable(self, dataset):
@@ -387,7 +382,7 @@ class VIC:
                  date(self.startyear, self.startmonth, self.startday)).days + 1
         try:
             assert len(prec) == len(self.lat) * ndays and len(tmax) == len(self.lat) * ndays and len(tmin) == len(self.lat) * ndays and len(wind) == len(self.lat) * ndays
-        except:
+        except AssertionError:
             log.error("Missing meteorological data in database for VIC simulation. Exiting...")
             sys.exit()
         cgid = None
@@ -416,9 +411,8 @@ class VIC:
         if not os.path.exists(self.model_path + '/output'):
             os.mkdir(self.model_path + '/output')
         proc = subprocess.Popen([vicexec, "-g", "{0}/global.txt".format(self.model_path)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        out, err = proc.communicate()
-        log.debug(out)
-        # subprocess.call("{0} -g {1}/global.txt".format(vicexec, self.model_path), shell=True)
+        for line in iter(proc.stdout.readline, ''):
+            log.debug(line.strip())
 
     def getOutputStruct(self, globalfile):
         """Creates a dictionary with output variable-file pairs."""
@@ -448,16 +442,17 @@ class VIC:
         self.skipyear = skipyear
         return out
 
-    def readOutput(self, args):
+    def saveToDB(self, args, initialize=True, skipsave=0):
         """Reads VIC output for selected variables."""
         log = logging.getLogger(__name__)
-        droughtvars = ["spi1", "spi3", "spi6", "spi12", "sri1", "sri3", "sri6", "sri12", "severity", "dryspells", "smdi"]
+        droughtvars = ["spi1", "spi3", "spi6", "spi12", "sri1", "sri3", "sri6", "sri12", "severity", "dryspells", "smdi", "cdi"]
         layervars = ["soil_moist", "soil_temp", "smliqfrac", "smfrozfrac"]
         outvars = self.getOutputStruct(self.model_path + "/global.txt")
         outdata = {}
         if len(self.lat) > 0 and len(self.lon) > 0:
             nrows = int(np.round((max(self.lat) - min(self.lat)) / self.res) + 1)
             ncols = int(np.round((max(self.lon) - min(self.lon)) / self.res) + 1)
+            mask = np.zeros((nrows, ncols), dtype='bool')
             nt = (date(self.endyear, self.endmonth, self.endday) -
                   date(self.startyear + self.skipyear, self.startmonth, self.startday)).days + 1
             args = vicoutput.variableGroup(args)
@@ -465,45 +460,40 @@ class VIC:
                 for var in args:
                     if var in outvars or var in droughtvars:
                         if var in layervars:
-                            outdata[var] = np.zeros(
-                                (nt, self.nlayers, nrows, ncols)) + self.nodata
+                            outdata[var] = np.zeros((nt, self.nlayers, nrows, ncols)) + self.nodata
                         else:
-                            outdata[var] = np.zeros(
-                                (nt, 1, nrows, ncols)) + self.nodata
+                            outdata[var] = np.zeros((nt, 1, nrows, ncols)) + self.nodata
                     else:
                         log.warning("Variable {0} not found in output files. Skipping import.".format(var))
-                prefix = set([outvars[v][0]
-                              for v in outdata.keys() if v not in droughtvars])
+                prefix = set([outvars[v][0] for v in outdata.keys() if v not in droughtvars])
+                startdate = "{0}-{1}-{2}".format(self.startyear, self.startmonth, self.startday)
+                enddate = "{0}-{1}-{2}".format(self.endyear, self.endmonth, self.endday)
+                dates = pandas.date_range(startdate, enddate).values
                 for c in range(len(self.lat)):
                     pdata = {}
                     for p in prefix:
-                        filename = "{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(
-                            self.model_path, p, self.lat[c], self.lon[c], self.grid_decimal)
-                        # pdata[p] = np.loadtxt(filename)
-                        pdata[p] = pandas.read_csv(
-                            filename, delim_whitespace=True, header=None).values
-                    i = int((max(self.lat) + self.res /
-                             2.0 - self.lat[c]) / self.res)
-                    j = int((self.lon[c] - min(self.lon) +
-                             self.res / 2.0) / self.res)
-                    for v in outdata:
+                        filename = "{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(self.model_path, p, self.lat[c], self.lon[c], self.grid_decimal)
+                        pdata[p] = pandas.read_csv(filename, delim_whitespace=True, header=None).values
+                    i = int((max(self.lat) + self.res / 2.0 - self.lat[c]) / self.res)
+                    j = int((self.lon[c] - min(self.lon) + self.res / 2.0) / self.res)
+                    mask[i, j] = True
+                    for v in [v for v in outdata if v not in droughtvars]:
                         if v in layervars:
                             for lyr in range(self.nlayers):
-                                outdata[v][:, lyr, i, j] = pdata[
-                                    outvars[v][0]][:, outvars[v][1] + lyr]
-                        elif v in droughtvars:
-                            outdata[v][:, 0, i, j] = drought.calc(
-                                v, self, int(self.gid.keys()[c]))
+                                outdata[v][:, lyr, i, j] = pdata[outvars[v][0]][:, outvars[v][1] + lyr]
                         else:
-                            outdata[v][:, 0, i, j] = pdata[
-                                outvars[v][0]][:, outvars[v][1]]
+                            outdata[v][:, 0, i, j] = pdata[outvars[v][0]][:, outvars[v][1]]
                     log.info("Read output for {0}|{1}".format(self.lat[c], self.lon[c]))
-                dts = [date(self.startyear + self.skipyear, self.startmonth, self.startday) + timedelta(t) for t in range(nt)]
-                year = [t.year for t in dts]
-                month = [t.month for t in dts]
-                day = [t.day for t in dts]
-                outdata["date"] = np.array(
-                    [datetime(int(year[t]), int(month[t]), int(day[t])) for t in range(len(year))])
+                for var in args:
+                    if var in droughtvars:
+                        dout = drought.calc(var, self)
+                        if dout is not None:
+                            mi, mj = np.where(mask)
+                            outdata[var][:, 0, mi, mj] = dout
+                        else:
+                            outdata[var] = None
+                    if outdata[var] is not None:
+                        self.writeToDB(outdata[var], dates, "{0}".format(var), initialize, skipsave=skipsave)
         else:
             log.info("No pixels simulated, not saving any output!")
         return outdata
@@ -528,7 +518,7 @@ class VIC:
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         if dbio.tableExists(self.dbname, self.name, tablename) and ensemble and not dbio.columnExists(self.dbname, self.name, tablename, "ensemble"):
-            log.warning("Table {0} exists but does not contain ensemble information. Overwriting entire table!")
+            log.warning("Table {0} exists but does not contain ensemble information. Overwriting entire table!".format(tablename))
             cur.execute("drop table {0}.{1}".format(self.name, tablename))
             db.commit()
         if dbio.tableExists(self.dbname, self.name, tablename):
@@ -597,11 +587,7 @@ class VIC:
     def save(self, saveto, args, initialize=True, skipsave=0):
         """Reads and saves selected output data variables into the database or a user-defined directory."""
         if saveto == "db":
-            output = self.readOutput(args)
-            for var in output:
-                if var != "date":
-                    self.writeToDB(output[var], output[
-                                   "date"], "{0}".format(var), initialize, skipsave=skipsave)
+            self.saveToDB(args, initialize=initialize, skipsave=skipsave)
         else:
             if initialize:
                 if os.path.isdir(saveto):

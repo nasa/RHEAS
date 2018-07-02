@@ -154,11 +154,19 @@ def getVICvariables(options):
         simtype = [k for k in options if k == 'nowcast' or k == 'forecast'][0]
         models = map(lambda s: s.strip(), options[simtype]['model'].split(","))
         if 'dssat' in models:
-            for v in ['rainf', 'net_short', 'net_long', 'soil_moist', 'tmax', 'tmin', 'lai']:
+            for v in ['rainf', 'net_short', 'net_long', 'soil_moist', 'tmax', 'tmin']:
                 if v not in savevars:
-                    savevars.append(v)
+                    savevars.insert(0, v)
             # if 'lai' in options['vic'] and not 'lai' in savevars:
             #     savevars.append('lai')
+        if any(v in savevars for v in ['drought', 'cdi', 'severity', 'smdi']) and 'soil_moist' not in savevars:
+            savevars.insert(0, 'soil_moist')
+        if any(v in savevars for v in ['drought', 'cdi']) and 'par' not in savevars:
+            savevars.insert(0, 'par')
+        if any(v in savevars for v in ['drought', 'spi', 'cdi']) and 'rainf' not in savevars:
+            savevars.insert(0, 'rainf')
+        if any(v in savevars for v in ['drought', 'severity', 'sri']) and 'runoff' not in savevars:
+            savevars.insert(0, 'runoff')
         for dvar in ['sri', 'spi']:
             if dvar in savevars:
                 savevars.remove(dvar)

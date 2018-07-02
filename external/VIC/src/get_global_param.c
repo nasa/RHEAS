@@ -960,8 +960,11 @@ global_param_struct get_global_param(filenames_struct *names,
   }
   // Set the statename here to be able to compare with INIT_STATE name
   if( options.SAVE_STATE ) {
-    sprintf(names->statefile,"%s_%04i%02i%02i", names->statefile,
-          global.stateyear, global.statemonth, global.stateday);
+      char sdate[9];
+      sprintf(sdate, "_%04d%02d%02d", global.stateyear, global.statemonth, global.stateday);
+      strcat(names->statefile, sdate);
+    /* sprintf(names->statefile,"%s_%04i%02i%02i", names->statefile, */
+    /*       global.stateyear, global.statemonth, global.stateday); */
   }
   if( options.INIT_STATE && options.SAVE_STATE && (strcmp( names->init_state, names->statefile ) == 0))  {
       sprintf(ErrStr,"The save state file (%s) has the same name as the initialize state file (%s).  The initialize state file will be destroyed when the save state file is opened.", names->statefile, names->init_state);

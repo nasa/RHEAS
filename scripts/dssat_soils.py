@@ -52,7 +52,7 @@ def ingestSoils(dbname="rheas"):
     cur = db.cursor()
     if dbio.tableExists(dbname, "dssat", "soils"):
         print("Overwriting existing DSSAT soils table in database!")
-        cur.execute("drop dssat.soils")
+        cur.execute("drop table dssat.soils")
         db.commit()
     cur.execute("create table dssat.soils (rid serial primary key, geom geometry(Point, 4326), props text)")
     db.commit()
