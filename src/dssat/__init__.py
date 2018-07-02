@@ -239,7 +239,7 @@ class DSSAT(object):
             sys.exit()
         return year, month, day, weather, sm, lai
 
-    def writeLAI(self, modelpath, gid, viclai=None, tablename="lai.modis"):
+    def writeLAI(self, modelpath, gid, year, month, day, viclai=None, tablename="lai.modis"):
         """Writes LAI file for DSSAT."""
         fout = open("{0}/LAI.txt".format(modelpath), 'w')
         db = dbio.connect(self.dbname)
@@ -248,7 +248,8 @@ class DSSAT(object):
                     (tablename.split(".")[1],))
         if bool(cur.rowcount) and not self.lai == "vic":
             sql = "select fdate,avg((st_summarystats(st_clip(rast,geom))).mean) from {0},{1}.agareas where st_intersects(rast,geom) and fdate>=date '{2}-{3}-{4}' and fdate<=date '{5}-{6}-{7}' and gid={8} group by fdate".format(
-                tablename, self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday, gid)
+                # tablename, self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday, gid)
+                tablename, self.name, year[0], month[0], day[0], year[-1], month[-1], day[-1], gid)
             cur.execute(sql)
             if bool(cur.rowcount):
                 results = cur.fetchall()
@@ -262,10 +263,12 @@ class DSSAT(object):
                 lai = {}
         else:
             lai = viclai
-        enddate = date(self.endyear, 12, 31)
-        startdate = date(self.startyear, 1, 1)
-        for t in range((enddate - startdate).days + 1):
-            dt = startdate + timedelta(t)
+        # enddate = date(self.endyear, 12, 31)
+        # startdate = date(self.startyear, 1, 1)
+        # for t in range((enddate - startdate).days + 1):
+        for t in range(len(year)):
+            # dt = startdate + timedelta(t)
+            dt = date(year[t], month[t], day[t])
             if lai is not None and dt in lai:
                 fout.write("{0:.1f}\n".format(lai[dt]))
             else:
@@ -278,20 +281,22 @@ class DSSAT(object):
         """Writes soil moisture information file."""
         filename = "{0}/SOIL_MOISTURE.ASC".format(modelpath)
         fout = open(filename, 'w')
-        ndays = (date(year[0] + 1, 1, 1) - date(year[0], 1, 1)).days
-        tv = 0
+        # ndays = (date(year[0] + 1, 1, 1) - date(year[0], 1, 1)).days
+        ndays = (date(year[-1], month[-1], day[-1]) - date(year[0], month[0], day[0])).days + 1
+        # tv = 0
         for t in range(ndays):
-            dt = date(year[0], 1, 1) + timedelta(t)
+            # dt = date(year[0], 1, 1) + timedelta(t)
+            dt = date(year[t], month[t], day[t])
             doy = int(dt.strftime("%j"))
             fout.write("{0:.0f} {1:.0f} {2:.0f} ".format(
                 dt.year, dt.month, dt.day))
-            if tv < len(year) and dt == date(int(year[tv]), int(month[tv]), int(day[tv])):
-                for lyr in range(len(dz)):
-                    fout.write("{0:.3f} ".format(smi[tv, lyr]))
-                tv += 1
-            else:
-                for lyr in range(len(dz)):
-                    fout.write("{0:.0f} ".format(-9999.0))
+            # if tv < len(year) and dt == date(int(year[tv]), int(month[tv]), int(day[tv])):
+            for lyr in range(len(dz)):
+                fout.write("{0:.3f} ".format(smi[tv, lyr]))
+                # tv += 1
+            # else:
+                # for lyr in range(len(dz)):
+                    # fout.write("{0:.0f} ".format(-9999.0))
             fout.write("{0}\n".format(doy))
         fout.close()
 
@@ -444,7 +449,7 @@ class DSSAT(object):
                 else:
                     self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c], ti0, ti1)
                     self.writeSoilMoist(modelpath, year, month, day, smi, dz)
-                    self.writeLAI(modelpath, gid, viclai=vlai)
+                    self.writeLAI(modelpath, gid, year, month, day, viclai=vlai)
                     self.writeConfigFile(modelpath, smi.shape[1], simstartdt, date(year[ti1], month[ti1], day[ti1]))
                     log.info("Wrote DSSAT for planting date {0}".format(pdt.strftime("%Y-%m-%d")))
             except AssertionError:
