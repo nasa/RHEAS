@@ -76,7 +76,6 @@ def runDSSAT(dbname, options):
     res = float(options['forecast']['resolution'])
     nens = int(options['dssat']['ensemble size'])
     name = options['forecast']['name'].lower()
-    dssatexe = "{0}/DSSAT_Ex.exe".format(rpath.bins)
     if 'shapefile' in options['dssat']:
         shapefile = options['dssat']['shapefile']
     else:
@@ -87,7 +86,7 @@ def runDSSAT(dbname, options):
         assimilate = "Y"
     model = dssat.DSSAT(dbname, name, res, startyear, startmonth, startday,
                         endyear, endmonth, endday, nens, options['vic'], shapefile, assimilate)
-    model.run(dssatexe)
+    model.run()
 
 
 def execute(dbname, options):
