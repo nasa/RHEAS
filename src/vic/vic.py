@@ -373,18 +373,41 @@ class VIC:
         self.wind = options['wind']
         return data['precip'], data['tmax'], data['tmin'], data['wind']
 
+    def _handleMissingData(self, data, table):
+        """Handle missing data when running the VIC model. Most likley the missing
+        data have to do with the windowing in the spatial queries. Therefore, we will
+        query the entire raster for the pixels with missing data."""
+        log = logging.getLogger(__name__)
+        try:
+            ndays = (date(self.endyear, self.endmonth, self.endday) - date(self.startyear, self.startmonth, self.startday)).days + 1
+            assert len(data) == len(self.lat) * ndays
+        except:
+            log.warning("Missing meteorological data for {0} in database. Filling with nearest values!".format(table))
+            pixels = list(set(self.gid.keys()) - set([r[0] for r in data]))
+            pixstr = "".join([" and gid={0}".format(p) for p in pixels])
+            db = dbio.connect(self.dbname)
+            cur = db.cursor()
+            sql = "select gid, st_worldtorastercoordx(rast,geom) as x, st_worldtorastercoordy(rast,geom) as y from {0},{1}.basin where fdate=date'{2}-{3}-{4}'{5}".format(table, self.name, self.startyear, self.startmonth, self.startday, pixstr)
+            cur.execute(sql)
+            gids = cur.fetchall()
+            for p in gids:
+                sql = "select gid, fdate, st_nearestvalue(rast, {0}, {1}) from {2},{3}.basin where gid={4} order by gid,fdate".format(p[1], p[2], table, self.name, p[0])
+                cur.execute(sql)
+                res = cur.fetchall()
+                data += res
+            cur.close()
+            db.close()
+        return data
+
     def writeForcings(self, prec, tmax, tmin, wind, lai=None):
         """Write VIC meteorological forcing data files."""
         log = logging.getLogger(__name__)
         if not os.path.exists(self.model_path + '/forcings'):
             os.mkdir(self.model_path + '/forcings')
-        ndays = (date(self.endyear, self.endmonth, self.endday) -
-                 date(self.startyear, self.startmonth, self.startday)).days + 1
-        try:
-            assert len(prec) == len(self.lat) * ndays and len(tmax) == len(self.lat) * ndays and len(tmin) == len(self.lat) * ndays and len(wind) == len(self.lat) * ndays
-        except AssertionError:
-            log.error("Missing meteorological data in database for VIC simulation. Exiting...")
-            sys.exit()
+        prec = self._handleMissingData(prec, "precip.{0}".format(self.precip))
+        tmax = self._handleMissingData(tmax, "precip.{0}".format(self.temp))
+        tmin = self._handleMissingData(tmin, "precip.{0}".format(self.temp))
+        wind = self._handleMissingData(wind, "precip.{0}".format(self.wind))
         cgid = None
         fout = None
         for i in range(len(prec)):
