@@ -30,6 +30,35 @@ def _movingAverage(data, n):
     return out[n - 1:] / n
 
 
+def calcVCI(model, table="ndvi.modis"):
+    """Calculate Vegetation Condition Index."""
+    sdate = date(model.startyear, model.startmonth, model.startday).strftime("%Y-%m-%d")
+    edate = date(model.endyear, model.endmonth, model.endday).strftime("%Y-%m-%d")
+    db = dbio.connect(model.dbname)
+    cur = db.cursor()
+    sql = "create table ndvi_max as (select st_union(rast, 'MAX') as rast from {0})".format(table)
+    cur.execute(sql)
+    sql = "create table ndvi_min as (select st_union(rast, 'MIN') as rast from {0})".format(table)
+    cur.execute(sql)
+    sql = "create table ndvi_max_min as (select st_mapalgebra(max.rast, 1, min.rast, 1, '[rast1]-[rast2]') as rast from ndvi_max as max, ndvi_min as min)"
+    Cur.execute(sql)
+    db.commit()
+    sql = "create table f1 as (select fdate, st_mapalgebra(f.rast, 1, min.rast, 1, '[rast1]-[rast2]') as rast from {0} as f, ndvi_min as min where fdate>=date'{1}' and fdate<=date'{2}' group by fdate,f.rast,min.rast)".format(table, sdate, edate)
+    cur.execute(sql)
+    db.commit()
+    sql = "create table {0}.vci as (select fdate, st_mapalgebra(f1.rast, 1, mm.rast, 1, '[rast1]/[rast2]') as rast from f1, ndvi_max_min as mm group by fdate,f1.rast,mm.rast)".format(model.name)
+    cur.execute(sql)
+    db.commit()
+    cur.execute("drop table ndvi_max")
+    cur.execute("drop table ndvi_min")
+    cur.execute("drop table ndvi_max_min")
+    cur.execute("drop table f1")
+    db.commit()
+    cur.close()
+    db.close()
+    return None
+
+
 def _calcSuctionHead(model, nlayers=3):
     """Calculate soil suction from soil moisture using the Clapp
     and Hornberger (1978) model and parameters."""
@@ -286,4 +315,6 @@ def calc(varname, model):
         output = calcSMDI(model)
     elif varname == "dryspells":
         output = calcDrySpells(model)
+    elif varname == "vci":
+        output = calcVCI(model)
     return output
