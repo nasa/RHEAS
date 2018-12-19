@@ -10,7 +10,7 @@ temperature from the NCEP Reanalysis stored at the IRI Data Library.
 
 import numpy as np
 import datasets
-from decorators import netcdf
+from decorators import opendap
 from datetime import timedelta
 
 
@@ -19,7 +19,7 @@ def dates(dbname):
     return dts
 
 
-@netcdf
+@opendap
 def fetch_tmax(dbname, dt, bbox):
     """Downloads maximum temperature from NCEP Reanalysis."""
     url = "http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.maximum/dods"
@@ -27,7 +27,7 @@ def fetch_tmax(dbname, dt, bbox):
     return url, varname, bbox, dt
 
 
-@netcdf
+@opendap
 def fetch_tmin(dbname, dt, bbox):
     """Downloads minimum temperature from NCEP Reanalysis."""
     url = "http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.minimum/dods"
@@ -35,7 +35,7 @@ def fetch_tmin(dbname, dt, bbox):
     return url, varname, bbox, dt
 
 
-@netcdf
+@opendap
 def fetch_uwnd(dbname, dt, bbox):
     """Downloads U-component wind speed from NCEP Reanalysis."""
     url = "http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.u/dods"
@@ -43,7 +43,7 @@ def fetch_uwnd(dbname, dt, bbox):
     return url, varname, bbox, dt
 
 
-@netcdf
+@opendap
 def fetch_vwnd(dbname, dt, bbox):
     """Downloads U-component wind speed from NCEP Reanalysis."""
     url = "http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP-NCAR/.CDAS-1/.DAILY/.Diagnostic/.above_ground/.v/dods"
