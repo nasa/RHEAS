@@ -101,24 +101,37 @@ def opendap(fetch):
         lat = ds[latvar][:].data
         lon = ds[lonvar][:].data
         lon[lon > 180] -= 360
-        res = abs(lat[0]-lat[1])  # assume rectangular grid
-        i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
+        res = np.mean(abs(np.diff(lat)))  # assume rectangular grid
+        lati = np.argsort(lat)[-1::-1]  # ensure north-south orientation in array
+        loni = np.argsort(lon)  # ensure west-east orientation in array
+        i1, i2, j1, j2 = datasets.spatialSubset(lat[lati], lon[loni], res, bbox)
+        lat = lat[lati][i1:i2+1]
+        lon = lon[loni][j1:j2+1]
         t = ds[timevar]
         tt = netcdf4.num2date(t[:].data, units=t.units)
         ti = [tj for tj in range(len(tt)) if resetDatetime(tt[tj]) >= dt[0] and resetDatetime(tt[tj]) <= dt[1]]
         if len(ti) > 0:
-            lati = np.argsort(lat)[::-1][i1:i2]
-            loni = np.argsort(lon)[j1:j2]
-            if len(ds[varname].data[0].shape) > 3:
-                data = ds[varname].data[0][ti[0]:ti[-1]+1, 0, lati[0]:lati[-1]+1, loni[0]:loni[-1]+1]
+            if lati[i1] > lati[i2]:
+                i1, i2 = i2, i1
+                nsflip = True
             else:
-                data = ds[varname].data[0][ti[0]:ti[-1]+1, 0, lati[0]:lati[-1]+1, loni[0]:loni[-1]+1]
+                nsflip = False
+            if loni[j1] > loni[j2]:
+                j1, j2 = j2, j1
+                ewflip = True
+            else:
+                ewflip = False
+            if len(ds[varname].data[0].shape) > 3:
+               data = ds[varname].data[0][ti[0]:ti[-1]+1, 0, lati[i1]:lati[i2]+1, loni[j1]:loni[j2]+1]
+            else:
+                data = ds[varname].data[0][ti[0]:ti[-1]+1, lati[i1]:lati[i2]+1, loni[j1]:loni[j2]+1]
+            if nsflip:
+                data = np.flip(data, axis=1)
+            if ewflip:
+                data = np.flip(data, axis=2)
             dt = tt[ti]
         else:
             data = None
-            dt = None
-        lat = np.sort(lat)[::-1][i1:i2]
-        lon = np.sort(lon)[j1:j2]
         return data, lat, lon, dt
     return wrapper
      
@@ -140,24 +153,37 @@ def netcdf(fetch):
         lat = ds.variables[latvar][:]
         lon = ds.variables[lonvar][:]
         lon[lon > 180] -= 360
-        res = abs(lat[0]-lat[1])  # assume rectangular grid
+        res = np.mean(abs(np.diff(lat)))  # assume rectangular grid
+        lati = np.argsort(lat)[-1::-1]  # ensure north-south orientation in array
+        loni = np.argsort(lon)  # ensure west-east orientation in array
         i1, i2, j1, j2 = datasets.spatialSubset(np.sort(lat)[::-1], np.sort(lon), res, bbox)
+        lat = lat[lati][i1:i2+1]
+        lon = lon[loni][j1:j2+1]
         t = ds.variables[timevar]
         tt = netcdf4.num2date(t[:], units=t.units)
         ti = [tj for tj in range(len(tt)) if resetDatetime(tt[tj]) >= dt[0] and resetDatetime(tt[tj]) <= dt[1]]
         if len(ti) > 0:
-            lati = np.argsort(lat)[::-1][i1:i2]
-            loni = np.argsort(lon)[j1:j2]
-            if len(ds.variables[varname].shape) > 3:
-                data = ds.variables[varname][ti, 0, lati, loni]
+            if lati[i1] > lati[i2]:
+                i1, i2 = i2, i1
+                nsflip = True
             else:
-                data = ds.variables[varname][ti, lati, loni]
+                nsflip = False
+            if loni[j1] > loni[j2]:
+                j1, j2 = j2, j1
+                ewflip = True
+            else:
+                ewflip = False
+            if len(ds.variables[varname].shape) > 3:
+                data = ds.variables[varname][ti, 0, lati[i1]:lati[i2]+1, loni[j1]:loni[j2]+1]
+            else:
+                data = ds.variables[varname][ti, lati[i1]:lati[i2]+1, loni[j1]:loni[j2]+1]
             dt = tt[ti]
+            if nsflip:
+                data = np.flip(data, axis=1)
+            if ewflip:
+                data = np.flip(data, axis=2)
         else:
             data = None
-            dt = None
-        lat = np.sort(lat)[::-1][i1:i2]
-        lon = np.sort(lon)[j1:j2]
         return data, lat, lon, dt
     return wrapper
 
