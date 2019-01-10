@@ -8,7 +8,7 @@
 
 """
 
-from datasets.decorators import netcdf
+from datasets.decorators import opendap
 from datetime import timedelta
 import datasets
 
@@ -16,7 +16,7 @@ import datasets
 table = "precip.trmm"
 
 
-@netcdf
+@opendap
 def fetch(dbname, dt, bbox):
     """Downloads TRMM 3B42v7 rainfall data from the IRI data server,
     and imports them into the database *dbname*. Optionally uses a bounding box to
@@ -30,7 +30,10 @@ def download(dbname, dts, bbox=None):
     res = 0.25
     data, lat, lon, dts = fetch(dbname, dts, bbox)
     for t, dt in enumerate([dts[0] + timedelta(tt) for tt in range((dts[-1] - dts[0]).days + 1)]):
-        datasets.ingest(dbname, table, data[t, :, :], lat, lon, res, dt)
+        if data:
+            datasets.ingest(dbname, table, data[t, :, :], lat, lon, res, dt)
+        else:
+            datasets.ingest(dbname, table, data, lat, lon, res, dt)
 
 
 def dates(dbname):
