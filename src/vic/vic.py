@@ -378,8 +378,10 @@ class VIC:
         data have to do with the windowing in the spatial queries. Therefore, we will
         query the entire raster for the pixels with missing data."""
         log = logging.getLogger(__name__)
+        t0 = date(self.startyear, self.startmonth, self.startday)
+        t1 = date(self.endyear, self.endmonth, self.endday)
         try:
-            ndays = (date(self.endyear, self.endmonth, self.endday) - date(self.startyear, self.startmonth, self.startday)).days + 1
+            ndays = (t1 - t0).days + 1
             assert len(data) == len(self.lat) * ndays
         except:
             log.warning("Missing meteorological data for {0} in database. Filling with nearest values!".format(table))
@@ -391,7 +393,7 @@ class VIC:
             cur.execute(sql)
             gids = cur.fetchall()
             for p in gids:
-                sql = "select gid, fdate, st_nearestvalue(rast, {0}, {1}) from {2},{3}.basin where gid={4} order by gid,fdate".format(p[1], p[2], table, self.name, p[0])
+                sql = "select gid, fdate, st_nearestvalue(rast, {0}, {1}) from {2},{3}.basin where gid={4} and fdate>=date'{5}' and fdate<=date'{6}' order by gid,fdate".format(p[1], p[2], table, self.name, p[0], t0.strftime("%Y-%m-%d"), t1.strftime("%Y-%m-%d"))
                 cur.execute(sql)
                 res = cur.fetchall()
                 data += res
@@ -405,9 +407,9 @@ class VIC:
         if not os.path.exists(self.model_path + '/forcings'):
             os.mkdir(self.model_path + '/forcings')
         prec = self._handleMissingData(prec, "precip.{0}".format(self.precip))
-        tmax = self._handleMissingData(tmax, "precip.{0}".format(self.temp))
-        tmin = self._handleMissingData(tmin, "precip.{0}".format(self.temp))
-        wind = self._handleMissingData(wind, "precip.{0}".format(self.wind))
+        tmax = self._handleMissingData(tmax, "tmax.{0}".format(self.temp))
+        tmin = self._handleMissingData(tmin, "tmin.{0}".format(self.temp))
+        wind = self._handleMissingData(wind, "wind.{0}".format(self.wind))
         cgid = None
         fout = None
         for i in range(len(prec)):

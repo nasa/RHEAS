@@ -87,6 +87,7 @@ def writeGeotif(lat, lon, res, data, filename=None):
     else:
         nrows, ncols = data.shape
         out = data
+    out = out.astype("float32")
     if filename is None:
         f = tempfile.NamedTemporaryFile(suffix=".tif", delete=False)
         filename = f.name
