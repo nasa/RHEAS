@@ -32,30 +32,34 @@ def _movingAverage(data, n):
 
 def calcVCI(model, table="ndvi.modis"):
     """Calculate Vegetation Condition Index."""
+    log = logging.getLogger(__name__)
     sdate = date(model.startyear, model.startmonth, model.startday).strftime("%Y-%m-%d")
     edate = date(model.endyear, model.endmonth, model.endday).strftime("%Y-%m-%d")
-    db = dbio.connect(model.dbname)
-    cur = db.cursor()
-    sql = "create table ndvi_max as (select st_union(rast, 'MAX') as rast from {0})".format(table)
-    cur.execute(sql)
-    sql = "create table ndvi_min as (select st_union(rast, 'MIN') as rast from {0})".format(table)
-    cur.execute(sql)
-    sql = "create table ndvi_max_min as (select st_mapalgebra(max.rast, 1, min.rast, 1, '[rast1]-[rast2]') as rast from ndvi_max as max, ndvi_min as min)"
-    Cur.execute(sql)
-    db.commit()
-    sql = "create table f1 as (select fdate, st_mapalgebra(f.rast, 1, min.rast, 1, '[rast1]-[rast2]') as rast from {0} as f, ndvi_min as min where fdate>=date'{1}' and fdate<=date'{2}' group by fdate,f.rast,min.rast)".format(table, sdate, edate)
-    cur.execute(sql)
-    db.commit()
-    sql = "create table {0}.vci as (select fdate, st_mapalgebra(f1.rast, 1, mm.rast, 1, '[rast1]/[rast2]') as rast from f1, ndvi_max_min as mm group by fdate,f1.rast,mm.rast)".format(model.name)
-    cur.execute(sql)
-    db.commit()
-    cur.execute("drop table ndvi_max")
-    cur.execute("drop table ndvi_min")
-    cur.execute("drop table ndvi_max_min")
-    cur.execute("drop table f1")
-    db.commit()
-    cur.close()
-    db.close()
+    if dbio.tableExists(model.dbname, table.split(".")[0], table.split(".")[1]):
+        db = dbio.connect(model.dbname)
+        cur = db.cursor()
+        sql = "create table ndvi_max as (select st_union(rast, 'MAX') as rast from {0})".format(table)
+        cur.execute(sql)
+        sql = "create table ndvi_min as (select st_union(rast, 'MIN') as rast from {0})".format(table)
+        cur.execute(sql)
+        sql = "create table ndvi_max_min as (select st_mapalgebra(max.rast, 1, min.rast, 1, '[rast1]-[rast2]') as rast from ndvi_max as max, ndvi_min as min)"
+        Cur.execute(sql)
+        db.commit()
+        sql = "create table f1 as (select fdate, st_mapalgebra(f.rast, 1, min.rast, 1, '[rast1]-[rast2]') as rast from {0} as f, ndvi_min as min where fdate>=date'{1}' and fdate<=date'{2}' group by fdate,f.rast,min.rast)".format(table, sdate, edate)
+        cur.execute(sql)
+        db.commit()
+        sql = "create table {0}.vci as (select fdate, st_mapalgebra(f1.rast, 1, mm.rast, 1, '[rast1]/[rast2]') as rast from f1, ndvi_max_min as mm group by fdate,f1.rast,mm.rast)".format(model.name)
+        cur.execute(sql)
+        db.commit()
+        cur.execute("drop table ndvi_max")
+        cur.execute("drop table ndvi_min")
+        cur.execute("drop table ndvi_max_min")
+        cur.execute("drop table f1")
+        db.commit()
+        cur.close()
+        db.close()
+    else:
+        log.warning("No NDVI data were found in database. Cannot calculate VCI!")
     return None
 
 
@@ -141,6 +145,7 @@ def calcCDI(model):
     2 = Warning (Soil moisture deficit)
     3 = Alert 1 (Vegetation stress following precipitation deficit)
     4 = Alert 2 (Vegetation stress following precipitation/soil moisture deficit)."""
+    log = logging.getLogger(__name__)
     spi = calcSPI(3, model)
     sma = _calcSuctionHead(model)
     fapar = _calcFpar(model)
@@ -151,6 +156,7 @@ def calcCDI(model):
         cdi[(fapar < -1) & (spi < -1)] = 3
         cdi[(fapar < -1) & (sma > 1) & (spi < -1)] = 4
     else:
+        log.warning("Error in calculating SPI-3, SMA or PAR. Cannot calculate CDI!")
         cdi = None
     return cdi
 
@@ -177,7 +183,7 @@ def calcSRI(duration, model):
         p = pandas.DataFrame(data[:, i], index=np.array([r[0] for r in results], dtype='datetime64'), columns=range(len(i)))
         pm = p.rolling(duration*30).mean()  # assume each month is 30 days
         g = [stats.gamma.fit(pm[j][duration*30:]) for j in pm.columns]
-        cdf = np.array([stats.gamma.cdf(pm[j],*g[j]) for j in pm.columns]).T
+        cdf = np.array([stats.gamma.cdf(pm[j], *g[j]) for j in pm.columns]).T
         sri = np.zeros(cdf.shape)
         sri[duration*30:, :] = stats.norm.ppf(cdf[duration*30:, :])
         sri = _clipToValidRange(sri)
@@ -209,7 +215,7 @@ def calcSPI(duration, model):
         p = pandas.DataFrame(data[:, i], index=np.array([r[0] for r in results], dtype='datetime64'), columns=range(len(i)))
         pm = p.rolling(duration*30).mean()  # assume each month is 30 days
         g = [stats.gamma.fit(pm[j][duration*30:]) for j in pm.columns]
-        cdf = np.array([stats.gamma.cdf(pm[j],*g[j]) for j in pm.columns]).T
+        cdf = np.array([stats.gamma.cdf(pm[j], *g[j]) for j in pm.columns]).T
         spi = np.zeros(cdf.shape)
         spi[duration*30:, :] = stats.norm.ppf(cdf[duration*30:, :])
         spi = _clipToValidRange(spi)
@@ -301,11 +307,11 @@ def calcSMDI(model):
 
 def calc(varname, model):
     """Calculate drought-related variable."""
-    if varname.find("spi") == 0:
-        duration = int(varname[3])
+    if varname.startswith("spi"):
+        duration = int(varname[3:])
         output = calcSPI(duration, model)
     elif varname.startswith("sri"):
-        duration = int(varname[3])
+        duration = int(varname[3:])
         output = calcSRI(duration, model)
     elif varname == "severity":
         output = calcSeverity(model)

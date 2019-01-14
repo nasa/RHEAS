@@ -99,10 +99,17 @@ def template(varlist):
     return out
 
 
+def droughtVariables():
+    """Return list of drought-related variables."""
+    droughtvars = ["spi1", "spi3", "spi6", "spi12", "sri1", "sri3", "sri6", "sri12",
+                   "severity", "dryspells", "smdi", "cdi", "vci"]
+    return droughtvars
+
+
 def variableGroup(args):
     """Returns new list of variables by expanding variable that corresponds to group name."""
     groupvars = {'snow': ["swe", "salbedo", "snow_cover", "snow_depth"],
-                 'drought': ["severity", "spi1", "spi3", "spi6", "spi12", "sri1", "sri3", "sri6", "sri12", "smdi", "dryspells"],
+                 'drought': droughtVariables(),
                  'soil': ["soil_moist", "soil_temp"],
                  'eb': ["net_short", "net_long", "latent", "sensible", "grnd_flux"],
                  'wb': ["rainf", "snowf", "evap", "runoff", "baseflow"]}
