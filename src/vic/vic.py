@@ -470,7 +470,7 @@ class VIC:
     def saveToDB(self, args, initialize=True, skipsave=0):
         """Reads VIC output for selected variables."""
         log = logging.getLogger(__name__)
-        droughtvars = ["spi1", "spi3", "spi6", "spi12", "sri1", "sri3", "sri6", "sri12", "severity", "dryspells", "smdi", "cdi"]
+        droughtvars = vicoutput.droughtVariables()
         layervars = ["soil_moist", "soil_temp", "smliqfrac", "smfrozfrac"]
         outvars = self.getOutputStruct(self.model_path + "/global.txt")
         outdata = {}
