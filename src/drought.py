@@ -302,10 +302,10 @@ def calcSMDI(model):
 def calc(varname, model):
     """Calculate drought-related variable."""
     if varname.find("spi") == 0:
-        duration = int(varname[3])
+        duration = int(varname[3:])
         output = calcSPI(duration, model)
     elif varname.startswith("sri"):
-        duration = int(varname[3])
+        duration = int(varname[3:])
         output = calcSRI(duration, model)
     elif varname == "severity":
         output = calcSeverity(model)

@@ -102,7 +102,7 @@ def template(varlist):
 def droughtVariables():
     """Return list of drought-related variables."""
     droughtvars = ["spi1", "spi3", "spi6", "spi12", "sri1", "sri3", "sri6", "sri12",
-                   "severity", "dryspells", "smdi", "cdi"]
+                   "severity", "dryspells", "smdi", "cdi", "vci"]
     return droughtvars
 
 
