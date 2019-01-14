@@ -183,7 +183,7 @@ def calcSRI(duration, model):
         p = pandas.DataFrame(data[:, i], index=np.array([r[0] for r in results], dtype='datetime64'), columns=range(len(i)))
         pm = p.rolling(duration*30).mean()  # assume each month is 30 days
         g = [stats.gamma.fit(pm[j][duration*30:]) for j in pm.columns]
-        cdf = np.array([stats.gamma.cdf(pm[j],*g[j]) for j in pm.columns]).T
+        cdf = np.array([stats.gamma.cdf(pm[j], *g[j]) for j in pm.columns]).T
         sri = np.zeros(cdf.shape)
         sri[duration*30:, :] = stats.norm.ppf(cdf[duration*30:, :])
         sri = _clipToValidRange(sri)
@@ -215,7 +215,7 @@ def calcSPI(duration, model):
         p = pandas.DataFrame(data[:, i], index=np.array([r[0] for r in results], dtype='datetime64'), columns=range(len(i)))
         pm = p.rolling(duration*30).mean()  # assume each month is 30 days
         g = [stats.gamma.fit(pm[j][duration*30:]) for j in pm.columns]
-        cdf = np.array([stats.gamma.cdf(pm[j],*g[j]) for j in pm.columns]).T
+        cdf = np.array([stats.gamma.cdf(pm[j], *g[j]) for j in pm.columns]).T
         spi = np.zeros(cdf.shape)
         spi[duration*30:, :] = stats.norm.ppf(cdf[duration*30:, :])
         spi = _clipToValidRange(spi)
@@ -307,7 +307,7 @@ def calcSMDI(model):
 
 def calc(varname, model):
     """Calculate drought-related variable."""
-    if varname.find("spi") == 0:
+    if varname.startswith("spi") == 0:
         duration = int(varname[3:])
         output = calcSPI(duration, model)
     elif varname.startswith("sri"):
