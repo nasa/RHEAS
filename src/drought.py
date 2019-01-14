@@ -145,6 +145,7 @@ def calcCDI(model):
     2 = Warning (Soil moisture deficit)
     3 = Alert 1 (Vegetation stress following precipitation deficit)
     4 = Alert 2 (Vegetation stress following precipitation/soil moisture deficit)."""
+    log = logging.getLogger(__name__)
     spi = calcSPI(3, model)
     sma = _calcSuctionHead(model)
     fapar = _calcFpar(model)
@@ -155,6 +156,7 @@ def calcCDI(model):
         cdi[(fapar < -1) & (spi < -1)] = 3
         cdi[(fapar < -1) & (sma > 1) & (spi < -1)] = 4
     else:
+        log.warning("Error in calculating SPI-3, SMA or PAR. Cannot calculate CDI!")
         cdi = None
     return cdi
 
