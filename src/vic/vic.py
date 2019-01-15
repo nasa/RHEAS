@@ -146,7 +146,6 @@ class VIC:
 
     def stateFile(self):
         """Retrieve state file path from database."""
-        log = logging.getLogger(__name__)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select filename from {0}.state where fdate = date '{1}-{2}-{3}'".format(
@@ -159,7 +158,6 @@ class VIC:
         if bool(result):
             filename = result[0]
         else:
-            log.warning("No state file found for requested date, initializing from default.")
             filename = None
         cur.close()
         db.close()
@@ -467,7 +465,7 @@ class VIC:
         self.skipyear = skipyear
         return out
 
-    def saveToDB(self, args, initialize=True, skipsave=0):
+    def saveToDB(self, args, initialize=True, skipsave=0, ensemble=0):
         """Reads VIC output for selected variables."""
         log = logging.getLogger(__name__)
         droughtvars = vicoutput.droughtVariables()
@@ -511,7 +509,7 @@ class VIC:
                     log.info("Read output for {0}|{1}".format(self.lat[c], self.lon[c]))
                 for var in args:
                     if var in droughtvars:
-                        dout = drought.calc(var, self)
+                        dout = drought.calc(var, self, ensemble)
                         if dout is not None:
                             mi, mj = np.where(mask)
                             outdata[var][:, 0, mi, mj] = dout
@@ -609,10 +607,10 @@ class VIC:
         cur.close()
         db.close()
 
-    def save(self, saveto, args, initialize=True, skipsave=0):
+    def save(self, saveto, args, initialize=True, skipsave=0, ensemble=0):
         """Reads and saves selected output data variables into the database or a user-defined directory."""
         if saveto == "db":
-            self.saveToDB(args, initialize=initialize, skipsave=skipsave)
+            self.saveToDB(args, initialize=initialize, skipsave=skipsave, ensemble=ensemble)
         else:
             if initialize:
                 if os.path.isdir(saveto):
