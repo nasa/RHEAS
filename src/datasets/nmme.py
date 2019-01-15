@@ -155,6 +155,22 @@ def _queryDataset(dbname, tablename, name, startyear, startmonth, startday, endy
     return data
 
 
+def _checkData(data):
+    """Check NMME data for missing values and replace. This is
+    a temporary fix until Climateserv incorporates better QC procedures."""
+    nens = len(data)
+    adata = np.array([[r[2] for r in data[e]] for e in range(nens)]).T
+    good_data = np.any(adata, axis=1)
+    good_data[good_data == np.array(None)] = np.mean(good_data[good_data != np.array(None)])
+    for e in range(nens):
+        for i in range(len(data[e])):
+            if data[e][i][2] is None:
+                d = list(data[e][i])
+                d[2] = good_data[i]
+                data[e][i] = tuple(d)
+    return data
+
+
 def _getForcings(options, models, res):
     """Retrieve meteorological forcings for ensemble."""
     nens = len(models)
@@ -167,8 +183,13 @@ def _getForcings(options, models, res):
     tmin = [None] * nens
     temp = [None] * nens
     for e in range(nens):
+        models[e].precip = options['vic']['precip']
+        models[e].temp = options['vic']['temperature']
+        models[e].wind = options['vic']['wind']
         prec[e] = _queryDataset(models.dbname, "precip.nmme_{0}".format(rsmp), models.name, models.startyear, models.startmonth, models.startday, models.endyear, models.endmonth, models.endday, e+1)
         temp[e] = _queryDataset(models.dbname, "tmax.nmme_{0}".format(rsmp), models.name, models.startyear, models.startmonth, models.startday, models.endyear, models.endmonth, models.endday, e+1)
+    prec = _checkData(prec)
+    temp = _checkData(temp)
     sql = "select distinct(date_part('year',fdate)) from tmax.{0}".format(rtables['tmax'])
     cur.execute(sql)
     years = [r[0] for r in cur.fetchall()]
