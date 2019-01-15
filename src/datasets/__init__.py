@@ -121,3 +121,23 @@ def ingest(dbname, table, data, lat, lon, res, t, resample=True, overwrite=True)
         os.remove(filename)
     else:
         log.warning("No data were available to import into {0} for {1}.".format(table, t.strftime("%Y-%m-%d")))
+
+
+def validate(dbname, table, dt):
+    """Validates that data were correctly downloaded."""
+    invalid = []
+    db = dbio.connect(dbname)
+    cur = db.cursor()
+    ndays = (dt[1] - dt[0]).days + 1
+    sql = "select count(*) from {0} where fdate>=date'{1}' and fdate<=date'{2}'".format(table, dt[0].strftime("%Y-%m-%d"), dt[1].strftime("%Y-%m-%d"))
+    cur.execute(sql)
+    results = cur.fetchone()
+    if results[0] < ndays:
+        for d in range(ndays):
+            t = dt[0] + timedelta(d)
+            sql = "select fdate from {0} where fdate=date'{1}'".format(table, t.strftime("%Y-%m-%d"))
+            cur.execute(sql)
+            results = cur.fetchone()
+            if results is None:
+                invalid.append(t)
+    return invalid
