@@ -66,6 +66,9 @@ def update(dbname, configfile):
                     dt = (t0, t1)
                 if dt is not None:
                     mod.download(dbname, dt, bbox)
+                    invalid = datasets.validate(dbname, mod.table, dt)
+                    for t in invalid:
+                        mod.download(dbname, (t, t), bbox)
 
 
 def run():
