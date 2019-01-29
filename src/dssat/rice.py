@@ -9,10 +9,6 @@
 
 from dssat import DSSAT
 from datetime import timedelta
-import rpath
-import logging
-import subprocess
-import os
 import dbio
 
 
@@ -166,9 +162,6 @@ class Model(DSSAT):
 
     def writeControlFile(self, modelpath, vsm, depths, startdate, gid, lat, lon, planting, fertilizers, irrigation):
         """Writes DSSAT control file for specific pixel."""
-        fix_year = 2008 if startdate.year % 4 == 0 else 2009
-        startdate = startdate.replace(fix_year)  # Temporary fix for weird DSSAT bug that crashes when year is after 2010
-        planting = planting.replace(fix_year)
         if isinstance(vsm, list):
             vsm = (vsm * (int(self.nens / len(vsm)) + 1))[:self.nens]
         else:
@@ -184,7 +177,7 @@ class Model(DSSAT):
             dz = map(lambda ln: float(ln.split()[0]), profiles[ens].split("\n")[3:-1])
             smi = self.interpolateSoilMoist(sm, depths, dz)
             cultivar = self.cultivar(ens, gid)
-            filename = "{0}/DSSAT{1}_{2:03d}.INP" .format(modelpath, self.nens, ens + 1)
+            filename = "{0}/DSSAT_{1:03d}.INP" .format(modelpath, ens + 1)
             with open(filename, 'w') as fout:
                 self._writeFileNames(fout, ens)
                 self._writeSimulationControl(fout, startdate)
@@ -205,32 +198,6 @@ class Model(DSSAT):
                 self._writeSoil(fout, prof, dz)
                 self._writeCultivar(fout, cultivar)
         return dz, smi
-
-    def run(self):
-        "Override executable for DSSAT rice model."
-        dssatexe = "{0}/DSSAT_Ex.exe".format(rpath.bins)
-        return super(Model, self).run(dssatexe=dssatexe)
-
-    def setupModelInstance(self, geom, dssatexe):
-        """Overrides setting up parameters and writing input files for a DSSAT model instance
-        over a specific geometry."""
-        return super(Model, self).setupModelInstance(geom, "DSSAT_Ex.exe")
-
-    def runModelInstance(self, modelpath, dssatexe):
-        """Override run function of DSSAT model instance."""
-        log = logging.getLogger(__name__)
-        dssatexe = "DSSAT_Ex.exe"
-        os.chdir(modelpath)
-        for ens in range(self.nens):
-            proc = subprocess.Popen(["wine", dssatexe, "D", "DSSAT{0}_{1:03d}.INP".format(self.nens, ens+1)])
-            out, err = proc.communicate()
-            log.debug(out)
-            os.rename("PlantGro.OUT", "PLANTGRO{0:03d}.OUT".format(ens+1))
-
-    def writeWeatherFiles(self, modelpath, name, year, month, day, weather, elev, lat, lon, ts=None, te=None):
-        """Overrides writing ensemble weather files for specific pixel."""
-        fix_year = [2008 if y % 4 == 0 else 2009 for y in year]
-        return super(Model, self).writeWeatherFiles(modelpath, name, fix_year, month, day, weather, elev, lat, lon)
 
     def yieldTable(self):
         """Create table for crop yield statistics and crop type."""
