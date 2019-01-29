@@ -549,6 +549,8 @@ class DSSAT(object):
 
     def run(self, dssatexe="DSSAT_EnKF.exe", crop_threshold=0.1):
         """Runs DSSAT simulation."""
+        if self.crop:
+            dssatexe = "DSSAT_EnKF_{0}.exe".format(self.crop)
         self.readVICSoil()
         geoms = self.readShapefile()
         cropfract = self.calcCroplandFract()
