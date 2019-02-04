@@ -24,8 +24,11 @@ from datetime import datetime, timedelta
 import logging
 
 
+table = "precip.nmme"
+
+
 def dates(dbname):
-    dts = datasets.dates(dbname, "precip.nmme")
+    dts = datasets.dates(dbname, table)
     return dts
 
 
