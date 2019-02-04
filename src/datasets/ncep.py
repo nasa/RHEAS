@@ -13,9 +13,11 @@ import datasets
 from decorators import opendap
 from datetime import timedelta
 
+table = "wind.ncep"
+
 
 def dates(dbname):
-    dts = datasets.dates(dbname, "wind.ncep")
+    dts = datasets.dates(dbname, table)
     return dts
 
 

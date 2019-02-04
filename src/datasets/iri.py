@@ -20,8 +20,11 @@ from dateutil.relativedelta import relativedelta
 import logging
 
 
+table = "precip.iri"
+
+
 def dates(dbname):
-    dts = datasets.dates(dbname, "precip.iri")
+    dts = datasets.dates(dbname, table)
     return dts
 
 
