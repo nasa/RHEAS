@@ -381,17 +381,13 @@ class VIC:
         try:
             ndays = (t1 - t0).days + 1
             assert len(data) == len(self.lat) * ndays
-        except:
+        except AssertionError:
             log.warning("Missing meteorological data for {0} in database. Filling with nearest values!".format(table))
             pixels = list(set(self.gid.keys()) - set([r[0] for r in data]))
-            pixstr = "".join([" and gid={0}".format(p) for p in pixels])
             db = dbio.connect(self.dbname)
             cur = db.cursor()
-            sql = "select gid, st_worldtorastercoordx(rast,geom) as x, st_worldtorastercoordy(rast,geom) as y from {0},{1}.basin where fdate=date'{2}-{3}-{4}'{5}".format(table, self.name, self.startyear, self.startmonth, self.startday, pixstr)
-            cur.execute(sql)
-            gids = cur.fetchall()
-            for p in gids:
-                sql = "select gid, fdate, st_nearestvalue(rast, {0}, {1}) from {2},{3}.basin where gid={4} and fdate>=date'{5}' and fdate<=date'{6}' order by gid,fdate".format(p[1], p[2], table, self.name, p[0], t0.strftime("%Y-%m-%d"), t1.strftime("%Y-%m-%d"))
+            for p in pixels:
+                sql = "select gid, fdate, st_nearestvalue(rast,geom) from {0},{1}.basin where gid={2} and fdate>=date'{3}' and fdate<=date'{4}' order by fdate".format(table, self.name, p, t0.strftime("%Y-%m-%d"), t1.strftime("%Y-%m-%d"))
                 cur.execute(sql)
                 res = cur.fetchall()
                 data += res
