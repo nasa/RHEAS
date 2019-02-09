@@ -88,6 +88,15 @@ def initializeVIC(model, basin, res, voptions, vicexe):
         tm = max(tp, tx, tw)  # earliest date where meteorological data are available
         t0 = max(t1, tm) if ts is None else max(ts, t1, tm)  # earliest date where meteorological data or statefile is available (within 1 year)
         init = (t0 == ts)  # initialize from statefile if criteria are met
+        cur.execute("select max(fdate) from precip.{0}".format(voptions['precip']))
+        tp = cur.fetchone()[0]
+        cur.execute("select max(fdate) from tmax.{0}".format(voptions['temperature']))
+        tx = cur.fetchone()[0]
+        cur.execute("select max(fdate) from wind.{0}".format(voptions['wind']))
+        tw = cur.fetchone()[0]
+        te = min(tp, tx, tw)  # latest date that meteorological data are available to ensure that a statefile can be produced
+        if te < date(model.startyear, model.startmonth, model.startday):
+            return None
         model = vic.VIC(model.model_path, model.dbname, res, t0.year, t0.month, t0.day, model.startyear, model.startmonth, model.startday, model.name)
         model.writeParamFile(save_state=True, init_state=init)
         model.writeSoilFile(basin)
