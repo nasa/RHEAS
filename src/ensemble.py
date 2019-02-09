@@ -93,6 +93,7 @@ class Ensemble:
 
     def _ESP(self, options):
         """Generate meteorological forcings using the Ensemble Streamflow Prediction method."""
+        log = logging.getLogger(__name__)
         ndays = (date(self.endyear, self.endmonth, self.endday) -
                  date(self.startyear, self.startmonth, self.startday)).days
         db = dbio.connect(self.models[0].dbname)
@@ -103,7 +104,16 @@ class Ensemble:
             sql = "select distinct (date_part('year', fdate)) as year from precip.{0} where date_part('month', fdate) >= {1} or date_part('month', fdate) <= {2}".format(options['vic']['precip'], self.startmonth, self.endmonth)
         cur.execute(sql)
         years = map(lambda y: int(y[0]), cur.fetchall())
-        years.remove(self.endyear)  # remove forecast end year to ensure adequate record length in resampled dataset
+        ## Check if resample years have adequate record lengths
+        for year in years:
+            t = date(year, self.startmonth, self.startday) + timedelta(ndays)
+            sql = "select * from precip.{0} where fdate=date'{1}'".format(options['vic']['precip'], t.strftime("%Y-%m-%d"))
+            cur.execute(sql)
+            if not bool(cur.rowcount):
+                years.remove(year)
+        if len(years) < 1:
+            log.error("Not enough years in climatology to produce ESP forecast for selected dates, exiting!")
+            sys.exit()
         random.shuffle(years)
         while len(years) < self.nens:
             years += years
