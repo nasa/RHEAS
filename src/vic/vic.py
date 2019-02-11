@@ -21,7 +21,7 @@ import shutil
 import numpy as np
 from collections import OrderedDict
 import drought
-import pandas
+import pandas as pd
 import dbio
 import rpath
 import random
@@ -383,6 +383,7 @@ class VIC:
             assert len(data) == len(self.lat) * ndays
         except AssertionError:
             log.warning("Missing meteorological data for {0} in database. Filling with nearest values!".format(table))
+            # Check for missing data due to raster tiling
             pixels = list(set(self.gid.keys()) - set([r[0] for r in data]))
             db = dbio.connect(self.dbname)
             cur = db.cursor()
@@ -393,6 +394,21 @@ class VIC:
                 data += res
             cur.close()
             db.close()
+        # Now check for missing values in time series of each pixel
+        try:
+            assert len(data) == len(self.lat) * ndays
+        except AssertionError:
+            pdata = OrderedDict({d[0]: [] for d in data})
+            for d in data:
+                pdata[d[0]].append(d)
+            data = []
+            for gid in pdata:
+                dates = pd.to_datetime([d[1] for d in pdata[gid]], infer_datetime_format=True)
+                p = pd.Series([d[2] for d in pdata[gid]], dates)
+                if len(p) < ndays:
+                    p = p.reindex(pd.date_range(self.startdate, self.enddate)).interpolate(method='pad')
+                for t, v in p.iteritems():
+                    data.append([gid, t.date(), v])
         return data
 
     def writeForcings(self, prec, tmax, tmin, wind, lai=None):
@@ -487,12 +503,12 @@ class VIC:
                 prefix = set([outvars[v][0] for v in outdata.keys() if v not in droughtvars])
                 startdate = "{0}-{1}-{2}".format(self.startyear, self.startmonth, self.startday)
                 enddate = "{0}-{1}-{2}".format(self.endyear, self.endmonth, self.endday)
-                dates = pandas.date_range(startdate, enddate).values
+                dates = pd.date_range(startdate, enddate).values
                 for c in range(len(self.lat)):
                     pdata = {}
                     for p in prefix:
                         filename = "{0}/{1}_{2:.{4}f}_{3:.{4}f}".format(self.model_path, p, self.lat[c], self.lon[c], self.grid_decimal)
-                        pdata[p] = pandas.read_csv(filename, delim_whitespace=True, header=None).values
+                        pdata[p] = pd.read_csv(filename, delim_whitespace=True, header=None).values
                     i = int((max(self.lat) + self.res / 2.0 - self.lat[c]) / self.res)
                     j = int((self.lon[c] - min(self.lon) + self.res / 2.0) / self.res)
                     mask[i, j] = True
