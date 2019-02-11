@@ -38,7 +38,7 @@ def calcVCI(model, table="ndvi.modis"):
     if dbio.tableExists(model.dbname, table.split(".")[0], table.split(".")[1]):
         db = dbio.connect(model.dbname)
         cur = db.cursor()
-        cur.execute("drop table if exists ndvi_max, ndvi_min, ndvi_max_min")
+        cur.execute("drop table if exists ndvi_max, ndvi_min, ndvi_max_min, f1")
         db.commit()
         sql = "create table ndvi_max as (select st_union(rast, 'MAX') as rast from {0})".format(table)
         cur.execute(sql)
