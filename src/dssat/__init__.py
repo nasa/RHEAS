@@ -144,7 +144,7 @@ class DSSAT(object):
     def readVICOutputFromDB(self, gid, depths, harvest):
         """Read DSSAT inputs from database."""
         startdate = date(self.startyear, self.startmonth, self.startday)
-	if harvest is None:
+        if harvest is None:
             enddate = date(self.endyear, self.endmonth, self.endday)
         else:
             enddate = harvest
@@ -281,22 +281,14 @@ class DSSAT(object):
         """Writes soil moisture information file."""
         filename = "{0}/SOIL_MOISTURE.ASC".format(modelpath)
         fout = open(filename, 'w')
-        # ndays = (date(year[0] + 1, 1, 1) - date(year[0], 1, 1)).days
         ndays = (date(year[-1], month[-1], day[-1]) - date(year[0], month[0], day[0])).days + 1
-        # tv = 0
         for t in range(ndays):
-            # dt = date(year[0], 1, 1) + timedelta(t)
             dt = date(year[t], month[t], day[t])
             doy = int(dt.strftime("%j"))
             fout.write("{0:.0f} {1:.0f} {2:.0f} ".format(
                 dt.year, dt.month, dt.day))
-            # if tv < len(year) and dt == date(int(year[tv]), int(month[tv]), int(day[tv])):
             for lyr in range(len(dz)):
-                fout.write("{0:.3f} ".format(smi[tv, lyr]))
-                # tv += 1
-            # else:
-                # for lyr in range(len(dz)):
-                    # fout.write("{0:.0f} ".format(-9999.0))
+                fout.write("{0:.3f} ".format(smi[t, lyr]))
             fout.write("{0}\n".format(doy))
         fout.close()
 
@@ -371,12 +363,12 @@ class DSSAT(object):
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         sql = "select st_nearestvalue(rast,st_geomfromtext('POINT({0} {1})',4326)) as doy from crops.plantstart where type like '{2}' and st_intersects(rast,st_geomfromtext('POINT({0} {1})',4326)) order by doy".format(
-            lon, lat, crop)
+            lon, lat, self.crop)
         cur.execute(sql)
         results = cur.fetchall()
         # if this is a multi-year simulation append planting dates for each successive year
         plantdates = []
-        for yr in range(self.startyear, self.endyear+1):
+        for yr in range(self.startyear, self.endyear + 1):
             for r in results:
                 if r[0] is not None:
                     plantdates.append(date(yr, 1, 1) + timedelta(r[0] - 1))
@@ -428,7 +420,7 @@ class DSSAT(object):
         planting = self.planting(lat, lon)
         # FIXME: instead of 180 days perhaps use information from harvest dates to define the simulation end date?
         harvest_days = 180
-        year, month, day, weather, sm, vlai = self.readVICOutput(gid, depths, planting[-1]+timedelta(harvest_days))
+        year, month, day, weather, sm, vlai = self.readVICOutput(gid, depths, planting[-1] + timedelta(harvest_days))
         vicstartdt = date(year[0], month[0], day[0])
         for pi, pdt in enumerate(planting):
             self.copyModelFiles(geom, pi, dssatexe)
@@ -444,8 +436,8 @@ class DSSAT(object):
                 ti0 = [i for i in range(len(year)) if simstartdt == date(year[i], month[i], day[i])][0]
                 ti1 = ti0 + harvest_days
                 if ti1 > len(year):
-                    log.warning("Inadequate record legnth in VIC data to ensure harvest for {0} planting date! Plant will not reach maturity and yield values will be invalid. Please extent VIC simulation to at least {1}!".format(pdt.strftime("%Y-%m-%d"), (pdt+timedelta(harvest_days)).strftime("%Y-%m-%d")))
-                    ti1 = len(year)-1
+                    log.warning("Inadequate record legnth in VIC data to ensure harvest for {0} planting date! Plant will not reach maturity and yield values will be invalid. Please extent VIC simulation to at least {1}!".format(pdt.strftime("%Y-%m-%d"), (pdt + timedelta(harvest_days)).strftime("%Y-%m-%d")))
+                    ti1 = len(year) - 1
                 else:
                     self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c], ti0, ti1)
                     self.writeSoilMoist(modelpath, year, month, day, smi, dz)
@@ -498,9 +490,9 @@ class DSSAT(object):
                         data = line.split()
                         doy = int(data[1])
                         if startdt.timetuple().tm_yday > doy:
-                            dt = date(startdt.year + 1, 1, 1) + timedelta(doy-1)
+                            dt = date(startdt.year + 1, 1, 1) + timedelta(doy - 1)
                         else:
-                            dt = date(startdt.year, 1, 1) + timedelta(doy-1)
+                            dt = date(startdt.year, 1, 1) + timedelta(doy - 1)
                         dts = "{0}-{1}-{2}".format(dt.year, dt.month, dt.day)
                         if self.cultivars[gid][e] is None:
                             cultivar = ""
