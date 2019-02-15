@@ -10,7 +10,7 @@
 import numpy as np
 from dateutil.relativedelta import relativedelta
 import scipy.stats as stats
-from datetime import date
+from datetime import date, datetime
 import pandas
 import dbio
 import logging
@@ -179,30 +179,36 @@ def calcSRI(duration, model, ensemble):
         equery = "and ensemble={0}".format(ensemble)
     else:
         equery = ""
-    startdate = date(model.startyear + model.skipyear, model.startmonth, model.startday)
-    enddate = date(model.endyear, model.endmonth, model.endday)
-    nt = (enddate - startdate).days + 1
-    ndays = ((startdate + relativedelta(months=duration)) - startdate).days + 1
+    startdate = datetime(model.startyear + model.skipyear, model.startmonth, model.startday)
+    enddate = datetime(model.endyear, model.endmonth, model.endday)
+    dstartdate = enddate - relativedelta(months=duration)
+    db = dbio.connect(model.dbname)
+    cur = db.cursor()
+    sql = "select count(fdate) from {0}.runoff where fdate>=date'{1}' and fdate<=date'{2}' {3}".format(model.name, dstartdate.strftime("%Y-%m-%d"), enddate.strftime("%Y-%m-%d"), equery)
+    cur.execute(sql)
+    nt = cur.fetchone()[0]
+    ndays = (enddate - dstartdate).days + 1
     if duration < 1 or ndays > nt:
         log.warning("Cannot calculate SRI with {0} months duration.".format(duration))
         sri = None
     else:
         db = dbio.connect(model.dbname)
         cur = db.cursor()
-        sql = "select fdate,(ST_DumpValues(rast)).valarray from {0}.runoff where fdate>=date'{1}-{2}-{3}' and fdate<=date'{4}-{5}-{6}' {7} order by fdate".format(model.name, model.startyear, model.startmonth, model.startday, model.endyear, model.endmonth, model.endday, equery)
+        sql = "select fdate,(ST_DumpValues(rast)).valarray from {0}.runoff where fdate>=date'{1}' and fdate<=date'{2}' {3} order by fdate".format(model.name, dstartdate.strftime("%Y-%m-%d"), enddate.strftime("%Y-%m-%d"), equery)
         cur.execute(sql)
         results = cur.fetchall()
         data = np.array([np.array(r[1]).ravel() for r in results])
         i = np.where(np.not_equal(data[0, :], None))[0]
         p = pandas.DataFrame(data[:, i], index=np.array([r[0] for r in results], dtype='datetime64'), columns=range(len(i)))
+        t = np.where(p.index == startdate)[0][0]
         pm = p.rolling(duration*30).mean()  # assume each month is 30 days
         g = [stats.gamma.fit(pm[j][duration*30:]) for j in pm.columns]
         cdf = np.array([stats.gamma.cdf(pm[j], *g[j]) for j in pm.columns]).T
         sri = np.zeros(cdf.shape)
         sri[duration*30:, :] = stats.norm.ppf(cdf[duration*30:, :])
-        sri = _clipToValidRange(sri)
-        cur.close()
-        db.close()
+        sri = _clipToValidRange(sri)[t:]
+    cur.close()
+    db.close()
     return sri
 
 
@@ -214,31 +220,36 @@ def calcSPI(duration, model, ensemble):
         equery = "and ensemble={0}".format(ensemble)
     else:
         equery = ""
-    startdate = date(model.startyear + model.skipyear, model.startmonth, model.startday)
-    enddate = date(model.endyear, model.endmonth, model.endday)
-    nt = (enddate - startdate).days + 1
-    ndays = ((startdate + relativedelta(months=duration)) - startdate).days + 1
+    startdate = datetime(model.startyear + model.skipyear, model.startmonth, model.startday)
+    enddate = datetime(model.endyear, model.endmonth, model.endday)
+    # nt = (enddate - startdate).days + 1
+    dstartdate = enddate - relativedelta(months=duration)
+    db = dbio.connect(model.dbname)
+    cur = db.cursor()
+    sql = "select count(fdate) from {0}.rainf where fdate>=date'{1}' and fdate<=date'{2}' {3}".format(model.name, dstartdate.strftime("%Y-%m-%d"), enddate.strftime("%Y-%m-%d"), equery)
+    cur.execute(sql)
+    nt = cur.fetchone()[0]
+    ndays = (enddate - dstartdate).days + 1
     # tablename = "precip."+model.precip
     if duration < 1 or ndays > nt:
         log.warning("Cannot calculate SPI with {0} months duration.".format(duration))
         spi = None
     else:
-        db = dbio.connect(model.dbname)
-        cur = db.cursor()
-        sql = "select fdate,(ST_DumpValues(rast)).valarray from {0}.rainf where fdate>=date'{1}-{2}-{3}' and fdate<=date'{4}-{5}-{6}' {7} order by fdate".format(model.name, model.startyear, model.startmonth, model.startday, model.endyear, model.endmonth, model.endday, equery)
+        sql = "select fdate,(ST_DumpValues(rast)).valarray from {0}.rainf where fdate>=date'{1}' and fdate<=date'{2}' {3} order by fdate".format(model.name, dstartdate.strftime("%Y-%m-%d"), enddate.strftime("%Y-%m-%d"), equery)
         cur.execute(sql)
         results = cur.fetchall()
         data = np.array([np.array(r[1]).ravel() for r in results])
         i = np.where(np.not_equal(data[0, :], None))[0]
         p = pandas.DataFrame(data[:, i], index=np.array([r[0] for r in results], dtype='datetime64'), columns=range(len(i)))
+        t = np.where(p.index == startdate)[0][0]
         pm = p.rolling(duration*30).mean()  # assume each month is 30 days
         g = [stats.gamma.fit(pm[j][duration*30:]) for j in pm.columns]
         cdf = np.array([stats.gamma.cdf(pm[j], *g[j]) for j in pm.columns]).T
         spi = np.zeros(cdf.shape)
         spi[duration*30:, :] = stats.norm.ppf(cdf[duration*30:, :])
-        spi = _clipToValidRange(spi)
-        cur.close()
-        db.close()
+        spi = _clipToValidRange(spi)[t:]
+    cur.close()
+    db.close()
     return spi
 
 
