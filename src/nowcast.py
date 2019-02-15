@@ -177,17 +177,17 @@ def runDSSAT(dbname, options):
         assimilate = options['dssat']['assimilate']
     else:
         assimilate = "Y"
-    try:
-        crops = options['dssat']['crop'].split(",")
-        for crop in crops:
-            crop = crop.strip()
+    crops = options['dssat']['crop'].split(",")
+    for crop in crops:
+        crop = crop.strip()
+        try:
             mod = __import__("dssat.{0}".format(crop), fromlist=[crop])
+        except ImportError:
+            log.error("Error in crop selected. Cannot run nowcast for {}.".format(crop))
+        else:
             model = mod.Model(dbname, name, res, startyear, startmonth, startday,
                               endyear, endmonth, endday, nens, options['vic'], shapefile, assimilate)
             model.run()
-    except Exception:
-        log.error("Error in crop selected.")
-        sys.exit()
 
 
 def execute(dbname, options):

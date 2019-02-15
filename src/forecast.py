@@ -109,6 +109,7 @@ def initializeVIC(model, basin, res, voptions, vicexe):
 
 def runDSSAT(dbname, options):
     """Driver function for performing a DSSAT forecast simulation"""
+    log = logging.getLogger(__name__)
     startyear, startmonth, startday = map(
         int, options['forecast']['startdate'].split('-'))
     endyear, endmonth, endday = map(
@@ -124,9 +125,17 @@ def runDSSAT(dbname, options):
         assimilate = options['dssat']['assimilate']
     else:
         assimilate = "Y"
-    model = dssat.DSSAT(dbname, name, res, startyear, startmonth, startday,
-                        endyear, endmonth, endday, nens, options['vic'], shapefile, assimilate)
-    model.run()
+    crops = options['dssat']['crop'].split(",")
+    for crop in crops:
+        crop = crop.strip()
+        try:
+            mod = __import__("dssat.{0}".format(crop), fromlist=[crop])
+        except ImportError:
+            log.error("Error in crop selected. Cannot run forecast for {}.".format(crop))
+        else:
+            model = mod.Model(dbname, name, res, startyear, startmonth, startday,
+                              endyear, endmonth, endday, nens, options['vic'], shapefile, assimilate)
+            model.run()
 
 
 def execute(dbname, options):
