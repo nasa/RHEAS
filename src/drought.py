@@ -182,6 +182,8 @@ def calcSRI(duration, model, ensemble):
     startdate = datetime(model.startyear + model.skipyear, model.startmonth, model.startday)
     enddate = datetime(model.endyear, model.endmonth, model.endday)
     dstartdate = enddate - relativedelta(months=duration)
+    if dstartdate > startdate:
+        dstartdate = startdate
     db = dbio.connect(model.dbname)
     cur = db.cursor()
     sql = "select count(fdate) from {0}.runoff where fdate>=date'{1}' and fdate<=date'{2}' {3}".format(model.name, dstartdate.strftime("%Y-%m-%d"), enddate.strftime("%Y-%m-%d"), equery)
@@ -201,11 +203,11 @@ def calcSRI(duration, model, ensemble):
         i = np.where(np.not_equal(data[0, :], None))[0]
         p = pandas.DataFrame(data[:, i], index=np.array([r[0] for r in results], dtype='datetime64'), columns=range(len(i)))
         t = np.where(p.index == startdate)[0][0]
-        pm = p.rolling(duration*30).mean()  # assume each month is 30 days
-        g = [stats.gamma.fit(pm[j][duration*30:]) for j in pm.columns]
+        pm = p.rolling(duration * 30).mean()  # assume each month is 30 days
+        g = [stats.gamma.fit(pm[j][duration * 30:]) for j in pm.columns]
         cdf = np.array([stats.gamma.cdf(pm[j], *g[j]) for j in pm.columns]).T
         sri = np.zeros(cdf.shape)
-        sri[duration*30:, :] = stats.norm.ppf(cdf[duration*30:, :])
+        sri[duration * 30:, :] = stats.norm.ppf(cdf[duration * 30:, :])
         sri = _clipToValidRange(sri)[t:]
     cur.close()
     db.close()
@@ -222,8 +224,9 @@ def calcSPI(duration, model, ensemble):
         equery = ""
     startdate = datetime(model.startyear + model.skipyear, model.startmonth, model.startday)
     enddate = datetime(model.endyear, model.endmonth, model.endday)
-    # nt = (enddate - startdate).days + 1
     dstartdate = enddate - relativedelta(months=duration)
+    if dstartdate > startdate:
+        dstartdate = startdate
     db = dbio.connect(model.dbname)
     cur = db.cursor()
     sql = "select count(fdate) from {0}.rainf where fdate>=date'{1}' and fdate<=date'{2}' {3}".format(model.name, dstartdate.strftime("%Y-%m-%d"), enddate.strftime("%Y-%m-%d"), equery)
@@ -242,11 +245,11 @@ def calcSPI(duration, model, ensemble):
         i = np.where(np.not_equal(data[0, :], None))[0]
         p = pandas.DataFrame(data[:, i], index=np.array([r[0] for r in results], dtype='datetime64'), columns=range(len(i)))
         t = np.where(p.index == startdate)[0][0]
-        pm = p.rolling(duration*30).mean()  # assume each month is 30 days
-        g = [stats.gamma.fit(pm[j][duration*30:]) for j in pm.columns]
+        pm = p.rolling(duration * 30).mean()  # assume each month is 30 days
+        g = [stats.gamma.fit(pm[j][duration * 30:]) for j in pm.columns]
         cdf = np.array([stats.gamma.cdf(pm[j], *g[j]) for j in pm.columns]).T
         spi = np.zeros(cdf.shape)
-        spi[duration*30:, :] = stats.norm.ppf(cdf[duration*30:, :])
+        spi[duration * 30:, :] = stats.norm.ppf(cdf[duration * 30:, :])
         spi = _clipToValidRange(spi)[t:]
     cur.close()
     db.close()
