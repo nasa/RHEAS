@@ -475,41 +475,37 @@ class DSSAT(object):
         cur.execute(
             "select * from information_schema.tables where table_name='dssat' and table_schema='{0}'".format(self.name))
         if not bool(cur.rowcount):
-            cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
+            cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, harvest date, planting date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
             db.commit()
         # overwrite overlapping dates
-        cur.execute("delete from {0}.dssat where fdate>=date'{1}-{2}-{3}' and fdate<=date'{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
-        sql = "insert into {0}.dssat (fdate, gid, ensemble, gwad, wsgd, lai) values (%(dt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s)".format(self.name)
+        cur.execute("delete from {0}.dssat where planting>=date'{1}-{2}-{3}' and planting<=date'{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
+        sql = "insert into {0}.dssat (planting, harvest, gid, ensemble, gwad, wsgd, lai) values (%(pdt)s, %(hdt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s)".format(self.name)
         for gid, pi in self.modelpaths:
             modelpath = self.modelpaths[(gid, pi)]
-            startdt = self.modelstart[(gid, pi)]
             for e in range(self.nens):
-                with open("{0}/PLANTGRO{1:03d}.OUT".format(modelpath, e + 1)) as fin:
-                    line = fin.readline()
-                    while line.find("YEAR") < 0:
-                        line = fin.readline()
-                    for line in fin:
-                        data = line.split()
-                        doy = int(data[1])
-                        if startdt.timetuple().tm_yday > doy:
-                            dt = date(startdt.year + 1, 1, 1) + timedelta(doy - 1)
-                        else:
-                            dt = date(startdt.year, 1, 1) + timedelta(doy - 1)
-                        dts = "{0}-{1}-{2}".format(dt.year, dt.month, dt.day)
-                        if self.cultivars[gid][e] is None:
-                            cultivar = ""
-                        else:
-                            cultivar = self.cultivars[gid][e]
-                        if float(data[9]) > 0.0:
-                            cur.execute(sql, {'dt': dts, 'ens': e + 1, 'gwad': float(
-                                data[9]), 'wsgd': float(data[18]), 'lai': float(data[6]), 'gid': gid, 'cultivar': cultivar})
+                data = pd.read_csv("{0}/PLANTGRO{1:03d}.OUT".format(modelpath, e + 1), skiprows=10, delim_whitespace=True)
+                hvst = data.index[-1]  # assume that harvest occurred at last date of simulation
+                plnt = data.index[0]
+                year = data['@YEAR']
+                doy = data['DOY']
+                lai = data['LAID'][hvst]
+                gwad = data['GWAD'][hvst]
+                wsgd = data['WSGD'][hvst]
+                hdts = datetime.strptime("{0:04d}{1:03d}".format(year[hvst], doy[hvst]), "%Y%j").strftime("%Y-%m-%d")
+                pdts = datetime.strptime("{0:04d}{1:03d}".format(year[plnt], doy[plnt]), "%Y%j").strftime("%Y-%m-%d")
+                if self.cultivars[gid][e] is None:
+                    cultivar = ""
+                else:
+                    cultivar = self.cultivars[gid][e]
+                if gwad > 0:
+                    cur.execute(sql, {'pdt': pdts, 'hdt': hdts, 'ens': e + 1, 'gwad': gwad, 'wsgd': wsgd, 'lai': lai, 'gid': gid, 'cultivar': cultivar})
         cur.execute(
             "update {0}.dssat as d set geom = a.geom from {0}.agareas as a where a.gid=d.gid".format(self.name))
         db.commit()
         cur.execute("drop index if exists {0}.d_t".format(self.name))
         cur.execute("drop index if exists {0}.d_s".format(self.name))
         cur.execute(
-            "create index d_t on {0}.dssat(fdate)".format(self.name))
+            "create index d_t on {0}.dssat(planting)".format(self.name))
         cur.execute(
             "create index d_s on {0}.dssat using gist(geom)".format(self.name))
         db.commit()
@@ -519,22 +515,13 @@ class DSSAT(object):
 
     def yieldTable(self):
         """Create table for crop yield statistics."""
-        fsql = "with f as (select gid,geom,gwad,ensemble,fdate from (select gid,geom,gwad,ensemble,fdate,row_number() over (partition by gid,ensemble order by gwad desc) as rn from {0}.dssat) gwadtable where rn=1)".format(self.name)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
-        cur.execute(
-            "select * from information_schema.tables where table_name='yield' and table_schema='{0}'".format(self.name))
-        if not bool(cur.rowcount):
-            sql = "create table {0}.yield as ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
-            cur.execute(sql)
-            cur.execute("alter table {0}.yield add column crop text".format(self.name))
-            cur.execute("alter table {0}.yield add primary key (gid)".format(self.name))
-        else:
-            cur.execute("delete from {0}.yield where fdate>='{1}-{2}-{3}' and fdate<='{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
-            sql = "insert into {0}.yield ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
-            cur.execute(sql)
-        db.commit()
-        cur.execute("update {0}.yield set std_yield = 0 where std_yield is null".format(self.name))
+        if dbio.tableExists(self.dbname, self.name, "yield"):
+            cur.execute("drop table {0}.yield".format(self.name))
+        sql = "create table {0}.yield as (select gid, geom, planting, min(harvest) as first_harvest, max(harvest) as last_harvest, avg(gwad) as avg_yield, max(gwad) as max_yield, min(gwad) as min_yield, stddev(gwad) as std_yield from {0}.dssat group by gid,geom,planting)".format(self.name)
+        cur.execute(sql)
+        cur.execute("alter table {0}.yield add column crop text".format(self.name))
         cur.execute("drop index if exists {0}.yield_s".format(self.name))
         db.commit()
         cur.execute("create index yield_s on {0}.yield using gist(geom)".format(self.name))
