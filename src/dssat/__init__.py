@@ -17,8 +17,9 @@ import os
 import shutil
 import distutils.core
 import numpy as np
+import pandas as pd
 import subprocess
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import string
 
 
@@ -239,17 +240,20 @@ class DSSAT(object):
             sys.exit()
         return year, month, day, weather, sm, lai
 
-    def writeLAI(self, modelpath, gid, year, month, day, viclai=None, tablename="lai.modis"):
+    def writeLAI(self, modelpath, gid, year, month, day, ts=None, te=None, viclai=None, tablename="lai.modis"):
         """Writes LAI file for DSSAT."""
         fout = open("{0}/LAI.txt".format(modelpath), 'w')
+        if ts is None or te is None:
+            ts = 0
+            te = len(year)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
         cur.execute("select * from information_schema.tables where table_name=%s and table_schema='lai'",
                     (tablename.split(".")[1],))
         if bool(cur.rowcount) and not self.lai == "vic":
-            sql = "select fdate,avg((st_summarystats(st_clip(rast,geom))).mean) from {0},{1}.agareas where st_intersects(rast,geom) and fdate>=date '{2}-{3}-{4}' and fdate<=date '{5}-{6}-{7}' and gid={8} group by fdate".format(
-                # tablename, self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday, gid)
-                tablename, self.name, year[0], month[0], day[0], year[-1], month[-1], day[-1], gid)
+            dt1 = date(year[ts], month[ts], day[ts])
+            dt2 = date(year[te-1], month[te-1], day[te-1])
+            sql = "select fdate,avg((st_summarystats(st_clip(rast,geom))).mean) from {0},{1}.agareas where st_intersects(rast,geom) and fdate>=date '{2}' and fdate<=date '{3}' and gid={4} group by fdate".format(tablename, self.name, dt1.strftime("%Y-%m-%d"), dt2.strftime("%Y-%m-%d"), gid)
             cur.execute(sql)
             if bool(cur.rowcount):
                 results = cur.fetchall()
@@ -263,11 +267,7 @@ class DSSAT(object):
                 lai = {}
         else:
             lai = viclai
-        # enddate = date(self.endyear, 12, 31)
-        # startdate = date(self.startyear, 1, 1)
-        # for t in range((enddate - startdate).days + 1):
-        for t in range(len(year)):
-            # dt = startdate + timedelta(t)
+        for t in range(ts, te):
             dt = date(year[t], month[t], day[t])
             if lai is not None and dt in lai:
                 fout.write("{0:.1f}\n".format(lai[dt]))
@@ -277,12 +277,14 @@ class DSSAT(object):
         cur.close()
         db.close()
 
-    def writeSoilMoist(self, modelpath, year, month, day, smi, dz):
+    def writeSoilMoist(self, modelpath, year, month, day, smi, dz, ts=None, te=None):
         """Writes soil moisture information file."""
         filename = "{0}/SOIL_MOISTURE.ASC".format(modelpath)
         fout = open(filename, 'w')
-        ndays = (date(year[-1], month[-1], day[-1]) - date(year[0], month[0], day[0])).days + 1
-        for t in range(ndays):
+        if ts is None or te is None:
+            ts = 0
+            te = len(smi)
+        for t in range(ts, te):
             dt = date(year[t], month[t], day[t])
             doy = int(dt.strftime("%j"))
             fout.write("{0:.0f} {1:.0f} {2:.0f} ".format(
@@ -318,11 +320,11 @@ class DSSAT(object):
         fout.write("!Start_DOY_of_Simulation:\n{0}\n".format(
             int(startdate.strftime("%j"))))
         fout.write("!End_DOY_of_Simulation\n{0}\n".format(
-            int(enddate.strftime("%j"))))
+            int(enddate.strftime("%j"))-1))
         fout.write("!Year_of_Simulation:\n{0}\n".format(startdate.year))
         fout.write("!Ensemble_members\n{0}\n".format(self.nens))
         fout.write("!Number_of_soil_layers\n{0}\n".format(nlayers))
-        ndays = (date(self.endyear, 12, 31) - date(self.startyear, 1, 1)).days
+        ndays = (enddate - startdate).days
         fout.write("!Number_of_RS_data\n{0}".format(ndays))
         fout.close()
         return configfilename
@@ -440,8 +442,8 @@ class DSSAT(object):
                     ti1 = len(year) - 1
                 else:
                     self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c], ti0, ti1)
-                    self.writeSoilMoist(modelpath, year, month, day, smi, dz)
-                    self.writeLAI(modelpath, gid, year, month, day, viclai=vlai)
+                    self.writeSoilMoist(modelpath, year, month, day, smi, dz, ti0, ti1)
+                    self.writeLAI(modelpath, gid, year, month, day, ti0, ti1, viclai=vlai)
                     self.writeConfigFile(modelpath, smi.shape[1], simstartdt, date(year[ti1], month[ti1], day[ti1]))
                     log.info("Wrote DSSAT for planting date {0}".format(pdt.strftime("%Y-%m-%d")))
             except AssertionError:
@@ -473,41 +475,37 @@ class DSSAT(object):
         cur.execute(
             "select * from information_schema.tables where table_name='dssat' and table_schema='{0}'".format(self.name))
         if not bool(cur.rowcount):
-            cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, fdate date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
+            cur.execute("create table {0}.dssat (id serial primary key, gid int, ensemble int, harvest date, planting date, wsgd real, lai real, gwad real, geom geometry, CONSTRAINT enforce_dims_geom CHECK (st_ndims(geom) = 2), CONSTRAINT enforce_geotype_geom CHECK (geometrytype(geom) = 'POLYGON'::text OR geometrytype(geom) = 'MULTIPOLYGON'::text OR geom IS NULL))".format(self.name))
             db.commit()
         # overwrite overlapping dates
-        cur.execute("delete from {0}.dssat where fdate>=date'{1}-{2}-{3}' and fdate<=date'{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
-        sql = "insert into {0}.dssat (fdate, gid, ensemble, gwad, wsgd, lai) values (%(dt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s)".format(self.name)
+        cur.execute("delete from {0}.dssat where planting>=date'{1}-{2}-{3}' and planting<=date'{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
+        sql = "insert into {0}.dssat (planting, harvest, gid, ensemble, gwad, wsgd, lai) values (%(pdt)s, %(hdt)s, %(gid)s, %(ens)s, %(gwad)s, %(wsgd)s, %(lai)s)".format(self.name)
         for gid, pi in self.modelpaths:
             modelpath = self.modelpaths[(gid, pi)]
-            startdt = self.modelstart[(gid, pi)]
             for e in range(self.nens):
-                with open("{0}/PLANTGRO{1:03d}.OUT".format(modelpath, e + 1)) as fin:
-                    line = fin.readline()
-                    while line.find("YEAR") < 0:
-                        line = fin.readline()
-                    for line in fin:
-                        data = line.split()
-                        doy = int(data[1])
-                        if startdt.timetuple().tm_yday > doy:
-                            dt = date(startdt.year + 1, 1, 1) + timedelta(doy - 1)
-                        else:
-                            dt = date(startdt.year, 1, 1) + timedelta(doy - 1)
-                        dts = "{0}-{1}-{2}".format(dt.year, dt.month, dt.day)
-                        if self.cultivars[gid][e] is None:
-                            cultivar = ""
-                        else:
-                            cultivar = self.cultivars[gid][e]
-                        if float(data[9]) > 0.0:
-                            cur.execute(sql, {'dt': dts, 'ens': e + 1, 'gwad': float(
-                                data[9]), 'wsgd': float(data[18]), 'lai': float(data[6]), 'gid': gid, 'cultivar': cultivar})
+                data = pd.read_csv("{0}/PLANTGRO{1:03d}.OUT".format(modelpath, e + 1), skiprows=10, delim_whitespace=True)
+                hvst = data.index[-1]  # assume that harvest occurred at last date of simulation
+                plnt = data.index[0]
+                year = data['@YEAR']
+                doy = data['DOY']
+                lai = data['LAID'][hvst]
+                gwad = data['GWAD'][hvst]
+                wsgd = data['WSGD'][hvst]
+                hdts = datetime.strptime("{0:04d}{1:03d}".format(year[hvst], doy[hvst]), "%Y%j").strftime("%Y-%m-%d")
+                pdts = datetime.strptime("{0:04d}{1:03d}".format(year[plnt], doy[plnt]), "%Y%j").strftime("%Y-%m-%d")
+                if self.cultivars[gid][e] is None:
+                    cultivar = ""
+                else:
+                    cultivar = self.cultivars[gid][e]
+                if gwad > 0:
+                    cur.execute(sql, {'pdt': pdts, 'hdt': hdts, 'ens': e + 1, 'gwad': gwad, 'wsgd': wsgd, 'lai': lai, 'gid': gid, 'cultivar': cultivar})
         cur.execute(
             "update {0}.dssat as d set geom = a.geom from {0}.agareas as a where a.gid=d.gid".format(self.name))
         db.commit()
         cur.execute("drop index if exists {0}.d_t".format(self.name))
         cur.execute("drop index if exists {0}.d_s".format(self.name))
         cur.execute(
-            "create index d_t on {0}.dssat(fdate)".format(self.name))
+            "create index d_t on {0}.dssat(planting)".format(self.name))
         cur.execute(
             "create index d_s on {0}.dssat using gist(geom)".format(self.name))
         db.commit()
@@ -517,22 +515,13 @@ class DSSAT(object):
 
     def yieldTable(self):
         """Create table for crop yield statistics."""
-        fsql = "with f as (select gid,geom,gwad,ensemble,fdate from (select gid,geom,gwad,ensemble,fdate,row_number() over (partition by gid,ensemble order by gwad desc) as rn from {0}.dssat) gwadtable where rn=1)".format(self.name)
         db = dbio.connect(self.dbname)
         cur = db.cursor()
-        cur.execute(
-            "select * from information_schema.tables where table_name='yield' and table_schema='{0}'".format(self.name))
-        if not bool(cur.rowcount):
-            sql = "create table {0}.yield as ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
-            cur.execute(sql)
-            cur.execute("alter table {0}.yield add column crop text".format(self.name))
-            cur.execute("alter table {0}.yield add primary key (gid)".format(self.name))
-        else:
-            cur.execute("delete from {0}.yield where fdate>='{1}-{2}-{3}' and fdate<='{4}-{5}-{6}'".format(self.name, self.startyear, self.startmonth, self.startday, self.endyear, self.endmonth, self.endday))
-            sql = "insert into {0}.yield ({1} select gid,geom,max(gwad) as max_yield,avg(gwad) as avg_yield,stddev(gwad) as std_yield,max(fdate) as fdate from f group by gid,geom)".format(self.name, fsql)
-            cur.execute(sql)
-        db.commit()
-        cur.execute("update {0}.yield set std_yield = 0 where std_yield is null".format(self.name))
+        if dbio.tableExists(self.dbname, self.name, "yield"):
+            cur.execute("drop table {0}.yield".format(self.name))
+        sql = "create table {0}.yield as (select gid, geom, planting, min(harvest) as first_harvest, max(harvest) as last_harvest, avg(gwad) as avg_yield, max(gwad) as max_yield, min(gwad) as min_yield, stddev(gwad) as std_yield from {0}.dssat group by gid,geom,planting)".format(self.name)
+        cur.execute(sql)
+        cur.execute("alter table {0}.yield add column crop text".format(self.name))
         cur.execute("drop index if exists {0}.yield_s".format(self.name))
         db.commit()
         cur.execute("create index yield_s on {0}.yield using gist(geom)".format(self.name))
