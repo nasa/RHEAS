@@ -10,17 +10,16 @@
 import logging
 import tempfile
 import decimal
-import dbio
-import rpath
+import subprocess
 import sys
 import os
 import shutil
 import distutils.core
+from datetime import date, timedelta, datetime
 import numpy as np
 import pandas as pd
-import subprocess
-from datetime import date, timedelta, datetime
-import string
+import dbio
+import rpath
 
 
 class DSSAT(object):
@@ -172,8 +171,7 @@ class DSSAT(object):
             cur.execute(sql)
             if bool(cur.rowcount):
                 sqlvars += ["layer"]
-            sql = "select {0}, avg((st_summarystats(rast)).mean) from {1}.{2}, {1}.agareas where st_intersects(rast,geom) and gid={3} and {4} group by gid,{0} order by fdate".format(
-                string.join(sqlvars, ","), self.name, varname, gid, date_sql)
+            sql = "select {0}, avg((st_summarystats(rast)).mean) from {1}.{2}, {1}.agareas where st_intersects(rast,geom) and gid={3} and {4} group by gid,{0} order by fdate".format(",".join(sqlvars), self.name, varname, gid, date_sql)
             cur.execute(sql)
             if bool(cur.rowcount):
                 results = cur.fetchall()
@@ -483,7 +481,7 @@ class DSSAT(object):
         for gid, pi in self.modelpaths:
             modelpath = self.modelpaths[(gid, pi)]
             for e in range(self.nens):
-                data = pd.read_csv("{0}/PLANTGRO{1:03d}.OUT".format(modelpath, e + 1), skiprows=10, delim_whitespace=True)
+                data = pd.read_csv("{0}/PLANTGRO{1:03d}.OUT".format(modelpath, e + 1), delim_whitespace=True)
                 hvst = data.index[-1]  # assume that harvest occurred at last date of simulation
                 plnt = data.index[0]
                 year = data['@YEAR']
