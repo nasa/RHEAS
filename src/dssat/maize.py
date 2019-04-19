@@ -177,7 +177,7 @@ class Model(DSSAT):
             dz = map(lambda ln: float(ln.split()[0]), profiles[ens].split("\n")[3:-1])
             smi = self.interpolateSoilMoist(sm, depths, dz)
             cultivar = self.cultivar(ens, gid)
-            filename = "{0}/DSSAT40_{1:03d}.INP" .format(modelpath, ens + 1)
+            filename = "{0}/DSSAT_{1:03d}.INP" .format(modelpath, ens + 1)
             with open(filename, 'w') as fout:
                 self._writeFileNames(fout, ens)
                 self._writeSimulationControl(fout, startdate)
