@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cd `dirname $0` && cd ..
+git fetch && git pull && ./bin/buildout install paths
