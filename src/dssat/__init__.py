@@ -420,16 +420,16 @@ class DSSAT(object):
         planting = self.planting(lat, lon)
         # FIXME: instead of 180 days perhaps use information from harvest dates to define the simulation end date?
         harvest_days = 180
-        year, month, day, weather, sm, vlai = self.readVICOutput(gid, depths, planting[-1] + timedelta(harvest_days))
+        # we will start the simulation 7 days before the first planting date if possible
+        simstartdt = planting[0] - timedelta(7)
+        year, month, day, weather, sm, vlai = self.readVICOutput(gid, depths, simstartdt, planting[-1] + timedelta(harvest_days))
         vicstartdt = date(year[0], month[0], day[0])
         for pi, pdt in enumerate(planting):
-            self.copyModelFiles(geom, pi, dssatexe)
-            try:
-                if pdt > date(pdt.year, 1, 8):
-                    simstartdt = pdt - timedelta(7)
-                else:
-                    simstartdt = pdt
-                assert simstartdt >= vicstartdt
+            if (pdt - vicstartdt).days < 0:
+                log.warning("Cannot perform simulation for planting date {0}. Earliest available VIC output is on {1}".format(pdt.strftime("%Y-%m-%d"), vicstartdt.strftime("%Y-%m-%d")))
+            else:
+                simstartdt = max(vicstartdt, pdt - timedelta(7))
+                self.copyModelFiles(geom, pi, dssatexe)
                 modelpath = self.modelpaths[(gid, pi)]
                 self.modelstart[(gid, pi)] = simstartdt
                 dz, smi = self.writeControlFile(modelpath, sm, depths, simstartdt, gid, self.lat[c], self.lon[c], pdt, None, None)
