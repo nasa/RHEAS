@@ -154,7 +154,7 @@ class Ensemble:
             return write_wrapper
         for e in range(self.nens):
             model = self.models[e]
-            if getattr(model.writeToDB, 'func_name') is not 'write_wrapper':
+            if getattr(model.writeToDB, 'func_name') != 'write_wrapper':
                 # decorate function to add ensemble information
                 model.writeToDB = ensembleTable(model.writeToDB, e + 1)
             if saveto == "db":
