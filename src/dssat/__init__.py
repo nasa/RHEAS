@@ -141,9 +141,12 @@ class DSSAT(object):
                         for i in range(len(year)) if i in tidx], vicsr[:, 12]))
         return year[tidx], month[tidx], day[tidx], weather[tidx, :], sm[tidx, :], lai
 
-    def readVICOutputFromDB(self, gid, depths, harvest):
+    def readVICOutputFromDB(self, gid, depths, planting, harvest):
         """Read DSSAT inputs from database."""
-        startdate = date(self.startyear, self.startmonth, self.startday)
+        if planting is None:
+            startdate = date(self.startyear, self.startmonth, self.startday)
+        else:
+            startdate = planting
         if harvest is None:
             enddate = date(self.endyear, self.endmonth, self.endday)
         else:
@@ -178,14 +181,14 @@ class DSSAT(object):
                 if "ensemble" in sqlvars:
                     vicnens = np.max([r[1] for r in results])
                     data[varname] = [np.array(
-                        [r[-1] for r in results if r[1] == ens + 1]) for ens in range(vicnens)]
+                        [r[-1] for r in results if r[1] == ens + 1 or r[1] == 0]) for ens in range(vicnens)]
                     if "layer" in sqlvars:
-                        layers = np.array([r[2] for r in results if r[1] == 1])
+                        layers = np.array([r[2] for r in results if r[1] == 1 or r[1] == 0])
                         nlayers = np.max(layers)
                     else:
-                        year = np.array([r[0].year for r in results if r[1] == 1])
-                        month = np.array([r[0].month for r in results if r[1] == 1])
-                        day = np.array([r[0].day for r in results if r[1] == 1])
+                        year = np.array([r[0].year for r in results if r[1] == 1 or r[1] == 0])
+                        month = np.array([r[0].month for r in results if r[1] == 1 or r[1] == 0])
+                        day = np.array([r[0].day for r in results if r[1] == 1 or r[1] == 0])
                 else:
                     data[varname] = np.array([r[-1] for r in results])
                     if "layer" in sqlvars:
@@ -195,7 +198,7 @@ class DSSAT(object):
                         year = np.array([r[0].year for r in results])
                         month = np.array([r[0].month for r in results])
                         day = np.array([r[0].day for r in results])
-                assert len(year) == ndays and len(month) == ndays and len(day) == ndays
+                # assert len(year) == ndays and len(month) == ndays and len(day) == ndays
         cur.close()
         db.close()
         if "ensemble" in sqlvars:
@@ -221,7 +224,7 @@ class DSSAT(object):
                     data["soil_moist"]) if layers[mi] == l + 1]
         return year, month, day, weather, sm, lai
 
-    def readVICOutput(self, gid, depths, harvest=None):
+    def readVICOutput(self, gid, depths, planting=None, harvest=None):
         """Reads DSSAT time-varying inputs by reading either from files or a database."""
         log = logging.getLogger(__name__)
         if isinstance(self.datafrom, list):
@@ -232,7 +235,7 @@ class DSSAT(object):
             lat, lon = self.gid[gid]
         if self.datafrom == 'db':
             year, month, day, weather, sm, lai = self.readVICOutputFromDB(
-                gid, depths, harvest)
+                gid, depths, planting, harvest)
         else:
             log.error("VIC output was not saved in the database. Cannot proceed with the DSSAT simulation.")
             sys.exit()
@@ -376,8 +379,17 @@ class DSSAT(object):
         db.close()
         startdt = date(self.startyear, self.startmonth, self.startday)
         planting = [p for p in plantdates if p >= startdt and p <= date(self.endyear, self.endmonth, self.endday)]
-        if planting is []:
-            planting = [plantdates[np.argmax([(t - startdt).days for t in plantdates if (t - startdt).days < 0])]]
+        # with the exception of no planting dates satisfying that condition (e.g. short-term forecasts)
+        # in that case, we will find the closest past date to the simulation start date
+        aplant = []
+        sdt = int(startdt.strftime('%j'))
+        for r in results:
+            if r[0] is not None:
+                if r[0] > sdt:
+                    aplant.append(date(startdt.year-1, 1, 1) + timedelta(r[0] - 1))
+                else:
+                    aplant.append(date(startdt.year, 1, 1) + timedelta(r[0] - 1))
+        planting = [max(aplant)] + planting
         return planting
 
     def interpolateSoilMoist(self, sm, depths, dz):
@@ -438,14 +450,11 @@ class DSSAT(object):
                 if ti1 > len(year):
                     log.warning("Inadequate record legnth in VIC data to ensure harvest for {0} planting date! Plant will not reach maturity and yield values will be invalid. Please extent VIC simulation to at least {1}!".format(pdt.strftime("%Y-%m-%d"), (pdt + timedelta(harvest_days)).strftime("%Y-%m-%d")))
                     ti1 = len(year) - 1
-                else:
-                    self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c], ti0, ti1)
-                    self.writeSoilMoist(modelpath, year, month, day, smi, dz, ti0, ti1)
-                    self.writeLAI(modelpath, gid, year, month, day, ti0, ti1, viclai=vlai)
-                    self.writeConfigFile(modelpath, smi.shape[1], simstartdt, date(year[ti1], month[ti1], day[ti1]))
-                    log.info("Wrote DSSAT for planting date {0}".format(pdt.strftime("%Y-%m-%d")))
-            except AssertionError:
-                log.error("No input data for DSSAT corresponding to starting date {0}. Need to run VIC for these dates. Exiting...".format(simstartdt.strftime('%Y-%m-%d')))
+                self.writeWeatherFiles(modelpath, self.name, year, month, day, weather, self.elev[c], self.lat[c], self.lon[c], ti0, ti1)
+                self.writeSoilMoist(modelpath, year, month, day, smi, dz, ti0, ti1)
+                self.writeLAI(modelpath, gid, year, month, day, ti0, ti1, viclai=vlai)
+                self.writeConfigFile(modelpath, smi.shape[1], simstartdt, date(year[ti1], month[ti1], day[ti1]))
+                log.info("Wrote DSSAT for planting date {0}".format(pdt.strftime("%Y-%m-%d")))
 
     def runModelInstance(self, modelpath, dssatexe):
         """Runs DSSAT model instance."""
