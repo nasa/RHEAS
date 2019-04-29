@@ -224,7 +224,7 @@ def calcSPI(duration, model, ensemble):
         equery = ""
     startdate = datetime(model.startyear + model.skipyear, model.startmonth, model.startday)
     enddate = datetime(model.endyear, model.endmonth, model.endday)
-    dstartdate = enddate - relativedelta(months=duration)
+    dstartdate = startdate - relativedelta(months=duration)
     if dstartdate > startdate:
         dstartdate = startdate
     db = dbio.connect(model.dbname)
