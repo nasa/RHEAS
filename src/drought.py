@@ -50,7 +50,10 @@ def calcVCI(model, table="ndvi.modis"):
         sql = "create table f1 as (select fdate, st_mapalgebra(f.rast, 1, min.rast, 1, '[rast1]-[rast2]') as rast from {0} as f, ndvi_min as min where fdate>=date'{1}' and fdate<=date'{2}' group by fdate,f.rast,min.rast)".format(table, sdate, edate)
         cur.execute(sql)
         db.commit()
-        sql = "create table {0}.vci as (select fdate, st_mapalgebra(f1.rast, 1, mm.rast, 1, '[rast1]/([rast2]+0.0001)') as rast from f1, ndvi_max_min as mm group by fdate,f1.rast,mm.rast)".format(model.name)
+        if dbio.tableExists(model.dbname, model.name, "vci"):
+            sql = "insert into {0}.vci (fdate, rast) select fdate, st_mapalgebra(f1.rast, 1, mm.rast, 1, '[rast1]/([rast2]+0.0001)') as rast from f1, ndvi_max_min as mm group by fdate,f1.rast,mm.rast".format(model.name)
+        else:
+            sql = "create table {0}.vci as (select fdate, st_mapalgebra(f1.rast, 1, mm.rast, 1, '[rast1]/([rast2]+0.0001)') as rast from f1, ndvi_max_min as mm group by fdate,f1.rast,mm.rast)".format(model.name)
         cur.execute(sql)
         db.commit()
         cur.execute("drop table ndvi_max")
@@ -181,7 +184,7 @@ def calcSRI(duration, model, ensemble):
         equery = ""
     startdate = datetime(model.startyear + model.skipyear, model.startmonth, model.startday)
     enddate = datetime(model.endyear, model.endmonth, model.endday)
-    dstartdate = enddate - relativedelta(months=duration)
+    dstartdate = startdate - relativedelta(months=duration)
     if dstartdate > startdate:
         dstartdate = startdate
     db = dbio.connect(model.dbname)
