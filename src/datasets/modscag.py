@@ -23,8 +23,8 @@ import logging
 
 
 table = "snow.modscag"
-username = "akostas"
-password = "m0red@7@!"
+username = None
+password = None
 
 
 def dates(dbname):
